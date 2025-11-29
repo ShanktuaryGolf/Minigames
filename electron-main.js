@@ -11,7 +11,6 @@ let launchMonitorSocket = null;
 let isListening = false;
 let hasReceivedData = false;
 let lastDataTime = null;
-let launchMonitorReady = false; // Track ready state
 
 // GSPro Connect Configuration
 const GSPRO_PORT = 921;
@@ -298,6 +297,25 @@ function startGSProServer() {
                     console.log('=== MESSAGE RECEIVED ===');
                     console.log('DeviceID:', parsed.DeviceID || 'N/A');
                     console.log('ShotNumber:', parsed.ShotNumber || 'N/A');
+
+                    // Extract and broadcast launch monitor status
+                    if (parsed.ShotDataOptions) {
+                        const lmStatus = {
+                            isReady: parsed.ShotDataOptions.LaunchMonitorIsReady,
+                            ballDetected: parsed.ShotDataOptions.LaunchMonitorBallDetected
+                        };
+
+                        console.log('📡 Launch Monitor Status:');
+                        console.log('  IsReady:', lmStatus.isReady);
+                        console.log('  BallDetected:', lmStatus.ballDetected);
+
+                        // Send status to all windows
+                        BrowserWindow.getAllWindows().forEach(window => {
+                            if (window && !window.isDestroyed()) {
+                                window.webContents.send('launch-monitor-status', lmStatus);
+                            }
+                        });
+                    }
 
                     // Handle shot data
                     if (parsed.BallData && parsed.ShotDataOptions?.ContainsBallData) {
@@ -599,42 +617,3 @@ ipcMain.handle('quit-and-install', () => {
     return true;
 });
 
-// Toggle launch monitor ready state
-ipcMain.handle('toggle-launch-monitor-ready', () => {
-    launchMonitorReady = !launchMonitorReady;
-
-    console.log('\n════════════════════════════════════════');
-    console.log('🔄 TOGGLE READY STATE');
-    console.log(`  New State: ${launchMonitorReady ? '🟢 READY' : '🔴 NOT READY'}`);
-    console.log(`  Socket Connected: ${launchMonitorSocket ? 'YES' : 'NO'}`);
-
-    if (launchMonitorSocket) {
-        const readyMessage = {
-            DeviceID: "ShanktuaryGolf",
-            ShotDataOptions: {
-                LaunchMonitorIsReady: launchMonitorReady
-            }
-        };
-
-        console.log('  Message to send:', JSON.stringify(readyMessage));
-        console.log(`  Socket address: ${launchMonitorSocket.remoteAddress}:${launchMonitorSocket.remotePort}`);
-        console.log(`  Socket writable: ${launchMonitorSocket.writable}`);
-
-        try {
-            const jsonString = JSON.stringify(readyMessage);
-            launchMonitorSocket.write(jsonString);
-            console.log(`  ✅ Successfully sent ${jsonString.length} bytes to launch monitor`);
-            console.log('  Raw packet:', jsonString);
-        } catch (err) {
-            console.error('  ❌ Error sending ready state:', err.message);
-            console.error('  Error details:', err);
-        }
-    } else {
-        console.warn('  ⚠️ No launch monitor connected - cannot send ready state');
-        console.warn('  Tip: Connect your launch monitor first, then toggle ready state');
-    }
-
-    console.log('════════════════════════════════════════\n');
-
-    return { ready: launchMonitorReady, socketConnected: launchMonitorSocket !== null };
-});

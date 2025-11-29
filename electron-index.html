@@ -375,8 +375,19 @@
             <span>Connecting to Launch Monitor...</span>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <button id="toggleReadyBtn" onclick="toggleLaunchMonitorReady()" style="background: rgba(239, 68, 68, 0.3); border: 2px solid #ef4444; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">🔴 Not Ready</button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Launch Monitor Status Indicators -->
+            <div style="display: flex; gap: 10px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                <div id="lmReadyIndicator" style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #6b7280;"></div>
+                    <span style="color: #9ca3af;">LM Ready: Unknown</span>
+                </div>
+                <div id="lmBallIndicator" style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #6b7280;"></div>
+                    <span style="color: #9ca3af;">Ball: Unknown</span>
+                </div>
+            </div>
+
             <button onclick="toggleDebugPanel()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">🔍 Debug</button>
             <button onclick="showGraphicsSettings()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">🎨 Graphics</button>
             <button onclick="showCalibrationWizard()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px;">⚙️ Calibrate</button>
@@ -1233,37 +1244,56 @@
             if (elem) elem.textContent = value;
         }
 
-        // Toggle launch monitor ready state
-        let launchMonitorReady = false;
-        async function toggleLaunchMonitorReady() {
-            console.log('🔄 Toggle Ready button clicked');
-            console.log('  Current state:', launchMonitorReady ? 'READY' : 'NOT READY');
+        // Launch Monitor Status Indicators
+        function updateLaunchMonitorStatus(status) {
+            console.log('📡 Launch Monitor Status Update:', status);
 
-            const result = await window.electronAPI.toggleLaunchMonitorReady();
-            launchMonitorReady = result.ready;
-
-            console.log('  New state:', launchMonitorReady ? 'READY' : 'NOT READY');
-            console.log('  Socket connected:', result.socketConnected);
-
-            const btn = document.getElementById('toggleReadyBtn');
-            if (launchMonitorReady) {
-                btn.style.background = 'rgba(34, 197, 94, 0.3)';
-                btn.style.border = '2px solid #22c55e';
-                btn.textContent = '🟢 Ready';
-                console.log('✅ Button updated to READY (green)');
-            } else {
-                btn.style.background = 'rgba(239, 68, 68, 0.3)';
-                btn.style.border = '2px solid #ef4444';
-                btn.textContent = '🔴 Not Ready';
-                console.log('✅ Button updated to NOT READY (red)');
+            // Update Ready Indicator
+            const readyIndicator = document.getElementById('lmReadyIndicator');
+            if (readyIndicator) {
+                const dot = readyIndicator.querySelector('div');
+                const text = readyIndicator.querySelector('span');
+                if (status.isReady === true) {
+                    dot.style.background = '#22c55e'; // Green
+                    text.textContent = 'LM Ready: Yes';
+                    text.style.color = '#22c55e';
+                } else if (status.isReady === false) {
+                    dot.style.background = '#ef4444'; // Red
+                    text.textContent = 'LM Ready: No';
+                    text.style.color = '#ef4444';
+                } else {
+                    dot.style.background = '#6b7280'; // Gray
+                    text.textContent = 'LM Ready: Unknown';
+                    text.style.color = '#9ca3af';
+                }
             }
 
-            if (!result.socketConnected) {
-                console.warn('⚠️ No socket connected - showing alert');
-                alert('Launch monitor not connected! Connect your launch monitor first.');
-            } else {
-                console.log('✅ Packet sent to launch monitor successfully');
+            // Update Ball Detected Indicator
+            const ballIndicator = document.getElementById('lmBallIndicator');
+            if (ballIndicator) {
+                const dot = ballIndicator.querySelector('div');
+                const text = ballIndicator.querySelector('span');
+                if (status.ballDetected === true) {
+                    dot.style.background = '#22c55e'; // Green
+                    text.textContent = 'Ball: Detected';
+                    text.style.color = '#22c55e';
+                } else if (status.ballDetected === false) {
+                    dot.style.background = '#ef4444'; // Red
+                    text.textContent = 'Ball: No';
+                    text.style.color = '#ef4444';
+                } else {
+                    dot.style.background = '#6b7280'; // Gray
+                    text.textContent = 'Ball: Unknown';
+                    text.style.color = '#9ca3af';
+                }
             }
+        }
+
+        // Listen for launch monitor status updates
+        if (window.electronAPI && window.electronAPI.onLaunchMonitorStatus) {
+            window.electronAPI.onLaunchMonitorStatus((status) => {
+                updateLaunchMonitorStatus(status);
+            });
         }
 
         // Toggle debug panel
