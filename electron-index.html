@@ -1236,22 +1236,33 @@
         // Toggle launch monitor ready state
         let launchMonitorReady = false;
         async function toggleLaunchMonitorReady() {
+            console.log('🔄 Toggle Ready button clicked');
+            console.log('  Current state:', launchMonitorReady ? 'READY' : 'NOT READY');
+
             const result = await window.electronAPI.toggleLaunchMonitorReady();
             launchMonitorReady = result.ready;
+
+            console.log('  New state:', launchMonitorReady ? 'READY' : 'NOT READY');
+            console.log('  Socket connected:', result.socketConnected);
 
             const btn = document.getElementById('toggleReadyBtn');
             if (launchMonitorReady) {
                 btn.style.background = 'rgba(34, 197, 94, 0.3)';
                 btn.style.border = '2px solid #22c55e';
                 btn.textContent = '🟢 Ready';
+                console.log('✅ Button updated to READY (green)');
             } else {
                 btn.style.background = 'rgba(239, 68, 68, 0.3)';
                 btn.style.border = '2px solid #ef4444';
                 btn.textContent = '🔴 Not Ready';
+                console.log('✅ Button updated to NOT READY (red)');
             }
 
             if (!result.socketConnected) {
+                console.warn('⚠️ No socket connected - showing alert');
                 alert('Launch monitor not connected! Connect your launch monitor first.');
+            } else {
+                console.log('✅ Packet sent to launch monitor successfully');
             }
         }
 

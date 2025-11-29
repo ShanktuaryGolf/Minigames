@@ -602,7 +602,11 @@ ipcMain.handle('quit-and-install', () => {
 // Toggle launch monitor ready state
 ipcMain.handle('toggle-launch-monitor-ready', () => {
     launchMonitorReady = !launchMonitorReady;
-    console.log(`Launch Monitor Ready State: ${launchMonitorReady ? 'READY' : 'NOT READY'}`);
+
+    console.log('\n════════════════════════════════════════');
+    console.log('🔄 TOGGLE READY STATE');
+    console.log(`  New State: ${launchMonitorReady ? '🟢 READY' : '🔴 NOT READY'}`);
+    console.log(`  Socket Connected: ${launchMonitorSocket ? 'YES' : 'NO'}`);
 
     if (launchMonitorSocket) {
         const readyMessage = {
@@ -612,15 +616,25 @@ ipcMain.handle('toggle-launch-monitor-ready', () => {
             }
         };
 
+        console.log('  Message to send:', JSON.stringify(readyMessage));
+        console.log(`  Socket address: ${launchMonitorSocket.remoteAddress}:${launchMonitorSocket.remotePort}`);
+        console.log(`  Socket writable: ${launchMonitorSocket.writable}`);
+
         try {
-            launchMonitorSocket.write(JSON.stringify(readyMessage));
-            console.log('Sent ready state to launch monitor:', readyMessage);
+            const jsonString = JSON.stringify(readyMessage);
+            launchMonitorSocket.write(jsonString);
+            console.log(`  ✅ Successfully sent ${jsonString.length} bytes to launch monitor`);
+            console.log('  Raw packet:', jsonString);
         } catch (err) {
-            console.error('Error sending ready state:', err);
+            console.error('  ❌ Error sending ready state:', err.message);
+            console.error('  Error details:', err);
         }
     } else {
-        console.warn('No launch monitor connected - cannot send ready state');
+        console.warn('  ⚠️ No launch monitor connected - cannot send ready state');
+        console.warn('  Tip: Connect your launch monitor first, then toggle ready state');
     }
+
+    console.log('════════════════════════════════════════\n');
 
     return { ready: launchMonitorReady, socketConnected: launchMonitorSocket !== null };
 });
