@@ -11,6 +11,7 @@ let launchMonitorSocket = null;
 let isListening = false;
 let hasReceivedData = false;
 let lastDataTime = null;
+let launchMonitorReady = false; // Track ready state
 
 // GSPro Connect Configuration
 const GSPRO_PORT = 921;
@@ -596,4 +597,30 @@ ipcMain.handle('download-update', () => {
 ipcMain.handle('quit-and-install', () => {
     autoUpdater.quitAndInstall();
     return true;
+});
+
+// Toggle launch monitor ready state
+ipcMain.handle('toggle-launch-monitor-ready', () => {
+    launchMonitorReady = !launchMonitorReady;
+    console.log(`Launch Monitor Ready State: ${launchMonitorReady ? 'READY' : 'NOT READY'}`);
+
+    if (launchMonitorSocket) {
+        const readyMessage = {
+            DeviceID: "ShanktuaryGolf",
+            ShotDataOptions: {
+                LaunchMonitorIsReady: launchMonitorReady
+            }
+        };
+
+        try {
+            launchMonitorSocket.write(JSON.stringify(readyMessage));
+            console.log('Sent ready state to launch monitor:', readyMessage);
+        } catch (err) {
+            console.error('Error sending ready state:', err);
+        }
+    } else {
+        console.warn('No launch monitor connected - cannot send ready state');
+    }
+
+    return { ready: launchMonitorReady, socketConnected: launchMonitorSocket !== null };
 });

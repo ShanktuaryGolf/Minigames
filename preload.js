@@ -38,5 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Listen for update status events
     onUpdateStatus: (callback) => {
         ipcRenderer.on('update-status', (event, status) => callback(status));
-    }
+    },
+
+    // Toggle launch monitor ready state
+    toggleLaunchMonitorReady: () => ipcRenderer.invoke('toggle-launch-monitor-ready')
 });
