@@ -379,12 +379,31 @@ function startGSProServer() {
 
                     } else {
                         console.log('Other message:', JSON.stringify(parsed).substring(0, 150));
-                        // Send generic 200 response
-                        const response = {
-                            Code: 200,
-                            Message: "Message received"
-                        };
-                        socket.write(JSON.stringify(response));
+
+                        // Special handling for ready state packets from SquareGolf
+                        // When SquareGolf sends LaunchMonitorIsReady, we must respond with "GSPro ready"
+                        if (parsed.ShotDataOptions?.LaunchMonitorIsReady !== undefined ||
+                            parsed.ShotDataOptions?.LaunchMonitorBallDetected !== undefined) {
+
+                            console.log('🎯 Launch Monitor Status Packet Detected!');
+                            console.log('  LaunchMonitorIsReady:', parsed.ShotDataOptions.LaunchMonitorIsReady);
+                            console.log('  LaunchMonitorBallDetected:', parsed.ShotDataOptions.LaunchMonitorBallDetected);
+
+                            // Send "GSPro ready" message to activate ball detection
+                            const readyResponse = {
+                                Message: "GSPro ready"
+                            };
+                            socket.write(JSON.stringify(readyResponse));
+                            console.log('✅ Sent "GSPro ready" response to launch monitor');
+                            console.log('   This tells SquareGolf we are ready to receive shots');
+                        } else {
+                            // Send generic 200 response
+                            const response = {
+                                Code: 200,
+                                Message: "Message received"
+                            };
+                            socket.write(JSON.stringify(response));
+                        }
                     }
 
                     console.log('=== END MESSAGE ===\n');
