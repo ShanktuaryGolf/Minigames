@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soccer Penalty Kick - Shanktuary Golf Mini Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #1a1a1a;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            min-width: 300px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: #22c55e;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+
+        .stat-label {
+            color: #aaa;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        button {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin: 5px 0;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #16a34a;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        #notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 2000;
+            display: none;
+            text-align: center;
+            border: 3px solid #22c55e;
+        }
+
+        .score-display {
+            font-size: 2em;
+            text-align: center;
+            color: #22c55e;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div id="controls">
+        <h2>⚽ Penalty Kick</h2>
+
+        <div class="control-section" id="setupSection">
+            <h3>Setup Game</h3>
+            <button onclick="showSetupScreen()">Start New Game</button>
+        </div>
+
+        <div class="control-section" id="gameStatusSection" style="display: none;">
+            <h3>Current Turn</h3>
+            <div class="stat-row">
+                <span class="stat-label">Player:</span>
+                <span class="stat-value" id="currentPlayerName">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Mode:</span>
+                <span class="stat-value" id="gameModeName">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Round:</span>
+                <span class="stat-value" id="currentRound">-</span>
+            </div>
+        </div>
+
+        <div class="control-section" id="scoreboardSection" style="display: none;">
+            <h3>Scoreboard</h3>
+            <div id="scoreboard"></div>
+        </div>
+
+        <div class="control-section">
+            <h3>Last Shot</h3>
+            <div id="lastShot" style="text-align: center; color: #22c55e; font-size: 1.5em;">
+                --
+            </div>
+        </div>
+
+        <div class="control-section">
+            <button onclick="testShot()">Test Shot (Center)</button>
+            <button onclick="resetField()">Reset Field</button>
+            <button onclick="nextPlayerManual()" id="nextPlayerBtn" style="display: none;">Next Player</button>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <!-- Game Setup Modal -->
+    <div id="setupModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 40px auto; padding: 30px; background: rgba(30, 30, 30, 0.95); border-radius: 15px; border: 2px solid #22c55e;">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #22c55e;">⚽ Setup Penalty Kick Game</h2>
+
+            <div id="setupStep1" class="setup-step">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Number of Players</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 30px;">
+                    <button onclick="setPlayerCount(1)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">1 Player</button>
+                    <button onclick="setPlayerCount(2)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">2 Players</button>
+                    <button onclick="setPlayerCount(3)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">3 Players</button>
+                    <button onclick="setPlayerCount(4)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">4 Players</button>
+                </div>
+            </div>
+
+            <div id="setupStep2" class="setup-step" style="display: none;">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Player Names</h3>
+                <div id="playerNamesContainer"></div>
+                <button onclick="confirmPlayerNames()" style="width: 100%; padding: 15px; margin-top: 15px; font-size: 1.1em; background: rgba(34, 197, 94, 0.3); border: 2px solid #22c55e; color: white; border-radius: 8px; cursor: pointer;">Continue</button>
+            </div>
+
+            <div id="setupStep3" class="setup-step" style="display: none;">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Game Mode</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <button onclick="startGameMode('practice')" style="padding: 20px; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">🎯</div>
+                        <div style="font-weight: bold;">Practice Mode</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">No goalkeeper - practice placement</div>
+                    </button>
+                    <button onclick="startGameMode('target')" style="padding: 20px; background: rgba(239, 68, 68, 0.3); border: 2px solid #ef4444; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">🎪</div>
+                        <div style="font-weight: bold;">Target Practice</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Hit targets for bonus points</div>
+                    </button>
+                    <button onclick="startGameMode('shootout')" style="padding: 20px; background: rgba(16, 185, 129, 0.3); border: 2px solid #10b981; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">🥅</div>
+                        <div style="font-weight: bold;">Shootout</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">5 kicks vs AI goalkeeper</div>
+                    </button>
+                    <button onclick="startGameMode('competition')" style="padding: 20px; background: rgba(245, 158, 11, 0.3); border: 2px solid #f59e0b; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">🏆</div>
+                        <div style="font-weight: bold;">Competition</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Multiplayer tournament</div>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeSetupModal()" style="width: 100%; padding: 12px; margin-top: 20px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); color: white; border-radius: 8px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+
+    <script src="./three.min.js"></script>
+    <script>
+        // Global variables
+        let scene, camera, renderer;
+        let goal, goalkeeper, ball;
+        let ballInFlight = false;
+        let animationId = null;
+
+        // Game state
+        let gameMode = null;
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentRound = 1;
+        let maxRounds = 5;
+        let gameActive = false;
+        const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+        // Field constants (scaled for visibility)
+        const SCALE = 2.0;
+        const GOAL_WIDTH = 7.32 * SCALE; // Standard goal width
+        const GOAL_HEIGHT = 2.44 * SCALE; // Standard goal height
+        const GOAL_DEPTH = 1.0 * SCALE;
+        const PENALTY_DISTANCE = 11.0 * SCALE; // 11 meters from goal
+
+        // Goalkeeper constants
+        const KEEPER_HEIGHT = 1.8 * SCALE;
+        const KEEPER_WIDTH = 0.6 * SCALE;
+        const KEEPER_REACTION_TIME = 0.3; // seconds
+        const KEEPER_DIVE_SPEED = 8.0 * SCALE; // m/s
+
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+            scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+
+            // Create camera
+            camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            // Camera positioned behind penalty spot, looking at goal
+            camera.position.set(0, 2 * SCALE, PENALTY_DISTANCE + 5 * SCALE);
+            camera.lookAt(0, GOAL_HEIGHT / 2, 0);
+
+            // Create renderer
+            const canvas = document.getElementById('canvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            sunLight.position.set(10 * SCALE, 20 * SCALE, 10 * SCALE);
+            sunLight.castShadow = true;
+            sunLight.shadow.camera.left = -20 * SCALE;
+            sunLight.shadow.camera.right = 20 * SCALE;
+            sunLight.shadow.camera.top = 20 * SCALE;
+            sunLight.shadow.camera.bottom = -20 * SCALE;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            scene.add(sunLight);
+
+            // Create environment
+            createField();
+            createGoal();
+            createGoalkeeper();
+            createBall();
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Electron IPC setup
+            setupElectronIPC();
+
+            // Start animation loop
+            animate();
+        }
+
+        function createField() {
+            // Ground (grass)
+            const groundGeometry = new THREE.PlaneGeometry(50 * SCALE, 50 * SCALE);
+            const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x2d5016 }); // Dark green grass
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Penalty box lines
+            const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+
+            // Goal line
+            const goalLineGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-GOAL_WIDTH, 0.01, 0),
+                new THREE.Vector3(GOAL_WIDTH, 0.01, 0)
+            ]);
+            const goalLine = new THREE.Line(goalLineGeometry, lineMaterial);
+            scene.add(goalLine);
+
+            // Penalty spot
+            const spotGeometry = new THREE.CircleGeometry(0.1 * SCALE, 16);
+            const spotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const penaltySpot = new THREE.Mesh(spotGeometry, spotMaterial);
+            penaltySpot.rotation.x = -Math.PI / 2;
+            penaltySpot.position.set(0, 0.02, PENALTY_DISTANCE);
+            scene.add(penaltySpot);
+
+            // Create stadium environment
+            createStadium();
+        }
+
+        function createStadium() {
+            // Create tiered stadium seating with individual seats
+            const seatWidth = 0.4 * SCALE;
+            const seatDepth = 0.4 * SCALE;
+            const seatHeight = 0.4 * SCALE;
+            const rowHeight = 0.6 * SCALE;
+            const rowDepth = 0.5 * SCALE;
+
+            // Behind goal stand (main stand)
+            createStadiumSection({
+                startX: -15 * SCALE,
+                endX: 15 * SCALE,
+                startZ: -10 * SCALE,
+                rows: 15,
+                seatsPerRow: 60,
+                rowHeight: rowHeight,
+                rowDepth: rowDepth,
+                seatWidth: seatWidth,
+                seatDepth: seatDepth,
+                seatHeight: seatHeight,
+                direction: 'horizontal'
+            });
+
+            // Left stand
+            createStadiumSection({
+                startX: -18 * SCALE,
+                endX: -14 * SCALE,
+                startZ: -5 * SCALE,
+                rows: 12,
+                seatsPerRow: 40,
+                rowHeight: rowHeight,
+                rowDepth: rowDepth,
+                seatWidth: seatWidth,
+                seatDepth: seatDepth,
+                seatHeight: seatHeight,
+                direction: 'vertical-left'
+            });
+
+            // Right stand
+            createStadiumSection({
+                startX: 14 * SCALE,
+                endX: 18 * SCALE,
+                startZ: -5 * SCALE,
+                rows: 12,
+                seatsPerRow: 40,
+                rowHeight: rowHeight,
+                rowDepth: rowDepth,
+                seatWidth: seatWidth,
+                seatDepth: seatDepth,
+                seatHeight: seatHeight,
+                direction: 'vertical-right'
+            });
+
+            // Stadium lights (floodlights)
+            const lightPositions = [
+                { x: -15 * SCALE, z: -5 * SCALE },
+                { x: 15 * SCALE, z: -5 * SCALE },
+                { x: -15 * SCALE, z: 25 * SCALE },
+                { x: 15 * SCALE, z: 25 * SCALE }
+            ];
+
+            lightPositions.forEach(pos => {
+                // Light tower
+                const towerGeometry = new THREE.CylinderGeometry(0.3 * SCALE, 0.3 * SCALE, 18 * SCALE, 8);
+                const towerMaterial = new THREE.MeshLambertMaterial({ color: 0x555555 });
+                const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+                tower.position.set(pos.x, 9 * SCALE, pos.z);
+                scene.add(tower);
+
+                // Light fixture on top
+                const lightFixtureGeometry = new THREE.BoxGeometry(1.5 * SCALE, 0.5 * SCALE, 2 * SCALE);
+                const lightFixtureMaterial = new THREE.MeshBasicMaterial({ color: 0xffffcc });
+                const lightFixture = new THREE.Mesh(lightFixtureGeometry, lightFixtureMaterial);
+                lightFixture.position.set(pos.x, 18 * SCALE, pos.z);
+                scene.add(lightFixture);
+
+                // Point light for illumination
+                const stadiumLight = new THREE.PointLight(0xffffff, 0.4, 80 * SCALE);
+                stadiumLight.position.set(pos.x, 18 * SCALE, pos.z);
+                scene.add(stadiumLight);
+            });
+
+            // Advertising boards around the field (not blocking goal)
+            createAdvertisingBoards();
+
+            // Corner flags
+            const flagPoleGeometry = new THREE.CylinderGeometry(0.05 * SCALE, 0.05 * SCALE, 1.5 * SCALE, 8);
+            const flagPoleMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+            const flagGeometry = new THREE.PlaneGeometry(0.4 * SCALE, 0.3 * SCALE);
+            const flagMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+
+            const cornerPositions = [
+                { x: -12 * SCALE, z: -2 * SCALE },
+                { x: 12 * SCALE, z: -2 * SCALE }
+            ];
+
+            cornerPositions.forEach(pos => {
+                const flagPole = new THREE.Mesh(flagPoleGeometry, flagPoleMaterial);
+                flagPole.position.set(pos.x, 0.75 * SCALE, pos.z);
+                scene.add(flagPole);
+
+                const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+                flag.position.set(pos.x + 0.2 * SCALE, 1.2 * SCALE, pos.z);
+                scene.add(flag);
+            });
+        }
+
+        function createStadiumSection(config) {
+            const {
+                startX, endX, startZ, rows, seatsPerRow,
+                rowHeight, rowDepth, seatWidth, seatDepth, seatHeight, direction
+            } = config;
+
+            const seatColors = [0x2b4c7e, 0x3a5f8f, 0x4a6fa0]; // Different shades of blue
+            const seatGeometry = new THREE.BoxGeometry(seatWidth, seatHeight, seatDepth);
+
+            for (let row = 0; row < rows; row++) {
+                const colorIndex = row % seatColors.length;
+                const seatMaterial = new THREE.MeshLambertMaterial({ color: seatColors[colorIndex] });
+
+                for (let seat = 0; seat < seatsPerRow; seat++) {
+                    const seatMesh = new THREE.Mesh(seatGeometry, seatMaterial);
+
+                    if (direction === 'horizontal') {
+                        // Behind goal - seats arranged left to right
+                        const x = startX + (seat / seatsPerRow) * (endX - startX);
+                        const y = 0.2 * SCALE + row * rowHeight;
+                        const z = startZ - row * rowDepth;
+                        seatMesh.position.set(x, y, z);
+                    } else if (direction === 'vertical-left') {
+                        // Left side stand - seats face inward (toward field)
+                        const x = startX - row * rowDepth; // Move away from field
+                        const y = 0.2 * SCALE + row * rowHeight;
+                        const z = startZ + (seat / seatsPerRow) * 40 * SCALE;
+                        seatMesh.position.set(x, y, z);
+                    } else if (direction === 'vertical-right') {
+                        // Right side stand - seats face inward (toward field)
+                        const x = startX + row * rowDepth; // Move away from field
+                        const y = 0.2 * SCALE + row * rowHeight;
+                        const z = startZ + (seat / seatsPerRow) * 40 * SCALE;
+                        seatMesh.position.set(x, y, z);
+                    }
+
+                    scene.add(seatMesh);
+
+                    // Add backrest
+                    const backrestGeometry = new THREE.BoxGeometry(seatWidth, seatHeight * 1.2, 0.05 * SCALE);
+                    const backrest = new THREE.Mesh(backrestGeometry, seatMaterial);
+                    if (direction === 'horizontal') {
+                        backrest.position.copy(seatMesh.position);
+                        backrest.position.z -= seatDepth / 2;
+                        backrest.position.y += seatHeight * 0.6;
+                    } else if (direction === 'vertical-left') {
+                        // Backrest faces away from field (to the left/outside)
+                        backrest.position.copy(seatMesh.position);
+                        backrest.position.x -= seatDepth / 2;
+                        backrest.position.y += seatHeight * 0.6;
+                        backrest.rotation.y = Math.PI / 2;
+                    } else if (direction === 'vertical-right') {
+                        // Backrest faces away from field (to the right/outside)
+                        backrest.position.copy(seatMesh.position);
+                        backrest.position.x += seatDepth / 2;
+                        backrest.position.y += seatHeight * 0.6;
+                        backrest.rotation.y = Math.PI / 2;
+                    }
+                    scene.add(backrest);
+                }
+            }
+        }
+
+        function createAdvertisingBoards() {
+            const boardHeight = 1 * SCALE;
+            const boardThickness = 0.1 * SCALE;
+            const boardY = boardHeight / 2;
+
+            // Define advertising boards with positions that don't block the goal
+            const boards = [
+                // Left side of goal (behind goal line)
+                { text: 'ADIDAS', color: 0x0000ff, x: -10 * SCALE, z: -GOAL_DEPTH - 1.5 * SCALE, width: 6 * SCALE },
+                // Right side of goal (behind goal line)
+                { text: 'NIKE', color: 0xff0000, x: 10 * SCALE, z: -GOAL_DEPTH - 1.5 * SCALE, width: 6 * SCALE },
+                // Along left touchline (perpendicular to field)
+                { text: 'PEPSI', color: 0x0044aa, x: -13 * SCALE, z: 10 * SCALE, width: 8 * SCALE, rotation: Math.PI / 2 },
+                // Along right touchline (perpendicular to field)
+                { text: 'COCA-COLA', color: 0xcc0000, x: 13 * SCALE, z: 10 * SCALE, width: 8 * SCALE, rotation: Math.PI / 2 }
+            ];
+
+            boards.forEach(board => {
+                const boardGeometry = new THREE.BoxGeometry(board.width, boardHeight, boardThickness);
+                const boardMaterial = new THREE.MeshBasicMaterial({ color: board.color });
+                const boardMesh = new THREE.Mesh(boardGeometry, boardMaterial);
+                boardMesh.position.set(board.x, boardY, board.z);
+                if (board.rotation) {
+                    boardMesh.rotation.y = board.rotation;
+                }
+                scene.add(boardMesh);
+            });
+        }
+
+        function createGoal() {
+            goal = new THREE.Group();
+
+            // Goal posts and crossbar (white)
+            const postMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+            const postRadius = 0.12 * SCALE;
+
+            // Left post
+            const leftPostGeometry = new THREE.CylinderGeometry(postRadius, postRadius, GOAL_HEIGHT, 8);
+            const leftPost = new THREE.Mesh(leftPostGeometry, postMaterial);
+            leftPost.position.set(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, 0);
+            leftPost.castShadow = true;
+            goal.add(leftPost);
+
+            // Right post
+            const rightPost = new THREE.Mesh(leftPostGeometry, postMaterial);
+            rightPost.position.set(GOAL_WIDTH / 2, GOAL_HEIGHT / 2, 0);
+            rightPost.castShadow = true;
+            goal.add(rightPost);
+
+            // Crossbar
+            const crossbarGeometry = new THREE.CylinderGeometry(postRadius, postRadius, GOAL_WIDTH, 8);
+            const crossbar = new THREE.Mesh(crossbarGeometry, postMaterial);
+            crossbar.rotation.z = Math.PI / 2;
+            crossbar.position.set(0, GOAL_HEIGHT, 0);
+            crossbar.castShadow = true;
+            goal.add(crossbar);
+
+            // Net
+            const netGeometry = new THREE.PlaneGeometry(GOAL_WIDTH, GOAL_HEIGHT, 10, 10);
+            const netMaterial = new THREE.MeshBasicMaterial({
+                color: 0xcccccc,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: true,
+                side: THREE.DoubleSide
+            });
+            const net = new THREE.Mesh(netGeometry, netMaterial);
+            net.position.set(0, GOAL_HEIGHT / 2, -GOAL_DEPTH / 2);
+            goal.add(net);
+
+            // Net sides
+            const sideNetGeometry = new THREE.PlaneGeometry(GOAL_DEPTH, GOAL_HEIGHT, 5, 10);
+            const leftNet = new THREE.Mesh(sideNetGeometry, netMaterial);
+            leftNet.rotation.y = Math.PI / 2;
+            leftNet.position.set(-GOAL_WIDTH / 2, GOAL_HEIGHT / 2, -GOAL_DEPTH / 2);
+            goal.add(leftNet);
+
+            const rightNet = new THREE.Mesh(sideNetGeometry, netMaterial);
+            rightNet.rotation.y = -Math.PI / 2;
+            rightNet.position.set(GOAL_WIDTH / 2, GOAL_HEIGHT / 2, -GOAL_DEPTH / 2);
+            goal.add(rightNet);
+
+            // Net top
+            const topNetGeometry = new THREE.PlaneGeometry(GOAL_WIDTH, GOAL_DEPTH, 10, 5);
+            const topNet = new THREE.Mesh(topNetGeometry, netMaterial);
+            topNet.rotation.x = Math.PI / 2;
+            topNet.position.set(0, GOAL_HEIGHT, -GOAL_DEPTH / 2);
+            goal.add(topNet);
+
+            scene.add(goal);
+        }
+
+        function createGoalkeeper() {
+            goalkeeper = new THREE.Group();
+
+            // Body
+            const bodyGeometry = new THREE.BoxGeometry(KEEPER_WIDTH, KEEPER_HEIGHT * 0.6, KEEPER_WIDTH * 0.5);
+            const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFF00 }); // Yellow jersey
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = KEEPER_HEIGHT * 0.5;
+            body.castShadow = true;
+            goalkeeper.add(body);
+
+            // Head
+            const headGeometry = new THREE.SphereGeometry(KEEPER_WIDTH * 0.4, 16, 16);
+            const headMaterial = new THREE.MeshPhongMaterial({ color: 0xFFDBAC }); // Skin tone
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = KEEPER_HEIGHT * 0.9;
+            head.castShadow = true;
+            goalkeeper.add(head);
+
+            // Arms
+            const armGeometry = new THREE.BoxGeometry(KEEPER_WIDTH * 0.2, KEEPER_HEIGHT * 0.4, KEEPER_WIDTH * 0.2);
+            const armMaterial = new THREE.MeshPhongMaterial({ color: 0xFFFF00 });
+
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(-KEEPER_WIDTH * 0.6, KEEPER_HEIGHT * 0.55, 0);
+            leftArm.castShadow = true;
+            goalkeeper.add(leftArm);
+
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(KEEPER_WIDTH * 0.6, KEEPER_HEIGHT * 0.55, 0);
+            rightArm.castShadow = true;
+            goalkeeper.add(rightArm);
+
+            // Position goalkeeper in center of goal
+            goalkeeper.position.set(0, 0, -GOAL_DEPTH * 0.5);
+            goalkeeper.userData.initialPosition = goalkeeper.position.clone();
+            goalkeeper.userData.diving = false;
+            goalkeeper.userData.diveTarget = null;
+
+            scene.add(goalkeeper);
+        }
+
+        function createBall() {
+            const ballRadius = 0.22 * SCALE;
+            const ballGeometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+
+            // Create procedural soccer ball texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // White base
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Draw black pentagons in a classic soccer ball pattern
+            ctx.fillStyle = '#000000';
+
+            const pentagons = [
+                { x: 256, y: 256 },  // Center
+                { x: 256, y: 100 },  // Top
+                { x: 140, y: 180 },  // Top-left
+                { x: 372, y: 180 },  // Top-right
+                { x: 100, y: 330 },  // Bottom-left
+                { x: 412, y: 330 },  // Bottom-right
+                { x: 256, y: 412 }   // Bottom
+            ];
+
+            pentagons.forEach(pos => {
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                    const x = pos.x + Math.cos(angle) * 45;
+                    const y = pos.y + Math.sin(angle) * 45;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const ballMaterial = new THREE.MeshPhongMaterial({
+                map: texture,
+                shininess: 30
+            });
+
+            ball = new THREE.Mesh(ballGeometry, ballMaterial);
+            ball.position.set(0, ballRadius, PENALTY_DISTANCE);
+            ball.castShadow = true;
+            ball.userData.velocity = new THREE.Vector3();
+            scene.add(ball);
+        }
+
+        function shootBall(speed, vla, hla) {
+            if (ballInFlight) return;
+
+            // Calculate target position on goal plane using calibration
+            const targetPos = calculateTargetPosition(speed, vla, hla);
+
+            console.log('Shot parameters:', { speed, vla, hla, targetPos });
+
+            // Check if shot is on target
+            const isOnTarget = Math.abs(targetPos.x) <= GOAL_WIDTH / 2 &&
+                             targetPos.y >= 0 &&
+                             targetPos.y <= GOAL_HEIGHT;
+
+            // Calculate shot result
+            let result = {
+                onTarget: isOnTarget,
+                scored: false,
+                saved: false,
+                position: targetPos
+            };
+
+            if (isOnTarget && (gameMode === 'shootout' || gameMode === 'competition')) {
+                // Goalkeeper attempts save only in shootout and competition modes
+                result = processGoalkeeperSave(targetPos, speed);
+            } else if (isOnTarget) {
+                result.scored = true;
+            }
+
+            // Animate ball flight
+            animateBallFlight(targetPos, result, speed);
+
+            // Process result after animation
+            setTimeout(() => {
+                processShotResult(result);
+            }, 1500);
+        }
+
+        function calculateTargetPosition(speed, vla, hla) {
+            // Direct angle-to-position mapping (no calibration needed, like baseball)
+            // HLA controls horizontal position (left/right)
+            // VLA controls vertical position (height)
+
+            // Map HLA to horizontal position across goal width
+            // HLA typically ranges from -15 to +15 degrees for on-target shots
+            // -15° = far left, 0° = center, +15° = far right
+            // Beyond ±15° = miss wide
+            const hlaRange = 15.0; // degrees
+            const normalizedX = hla / hlaRange; // No clamping - allow wild shots to miss
+            const x = normalizedX * (GOAL_WIDTH / 2);
+
+            // Map VLA to vertical position (height)
+            // VLA typically ranges from 0 to 30 degrees for on-target shots
+            // 0° = ground level, 15° = mid height, 30° = top of goal
+            // Above 30° = over the bar, below 0° = into ground
+            const vlaMin = 0;
+            const vlaMax = 30;
+            const normalizedY = (vla - vlaMin) / (vlaMax - vlaMin); // No clamping - allow wild shots to miss
+            const y = normalizedY * GOAL_HEIGHT;
+
+            return { x, y, z: 0 };
+        }
+
+        function processGoalkeeperSave(targetPos, speed) {
+            // Calculate if goalkeeper can reach the ball
+            const distanceToTarget = Math.sqrt(
+                targetPos.x * targetPos.x +
+                (targetPos.y - KEEPER_HEIGHT / 2) * (targetPos.y - KEEPER_HEIGHT / 2)
+            );
+
+            // Time for ball to reach goal (simplified physics)
+            const timeToGoal = PENALTY_DISTANCE / (speed * 0.44704); // mph to m/s conversion
+
+            // Goalkeeper reaction and dive time
+            const reachTime = KEEPER_REACTION_TIME + (distanceToTarget / KEEPER_DIVE_SPEED);
+
+            // Determine if save is possible
+            const canSave = reachTime < timeToGoal;
+
+            // Add randomness based on difficulty of save
+            const saveDifficulty = distanceToTarget / (GOAL_WIDTH / 2); // 0 to 1+
+            const saveChance = canSave ? Math.max(0, 1 - saveDifficulty * 0.8) : 0;
+            const saved = Math.random() < saveChance;
+
+            // Animate goalkeeper dive
+            if (saved || (canSave && Math.random() < 0.8)) {
+                animateGoalkeeperDive(targetPos);
+            }
+
+            return {
+                onTarget: true,
+                scored: !saved,
+                saved: saved,
+                position: targetPos
+            };
+        }
+
+        function animateGoalkeeperDive(targetPos) {
+            goalkeeper.userData.diving = true;
+            goalkeeper.userData.diveTarget = targetPos;
+            goalkeeper.userData.diveStartTime = Date.now();
+            goalkeeper.userData.diveDuration = KEEPER_REACTION_TIME * 1000 + 500; // ms
+        }
+
+        function animateBallFlight(targetPos, result, speed) {
+            ballInFlight = true;
+            const startPos = ball.position.clone();
+            const endPos = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+
+            // If missed, adjust end position outside goal
+            if (!result.onTarget) {
+                if (Math.abs(targetPos.x) > GOAL_WIDTH / 2) {
+                    endPos.x = targetPos.x;
+                }
+                if (targetPos.y > GOAL_HEIGHT) {
+                    endPos.y = targetPos.y;
+                } else if (targetPos.y < 0) {
+                    endPos.y = -1 * SCALE;
+                }
+            }
+
+            const duration = 1000; // ms
+            const startTime = Date.now();
+
+            function updateBall() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Smooth easing
+                const eased = 1 - Math.pow(1 - progress, 3);
+
+                ball.position.lerpVectors(startPos, endPos, eased);
+
+                // Add slight arc to trajectory
+                const arc = Math.sin(progress * Math.PI) * 2 * SCALE;
+                ball.position.y += arc;
+
+                if (progress < 1) {
+                    requestAnimationFrame(updateBall);
+                } else {
+                    ballInFlight = false;
+                }
+            }
+
+            updateBall();
+        }
+
+        function processShotResult(result) {
+            let message = '';
+            let points = 0;
+
+            if (result.scored) {
+                // Check if in target practice mode and hit a target
+                if (gameMode === 'target') {
+                    const targetPoints = checkTargetHit(result.position);
+                    if (targetPoints > 0) {
+                        message = `🎯 TARGET HIT! +${targetPoints} pts`;
+                        points = targetPoints;
+                    } else {
+                        message = '⚽ GOAL!';
+                        points = 1;
+                    }
+                } else {
+                    message = '⚽ GOAL!';
+                    points = 1;
+
+                    // Bonus points for difficult shots
+                    const distFromCenter = Math.sqrt(
+                        Math.pow(result.position.x, 2) +
+                        Math.pow(result.position.y - GOAL_HEIGHT / 2, 2)
+                    );
+
+                    if (distFromCenter > GOAL_WIDTH * 0.35) {
+                        message += ' (Corner!)';
+                        points = 3;
+                    }
+                }
+            } else if (result.saved) {
+                message = '🧤 SAVED!';
+                points = 0;
+            } else {
+                message = '❌ MISS!';
+                points = 0;
+            }
+
+            document.getElementById('lastShot').textContent = message;
+            showNotification(message);
+
+            // Update score
+            if (gameActive && players.length > 0) {
+                const currentPlayer = players[currentPlayerIndex];
+                currentPlayer.score += points;
+                currentPlayer.shots++;
+
+                if (result.scored) currentPlayer.goals++;
+                if (result.saved) currentPlayer.saves++;
+
+                // Check if round is complete
+                if (currentPlayer.shots >= maxRounds) {
+                    // Move to next player or end game
+                    if (currentPlayerIndex < players.length - 1) {
+                        setTimeout(() => {
+                            nextPlayer();
+                            resetField();
+                        }, 2000);
+                    } else {
+                        setTimeout(() => {
+                            endGame();
+                        }, 2000);
+                    }
+                } else {
+                    setTimeout(() => {
+                        resetField();
+                    }, 2000);
+                }
+
+                updateGameUI();
+            }
+        }
+
+        let targets = [];
+
+        function createTargets() {
+            removeTargets();
+
+            // Create circular targets in the four corners and center of the goal
+            const targetPositions = [
+                { x: -GOAL_WIDTH * 0.35, y: GOAL_HEIGHT * 0.75, points: 5, color: 0xff0000 },  // Top-left (red, 5 pts)
+                { x: GOAL_WIDTH * 0.35, y: GOAL_HEIGHT * 0.75, points: 5, color: 0xff0000 },   // Top-right (red, 5 pts)
+                { x: 0, y: GOAL_HEIGHT * 0.5, points: 3, color: 0xffff00 },                   // Center (yellow, 3 pts)
+                { x: -GOAL_WIDTH * 0.35, y: GOAL_HEIGHT * 0.25, points: 5, color: 0xff0000 }, // Bottom-left (red, 5 pts)
+                { x: GOAL_WIDTH * 0.35, y: GOAL_HEIGHT * 0.25, points: 5, color: 0xff0000 }   // Bottom-right (red, 5 pts)
+            ];
+
+            targetPositions.forEach(pos => {
+                // Outer ring
+                const outerGeometry = new THREE.RingGeometry(0.4 * SCALE, 0.5 * SCALE, 32);
+                const outerMaterial = new THREE.MeshBasicMaterial({
+                    color: pos.color,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const outerRing = new THREE.Mesh(outerGeometry, outerMaterial);
+                outerRing.position.set(pos.x, pos.y, -0.3 * SCALE);
+                scene.add(outerRing);
+
+                // Inner circle
+                const innerGeometry = new THREE.CircleGeometry(0.4 * SCALE, 32);
+                const innerMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const innerCircle = new THREE.Mesh(innerGeometry, innerMaterial);
+                innerCircle.position.set(pos.x, pos.y, -0.29 * SCALE);
+                scene.add(innerCircle);
+
+                targets.push({
+                    outer: outerRing,
+                    inner: innerCircle,
+                    x: pos.x,
+                    y: pos.y,
+                    points: pos.points
+                });
+            });
+        }
+
+        function removeTargets() {
+            targets.forEach(target => {
+                scene.remove(target.outer);
+                scene.remove(target.inner);
+            });
+            targets = [];
+        }
+
+        function checkTargetHit(targetPos) {
+            // Check if shot hit any target
+            for (let target of targets) {
+                const distance = Math.sqrt(
+                    Math.pow(targetPos.x - target.x, 2) +
+                    Math.pow(targetPos.y - target.y, 2)
+                );
+
+                if (distance <= 0.5 * SCALE) {
+                    return target.points;
+                }
+            }
+            return 0;
+        }
+
+        function resetField() {
+            // Reset ball position
+            ball.position.set(0, 0.22 * SCALE, PENALTY_DISTANCE);
+            ball.userData.velocity.set(0, 0, 0);
+            ballInFlight = false;
+
+            // Reset goalkeeper
+            if (goalkeeper.userData.initialPosition) {
+                goalkeeper.position.copy(goalkeeper.userData.initialPosition);
+                goalkeeper.rotation.set(0, 0, 0);
+                goalkeeper.userData.diving = false;
+                goalkeeper.userData.diveTarget = null;
+            }
+        }
+
+        function testShot() {
+            // Test shot aimed at center of goal
+            shootBall(60, 10, 0); // 60 mph, center aim
+        }
+
+        // ===== GAME SETUP FUNCTIONS =====
+        function showSetupScreen() {
+            document.getElementById('setupModal').style.display = 'block';
+            document.getElementById('setupStep1').style.display = 'block';
+            document.getElementById('setupStep2').style.display = 'none';
+            document.getElementById('setupStep3').style.display = 'none';
+        }
+
+        function closeSetupModal() {
+            document.getElementById('setupModal').style.display = 'none';
+        }
+
+        function setPlayerCount(count) {
+            players = [];
+            for (let i = 0; i < count; i++) {
+                players.push({
+                    name: `Player ${i + 1}`,
+                    color: PLAYER_COLORS[i],
+                    score: 0,
+                    shots: 0,
+                    goals: 0,
+                    saves: 0
+                });
+            }
+
+            // Show player names input
+            const container = document.getElementById('playerNamesContainer');
+            container.innerHTML = players.map((p, i) => `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: ${p.color}; font-weight: bold;">Player ${i + 1}</label>
+                    <input type="text" id="playerNameInput${i}" value="${p.name}"
+                           style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 2px solid ${p.color}; color: white; border-radius: 5px;">
+                </div>
+            `).join('');
+
+            document.getElementById('setupStep1').style.display = 'none';
+            document.getElementById('setupStep2').style.display = 'block';
+        }
+
+        function confirmPlayerNames() {
+            // Update player names from inputs
+            players.forEach((p, i) => {
+                const input = document.getElementById(`playerNameInput${i}`);
+                if (input && input.value.trim()) {
+                    p.name = input.value.trim();
+                }
+            });
+
+            // Show game mode selection
+            document.getElementById('setupStep2').style.display = 'none';
+            document.getElementById('setupStep3').style.display = 'block';
+        }
+
+        function startGameMode(mode) {
+            gameMode = mode;
+            currentPlayerIndex = 0;
+            currentRound = 1;
+            gameActive = true;
+
+            // Set rounds based on mode
+            switch(mode) {
+                case 'practice':
+                    maxRounds = 999; // Unlimited
+                    break;
+                case 'target':
+                    maxRounds = 10;
+                    break;
+                case 'shootout':
+                    maxRounds = 5;
+                    break;
+                case 'competition':
+                    maxRounds = 5;
+                    break;
+            }
+
+            // Initialize player stats
+            players.forEach(p => {
+                p.score = 0;
+                p.shots = 0;
+                p.goals = 0;
+                p.saves = 0;
+            });
+
+            closeSetupModal();
+            updateGameUI();
+            resetField();
+
+            // Show goalkeeper only in shootout and competition modes
+            if (goalkeeper) {
+                goalkeeper.visible = (mode === 'shootout' || mode === 'competition');
+            }
+
+            // Show targets only in target practice mode
+            if (mode === 'target') {
+                createTargets();
+            } else {
+                removeTargets();
+            }
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            updateGameUI();
+        }
+
+        function nextPlayerManual() {
+            nextPlayer();
+            resetField();
+        }
+
+        function endGame() {
+            gameActive = false;
+
+            // Find winner
+            const winner = players.reduce((prev, current) =>
+                (prev.score > current.score) ? prev : current
+            );
+
+            setTimeout(() => {
+                alert(`🏆 ${winner.name} WINS!\n\nScore: ${winner.score} points\nGoals: ${winner.goals}/${winner.shots}\n\nClick "Start New Game" to play again!`);
+            }, 500);
+        }
+
+        function updateGameUI() {
+            if (!gameActive || players.length === 0) return;
+
+            const currentPlayer = players[currentPlayerIndex];
+
+            // Update current turn info
+            document.getElementById('gameStatusSection').style.display = 'block';
+            document.getElementById('currentPlayerName').textContent = currentPlayer.name;
+            document.getElementById('currentPlayerName').style.color = currentPlayer.color;
+            document.getElementById('gameModeName').textContent = gameMode.toUpperCase();
+            document.getElementById('currentRound').textContent = `${currentPlayer.shots + 1}/${maxRounds}`;
+
+            // Update scoreboard
+            document.getElementById('scoreboardSection').style.display = 'block';
+            const scoreboard = document.getElementById('scoreboard');
+
+            scoreboard.innerHTML = players.map((p, i) => {
+                const isActive = i === currentPlayerIndex;
+                const accuracy = p.shots > 0 ? Math.round((p.goals / p.shots) * 100) : 0;
+                return `
+                    <div style="padding: 8px; margin-bottom: 5px; background: ${isActive ? 'rgba(34, 197, 94, 0.2)' : 'transparent'};
+                                border-radius: 5px; border-left: 4px solid ${p.color};">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="color: ${p.color}; font-weight: bold;">${isActive ? '⚽ ' : ''}${p.name}</span>
+                            <span style="color: white; font-weight: bold;">${p.score} pts</span>
+                        </div>
+                        <div style="font-size: 0.85em; opacity: 0.8; color: white;">
+                            Goals: ${p.goals}/${p.shots} (${accuracy}%)
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showNotification(message, duration = 2000) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+
+        function setupElectronIPC() {
+            if (typeof window.electronAPI !== 'undefined') {
+                window.electronAPI.onShotData((shotData) => {
+                    const speed = shotData.ball_speed || 0;
+                    const vla = shotData.vla || 0;
+                    const hla = shotData.hla || 0;
+
+                    if (!ballInFlight && gameActive) {
+                        shootBall(speed, vla, hla);
+                    }
+                });
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update goalkeeper dive animation
+            if (goalkeeper.userData.diving && goalkeeper.userData.diveTarget) {
+                const elapsed = Date.now() - goalkeeper.userData.diveStartTime;
+                const progress = Math.min(elapsed / goalkeeper.userData.diveDuration, 1);
+
+                // Animate toward target position
+                const targetX = goalkeeper.userData.diveTarget.x * 0.7; // Don't dive full distance
+                const targetY = goalkeeper.userData.diveTarget.y * 0.5;
+
+                goalkeeper.position.x = targetX * progress;
+                goalkeeper.position.y = targetY * progress;
+                goalkeeper.rotation.z = (targetX > 0 ? -1 : 1) * progress * Math.PI / 6;
+
+                if (progress >= 1) {
+                    goalkeeper.userData.diving = false;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>

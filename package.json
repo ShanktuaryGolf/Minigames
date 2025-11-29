@@ -1,0 +1,81 @@
+{
+  "name": "shanktuary-golf-mini-games",
+  "version": "4.9.0",
+  "description": "Shanktuary Golf Mini Games",
+  "main": "electron-main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ShanktuaryGolf/Minigames.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "publish": "electron-builder --win --publish always",
+    "flightscope": "node flightscope-query.js"
+  },
+  "author": "Shanktuary Golf",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.shanktuary.golf-mini-games",
+    "productName": "Shanktuary Golf Mini Games",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!build/**/*",
+      "!server/**/*",
+      "!remote_connector_v2.py",
+      "!*.md",
+      "!logs/**/*",
+      "!node_modules/puppeteer/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/electron-updater/**/*"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ShanktuaryGolf",
+        "repo": "Minigames",
+        "releaseType": "release"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "electronlogo.png",
+      "publisherName": "Shanktuary Golf",
+      "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "electronlogo.png",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "electronlogo.png",
+      "category": "Game"
+    }
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "electron-updater": "^6.6.2",
+    "puppeteer": "^21.0.0",
+    "three": "^0.180.0"
+  }
+}

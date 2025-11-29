@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skee-Ball Putting</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+        }
+        #controls {
+            position: absolute;
+            top: 200px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            z-index: 1000;
+            width: 240px;
+            max-width: 240px;
+        }
+        #controls h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        #controls label {
+            display: block;
+            margin: 8px 0 4px 0;
+            font-size: 12px;
+        }
+        #controls input[type="range"] {
+            width: 100%;
+        }
+        #controls button {
+            width: 100%;
+            padding: 8px 12px;
+            margin-top: 10px;
+            background: #22c55e;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        #controls button:hover {
+            background: #16a34a;
+        }
+        .value-display {
+            display: inline-block;
+            float: right;
+            font-weight: bold;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContent"></div>
+
+    <div id="controls">
+        <h3>Shot Controls</h3>
+        <label>
+            Speed (mph): <span class="value-display" id="speedValue">25</span>
+            <input type="range" id="speedSlider" min="10" max="50" value="25" step="1">
+        </label>
+        <label>
+            Horizontal Angle: <span class="value-display" id="hlaValue">0</span>
+            <input type="range" id="hlaSlider" min="-10" max="10" value="0" step="1">
+        </label>
+        <label>
+            Vertical Angle: <span class="value-display" id="vlaValue">10</span>
+            <input type="range" id="vlaSlider" min="0" max="20" value="10" step="1">
+        </label>
+        <button id="shootBtn">Shoot Ball</button>
+
+        <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.2);">
+        <h3>Camera View</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <button id="cameraDefault" style="padding: 8px; background: #22c55e;">Default</button>
+            <button id="cameraSide" style="padding: 8px; background: #22c55e;">Side View</button>
+            <button id="cameraTop" style="padding: 8px; background: #22c55e;">Top View</button>
+            <button id="cameraRamp" style="padding: 8px; background: #22c55e;">Ramp View</button>
+        </div>
+
+        <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.2);">
+        <h3>Green Speed (Stimp)</h3>
+        <label>
+            Stimp Rating: <span class="value-display" id="stimpValue">10</span>
+            <input type="range" id="stimpSlider" min="8" max="13" value="10" step="1">
+        </label>
+        <div style="font-size: 0.85em; color: #aaa; margin-top: 5px;">
+            <div id="stimpDescription">Medium speed green</div>
+            <div id="frictionValue">Friction: 0.031</div>
+        </div>
+
+        <hr style="margin: 20px 0; border-color: rgba(255,255,255,0.2);">
+        <h3>Ramp Debug</h3>
+        <label>
+            <input type="checkbox" id="rampEnabled" checked> Enable Ramp
+        </label>
+        <label style="display: block; margin-top: 10px;">
+            Start X:
+            <input type="number" id="rampXInput" value="0" step="0.1"
+                   style="width: 80px; padding: 5px; background: rgba(255,255,255,0.1);
+                          border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 3px;">
+        </label>
+        <label style="display: block; margin-top: 10px;">
+            Start Y:
+            <input type="number" id="rampYInput" value="0.8" step="0.05"
+                   style="width: 80px; padding: 5px; background: rgba(255,255,255,0.1);
+                          border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 3px;">
+        </label>
+        <label style="display: block; margin-top: 10px;">
+            Start Z:
+            <input type="number" id="rampZInput" value="-3.0" step="0.1"
+                   style="width: 80px; padding: 5px; background: rgba(255,255,255,0.1);
+                          border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 3px;">
+        </label>
+        <button id="updateRampBtn" style="background: #3b82f6;">Update Ramp</button>
+    </div>
+
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- GLTFLoader for loading 3D models -->
+    <script src="./GLTFLoader.js"></script>
+
+    <!-- Use older Cannon.js that has proper global export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+    <!-- Load the game script -->
+    <script src="skeeball_putting_v3.js"></script>
+
+    <script>
+        console.log('THREE:', typeof THREE);
+        console.log('CANNON:', typeof CANNON);
+
+        // Global game instance
+        let game = null;
+
+        // Shot parameters
+        let shotParams = {
+            speed: 25,
+            hla: 0,
+            vla: 10
+        };
+
+        // Initialize game
+        function init() {
+            console.log('🎱 Initializing Skee-Ball...');
+            console.log('THREE available:', typeof THREE);
+            console.log('CANNON available:', typeof CANNON);
+
+            if (typeof SkeeBallGame !== 'undefined') {
+                game = new SkeeBallGame();
+                console.log('✓ Game instance created');
+
+                // Initialize the game (shows setup screen)
+                game.init();
+                console.log('✓ Game initialized');
+
+                // Wait for setup screen to render, then set player count
+                setTimeout(() => {
+                    game.setPlayerCount(1);
+                    console.log('✓ Player count set');
+
+                    // Then start the game
+                    setTimeout(() => {
+                        game.startGame();
+                        console.log('✓ Game started');
+                    }, 100);
+                }, 100);
+            } else {
+                console.error('❌ SkeeBallGame not defined');
+            }
+        }
+
+        // Setup controls
+        function setupControls() {
+            const speedSlider = document.getElementById('speedSlider');
+            const hlaSlider = document.getElementById('hlaSlider');
+            const vlaSlider = document.getElementById('vlaSlider');
+            const shootBtn = document.getElementById('shootBtn');
+
+            speedSlider.addEventListener('input', (e) => {
+                shotParams.speed = parseInt(e.target.value);
+                document.getElementById('speedValue').textContent = shotParams.speed;
+            });
+
+            hlaSlider.addEventListener('input', (e) => {
+                shotParams.hla = parseInt(e.target.value);
+                document.getElementById('hlaValue').textContent = shotParams.hla;
+            });
+
+            vlaSlider.addEventListener('input', (e) => {
+                shotParams.vla = parseInt(e.target.value);
+                document.getElementById('vlaValue').textContent = shotParams.vla;
+            });
+
+            shootBtn.addEventListener('click', () => {
+                if (game && game.gameActive) {
+                    const shot = {
+                        BallData: {
+                            Speed: shotParams.speed,
+                            HLA: shotParams.hla,
+                            VLA: shotParams.vla,
+                            TotalSpin: 800,
+                            BackSpin: 750,
+                            SideSpin: 50
+                        }
+                    };
+                    console.log('📊 Manual shot:', shot);
+                    game.handleShot(shot);
+                }
+            });
+
+            // Stimp rating control
+            const stimpSlider = document.getElementById('stimpSlider');
+            const stimpDescriptions = {
+                8: 'Slower green',
+                9: 'Medium-slow green',
+                10: 'Medium speed green',
+                11: 'Medium-fast green',
+                12: 'Fast green',
+                13: 'Very fast green'
+            };
+
+            stimpSlider.addEventListener('input', (e) => {
+                const stimp = parseInt(e.target.value);
+                document.getElementById('stimpValue').textContent = stimp;
+                document.getElementById('stimpDescription').textContent = stimpDescriptions[stimp];
+
+                if (game) {
+                    game.setStimpRating(stimp);
+                    document.getElementById('frictionValue').textContent =
+                        `Friction: ${game.currentFriction.toFixed(4)}`;
+                }
+            });
+
+            // Ramp debug controls
+            const rampEnabled = document.getElementById('rampEnabled');
+            const rampXInput = document.getElementById('rampXInput');
+            const rampYInput = document.getElementById('rampYInput');
+            const rampZInput = document.getElementById('rampZInput');
+            const updateRampBtn = document.getElementById('updateRampBtn');
+
+            updateRampBtn.addEventListener('click', () => {
+                if (game && game.rampDebug) {
+                    game.rampDebug.enabled = rampEnabled.checked;
+                    game.rampDebug.startX = parseFloat(rampXInput.value);
+                    game.rampDebug.startY = parseFloat(rampYInput.value);
+                    game.rampDebug.startZ = parseFloat(rampZInput.value);
+
+                    // Update drag controller position
+                    if (game.dragController) {
+                        game.dragController.position.set(
+                            game.rampDebug.startX,
+                            game.rampDebug.startY,
+                            game.rampDebug.startZ
+                        );
+                    }
+
+                    // Recreate everything
+                    game.updateControlPointMarkers();
+                    game.createRampPhysics();
+                    game.updateTrajectoryPreview();
+
+                    console.log('✓ Ramp updated:', game.rampDebug);
+                }
+            });
+
+            // Camera view controls
+            document.getElementById('cameraDefault').addEventListener('click', () => {
+                if (game && game.camera) {
+                    game.camera.position.set(0, 3, 8);
+                    game.camera.lookAt(0, 2, 0);
+                    console.log('📷 Default view');
+                }
+            });
+
+            document.getElementById('cameraSide').addEventListener('click', () => {
+                if (game && game.camera) {
+                    game.camera.position.set(5, 2, 0);
+                    game.camera.lookAt(0, 1, 0);
+                    console.log('📷 Side view');
+                }
+            });
+
+            document.getElementById('cameraTop').addEventListener('click', () => {
+                if (game && game.camera) {
+                    game.camera.position.set(0, 8, 0);
+                    game.camera.lookAt(0, 0, 0);
+                    console.log('📷 Top view');
+                }
+            });
+
+            document.getElementById('cameraRamp').addEventListener('click', () => {
+                if (game && game.camera) {
+                    game.camera.position.set(3, 2, -3);
+                    game.camera.lookAt(0, 1, -4);
+                    console.log('📷 Ramp view');
+                }
+            });
+        }
+
+        // Initialize everything when scripts load
+        init();
+        setupControls();
+    </script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shanktuary Golf Mini Games - Projector View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a4d2e 0%, #4ade80 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .projector-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .waiting-screen {
+            text-align: center;
+            padding: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+        }
+
+        .waiting-screen h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .waiting-screen p {
+            font-size: 1.5em;
+            opacity: 0.9;
+        }
+
+        #projectorGameContent {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        /* Make game canvas/image scale with window */
+        #projectorCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: crisp-edges;
+        }
+
+        .shot-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 60px 80px;
+            border-radius: 30px;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .shot-feedback.show {
+            opacity: 1;
+        }
+
+        .shot-feedback .points {
+            font-size: 5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .shot-feedback .message {
+            font-size: 2.5em;
+        }
+
+        /* Hide all UI elements except canvas on projector */
+        .score-display,
+        .data-panel,
+        .data-panels,
+        button,
+        h2, h3, h4,
+        p:not(.shot-feedback p) {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="projector-container">
+        <div id="waitingScreen" class="waiting-screen">
+            <h1>🎮 Projector Mode</h1>
+            <p>Waiting for game to start...</p>
+            <p style="font-size: 1em; margin-top: 20px; opacity: 0.7;">
+                Start a game from the main window
+            </p>
+        </div>
+
+        <div id="projectorGameContent" style="display: none;"></div>
+    </div>
+
+    <div id="shotFeedback" class="shot-feedback">
+        <div class="points"></div>
+        <div class="message"></div>
+    </div>
+
+    <script>
+        // BroadcastChannel to receive game state from main window
+        const channel = new BroadcastChannel('nova_games_projector');
+        let currentGameType = null;
+
+        // Listen for messages from main window
+        channel.onmessage = (event) => {
+            const { type, data } = event.data;
+
+            switch(type) {
+                case 'game_start':
+                    handleGameStart(data);
+                    break;
+                case 'game_update':
+                    handleGameUpdate(data);
+                    break;
+                case 'game_end':
+                    handleGameEnd();
+                    break;
+                case 'shot_feedback':
+                    showShotFeedback(data.points, data.message);
+                    break;
+            }
+        };
+
+        function handleGameStart(data) {
+            currentGameType = data.gameType;
+            document.getElementById('waitingScreen').style.display = 'none';
+
+            const content = document.getElementById('projectorGameContent');
+            content.style.display = 'flex';
+
+            // Create canvas image element if it doesn't exist
+            if (!document.getElementById('projectorCanvas')) {
+                const img = document.createElement('img');
+                img.id = 'projectorCanvas';
+                content.innerHTML = '';
+                content.appendChild(img);
+            }
+
+            console.log('Game started:', data.gameType);
+        }
+
+        function handleGameUpdate(data) {
+            const img = document.getElementById('projectorCanvas');
+
+            // Update canvas image
+            if (data.canvasData && img) {
+                img.src = data.canvasData;
+            }
+        }
+
+        function handleGameEnd() {
+            document.getElementById('waitingScreen').style.display = 'flex';
+            document.getElementById('projectorGameContent').style.display = 'none';
+            document.getElementById('projectorGameContent').innerHTML = '';
+            currentGameType = null;
+        }
+
+        function showShotFeedback(points, message) {
+            const feedback = document.getElementById('shotFeedback');
+            feedback.querySelector('.points').textContent = points > 0 ? `+${points}` : points;
+            feedback.querySelector('.message').textContent = message;
+            feedback.classList.add('show');
+
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 2000);
+        }
+
+        // Notify main window that projector is ready
+        window.addEventListener('load', () => {
+            channel.postMessage({ type: 'projector_ready' });
+        });
+
+        // Notify main window when projector is closing
+        window.addEventListener('beforeunload', () => {
+            channel.postMessage({ type: 'projector_closing' });
+        });
+
+        // Request fullscreen on load
+        window.addEventListener('load', () => {
+            // Automatically try to go fullscreen after a brief delay
+            setTimeout(() => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Fullscreen not available:', err);
+                    });
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

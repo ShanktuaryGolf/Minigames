@@ -1,0 +1,98 @@
+.shot-metrics-container {
+  position: fixed;
+  right: 20px;
+  top: 100px;
+  width: 320px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 999999;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metrics-header {
+  background: linear-gradient(90deg, #009ce9 0%, #0077b3 100%);
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.metrics-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.metrics-content {
+  padding: 20px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.metric-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 156, 233, 0.3);
+  transform: translateX(-2px);
+}
+
+.metric-row.highlight {
+  background: linear-gradient(90deg, rgba(0, 156, 233, 0.2) 0%, rgba(0, 119, 179, 0.2) 100%);
+  border: 1px solid rgba(0, 156, 233, 0.4);
+}
+
+.metric-row.highlight:hover {
+  background: linear-gradient(90deg, rgba(0, 156, 233, 0.3) 0%, rgba(0, 119, 179, 0.3) 100%);
+}
+
+.metric-label {
+  color: #b0b0b0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.metric-row.highlight .metric-label {
+  color: #fff;
+  font-weight: 600;
+}
+
+.metric-value {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+}
+
+.metric-row.highlight .metric-value {
+  color: #00d4ff;
+  font-size: 18px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 156, 233, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 156, 233, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 156, 233, 0);
+  }
+}
+
+.metric-row.updated {
+  animation: pulse 1s ease-out;
+}

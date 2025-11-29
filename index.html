@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Minigames - Web Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a4d2e 0%, #4ade80 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .connection-status {
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .connection-status.connected {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+        }
+
+        .connection-status.disconnected {
+            background: rgba(239, 68, 68, 0.3);
+            border: 2px solid #ef4444;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: #22c55e;
+        }
+
+        .status-indicator.disconnected {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .game-menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .game-card:hover:not(.disabled) {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .game-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-card .icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .game-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .game-card p {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .game-container {
+            display: none;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .game-container.active {
+            display: block;
+        }
+
+        .back-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .test-button {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: rgba(34, 197, 94, 0.5);
+        }
+
+        .fullscreen-dropdown {
+            position: relative;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        .fullscreen-button {
+            background: rgba(34, 197, 94, 0.3);
+            border: 2px solid #22c55e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .fullscreen-button:hover {
+            background: rgba(34, 197, 94, 0.5);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 5px;
+            background: rgba(0, 0, 0, 0.95);
+            min-width: 220px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            border-radius: 8px;
+            z-index: 1000;
+            border: 2px solid #22c55e;
+        }
+
+        .dropdown-content button {
+            width: 100%;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dropdown-content button:hover {
+            background: rgba(34, 197, 94, 0.3);
+        }
+
+        .dropdown-content button:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+
+        .dropdown-content button:last-child {
+            border-radius: 0 0 6px 6px;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        /* Hide canvas on main window when in projector mode */
+        body.projector-mode #gameContent canvas {
+            display: none;
+        }
+
+        .score-display {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-item .label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .score-item .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .shot-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .shot-feedback.show {
+            opacity: 1;
+        }
+
+        .shot-feedback .points {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .shot-feedback .message {
+            font-size: 1.5em;
+        }
+
+        .data-panels {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .data-panel {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 300px;
+        }
+
+        .data-panel h4 {
+            margin-bottom: 10px;
+            color: #60a5fa;
+            font-size: 1.1em;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9em;
+        }
+
+        .data-value {
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .data-value.highlight {
+            color: #60a5fa;
+        }
+
+        .session-panel {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 2px solid rgba(251, 191, 36, 0.5);
+        }
+
+        .session-panel.connector-connected {
+            border-color: rgba(34, 197, 94, 0.5);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .session-id-display {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .session-id {
+            font-size: 2.5em;
+            font-weight: bold;
+            letter-spacing: 0.15em;
+            color: #fbbf24;
+            font-family: 'Courier New', monospace;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .session-instructions {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        .session-instructions code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.95em;
+            color: #fbbf24;
+        }
+
+        .session-instructions ol {
+            margin: 10px 0 10px 20px;
+            line-height: 1.8em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 Nova Minigames</h1>
+        <p>Golf Simulator Party Games - Web Edition</p>
+    </div>
+
+    <div id="sessionPanel" class="session-panel" style="display: none;">
+        <h3 style="text-align: center; margin-bottom: 10px;">🔗 Remote Connection</h3>
+        <div class="session-id-display">
+            <div style="font-size: 1em; opacity: 0.8; margin-bottom: 5px;">Session ID</div>
+            <div class="session-id" id="sessionId">--------</div>
+        </div>
+        <div style="text-align: center; margin: 10px 0;">
+            <span id="connectorStatus" style="padding: 8px 16px; border-radius: 20px; background: rgba(251, 191, 36, 0.3); border: 2px solid #fbbf24; display: inline-block;">
+                ⏳ Waiting for launch monitor...
+            </span>
+        </div>
+        <div class="session-instructions">
+            <strong>📋 To connect your launch monitor:</strong>
+            <ol>
+                <li>Make sure the <strong>API Connector</strong> is running</li>
+                <li>Run: <code>python remote_connector_v2.py <span id="sessionIdCopy">--------</span></code></li>
+                <li>Hit shots and watch them appear here! 🎯</li>
+            </ol>
+        </div>
+    </div>
+
+    <div id="connectionStatus" class="connection-status disconnected">
+        <div class="status-indicator disconnected"></div>
+        <span>Connecting to server...</span>
+    </div>
+
+    <div id="gameMenu" class="game-menu">
+        <div class="game-card" onclick="startGame('darts')">
+            <div class="icon">🎯</div>
+            <h3>Darts</h3>
+            <p>Hit the dartboard with precision shots</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('beerpong')">
+            <div class="icon">🍺</div>
+            <h3>Beer Pong</h3>
+            <p>Sink the ball in the cups</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('horseshoes')">
+            <div class="icon">🥾</div>
+            <h3>Horseshoes</h3>
+            <p>Toss horseshoes at the stake</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('jenga')">
+            <div class="icon">🏗️</div>
+            <h3>Jenga</h3>
+            <p>Remove blocks without toppling</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('tictactoe')">
+            <div class="icon">❌⭕</div>
+            <h3>Tic-Tac-Toe</h3>
+            <p>Beat the AI in classic game</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('dotsandboxes')">
+            <div class="icon">📦</div>
+            <h3>Dots and Boxes</h3>
+            <p>Complete boxes to score</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('matchcards')">
+            <div class="icon">🃏</div>
+            <h3>Match Cards</h3>
+            <p>Memory matching game</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('connect4')">
+            <div class="icon">🔴🔵</div>
+            <h3>Connect 4</h3>
+            <p>Connect four in a row</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('othello')">
+            <div class="icon">⚫⚪</div>
+            <h3>Othello</h3>
+            <p>Flip discs to win</p>
+        </div>
+
+        <div class="game-card" onclick="startGame('homerunderby')">
+            <div class="icon">⚾</div>
+            <h3>Home Run Derby</h3>
+            <p>Hit dingers out of the park</p>
+        </div>
+    </div>
+
+    <div id="gameContainer" class="game-container">
+        <button class="back-button" onclick="backToMenu()">← Back to Menu</button>
+        <button class="test-button" onclick="restartGame()">🔄 New Game</button>
+        <button class="test-button" onclick="sendTestShot()">🧪 Test Shot</button>
+
+        <div class="fullscreen-dropdown" id="fullscreenDropdown">
+            <button class="fullscreen-button" onclick="toggleFullscreenDropdown()">🖥️ Fullscreen ▼</button>
+            <div class="dropdown-content" id="fullscreenDropdownContent">
+                <button onclick="selectComputerFullscreen()">
+                    <span>💻</span>
+                    <div>
+                        <div style="font-weight: bold;">Computer Fullscreen</div>
+                        <div style="font-size: 0.85em; opacity: 0.7;">Standard fullscreen mode</div>
+                    </div>
+                </button>
+                <button onclick="selectProjectorFullscreen()">
+                    <span>📽️</span>
+                    <div>
+                        <div style="font-weight: bold;">Projector Mode</div>
+                        <div style="font-size: 0.85em; opacity: 0.7;">Separate window for projector</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div id="gameContent"></div>
+
+        <div class="data-panels">
+            <div class="data-panel">
+                <h4>⛳ Ball Data</h4>
+                <div class="data-row">
+                    <span class="data-label">Ball Speed</span>
+                    <span class="data-value highlight" id="dataBallSpeed">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">HLA (Horizontal)</span>
+                    <span class="data-value" id="dataHLA">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">VLA (Vertical)</span>
+                    <span class="data-value" id="dataVLA">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Total Spin</span>
+                    <span class="data-value" id="dataTotalSpin">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Spin Axis</span>
+                    <span class="data-value" id="dataSpinAxis">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Carry Distance</span>
+                    <span class="data-value" id="dataCarry">--</span>
+                </div>
+            </div>
+
+            <div class="data-panel" id="clubDataPanel" style="display: none;">
+                <h4>🏌️ Club Data</h4>
+                <div class="data-row">
+                    <span class="data-label">Club Speed</span>
+                    <span class="data-value highlight" id="dataClubSpeed">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Attack Angle</span>
+                    <span class="data-value" id="dataAttackAngle">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Face to Target</span>
+                    <span class="data-value" id="dataFaceTarget">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Club Path</span>
+                    <span class="data-value" id="dataClubPath">--</span>
+                </div>
+                <div class="data-row">
+                    <span class="data-label">Impact Speed</span>
+                    <span class="data-value" id="dataImpactSpeed">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="shotFeedback" class="shot-feedback">
+        <div class="points"></div>
+        <div class="message"></div>
+    </div>
+
+    <script>
+        // Remote connector
+        let connector = null;
+        let currentGame = null;
+        let isConnected = false;
+        let connectorConnected = false;
+
+        // Projector mode
+        let projectorChannel = new BroadcastChannel('nova_games_projector');
+        let projectorWindow = null;
+        let projectorMode = false;
+
+        // Connect to remote server
+        function connectRemote() {
+            // Change this URL for production: 'wss://shanktuary.golf/ws'
+            const serverUrl = 'ws://localhost:8765';
+            connector = new RemoteGameConnector(serverUrl);
+
+            // Set up callbacks
+            connector.onConnected = (sessionId) => {
+                console.log('Connected to server, session:', sessionId);
+                updateConnectionStatus(true);
+
+                // Show session panel
+                document.getElementById('sessionPanel').style.display = 'block';
+                document.getElementById('sessionId').textContent = sessionId;
+                document.getElementById('sessionIdCopy').textContent = sessionId;
+            };
+
+            connector.onConnectorConnected = () => {
+                console.log('Launch monitor connected!');
+                connectorConnected = true;
+                updateConnectorStatus(true);
+            };
+
+            connector.onConnectorDisconnected = () => {
+                console.log('Launch monitor disconnected');
+                connectorConnected = false;
+                updateConnectorStatus(false);
+            };
+
+            connector.onShot = (shotData) => {
+                if (currentGame) {
+                    currentGame.handleShot(shotData);
+                    updateDataDisplay(shotData);
+                }
+            };
+
+            connector.onError = (error) => {
+                console.error('Connection error:', error);
+                updateConnectionStatus(false);
+            };
+
+            // Connect
+            connector.connect().catch(err => {
+                console.error('Failed to connect:', err);
+                updateConnectionStatus(false);
+            });
+        }
+
+        // Update connection status UI
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const statusEl = document.getElementById('connectionStatus');
+            const indicator = statusEl.querySelector('.status-indicator');
+            const text = statusEl.querySelector('span');
+
+            if (connected) {
+                statusEl.className = 'connection-status connected';
+                indicator.className = 'status-indicator connected';
+                text.textContent = '✓ Connected to server';
+            } else {
+                statusEl.className = 'connection-status disconnected';
+                indicator.className = 'status-indicator disconnected';
+                text.textContent = '⚠ Connecting to server...';
+            }
+        }
+
+        // Update connector status UI
+        function updateConnectorStatus(connected) {
+            const statusEl = document.getElementById('connectorStatus');
+            const panel = document.getElementById('sessionPanel');
+
+            if (connected) {
+                statusEl.textContent = '✅ Launch monitor connected!';
+                statusEl.style.background = 'rgba(34, 197, 94, 0.3)';
+                statusEl.style.borderColor = '#22c55e';
+                panel.classList.add('connector-connected');
+            } else {
+                statusEl.textContent = '⏳ Waiting for launch monitor...';
+                statusEl.style.background = 'rgba(251, 191, 36, 0.3)';
+                statusEl.style.borderColor = '#fbbf24';
+                panel.classList.remove('connector-connected');
+            }
+        }
+
+        // Start a game
+        function startGame(gameType) {
+            document.getElementById('gameMenu').style.display = 'none';
+            document.getElementById('gameContainer').classList.add('active');
+
+            switch(gameType) {
+                case 'darts':
+                    currentGame = new DartsGame();
+                    break;
+                case 'beerpong':
+                    currentGame = new BeerPongGame();
+                    break;
+                case 'horseshoes':
+                    currentGame = new HorseshoesGame();
+                    break;
+                case 'jenga':
+                    currentGame = new JengaGame();
+                    break;
+                case 'tictactoe':
+                    currentGame = new TicTacToeGame();
+                    break;
+                case 'dotsandboxes':
+                    currentGame = new DotsAndBoxesGame();
+                    break;
+                case 'matchcards':
+                    currentGame = new MatchCardsGame();
+                    break;
+                case 'connect4':
+                    currentGame = new Connect4Game();
+                    break;
+                case 'othello':
+                    currentGame = new OthelloGame();
+                    break;
+                case 'homerunderby':
+                    currentGame = new HomeRunDerbyGame();
+                    break;
+            }
+
+            currentGame.init();
+
+            // Notify connector about game selection
+            if (connector) {
+                connector.selectGame(gameType);
+            }
+
+            // Notify projector if in projector mode
+            if (projectorMode) {
+                broadcastGameStart(gameType);
+            }
+        }
+
+        // Back to menu
+        function backToMenu() {
+            if (currentGame) {
+                currentGame.cleanup();
+                currentGame = null;
+            }
+
+            document.getElementById('gameMenu').style.display = 'grid';
+            document.getElementById('gameContainer').classList.remove('active');
+            document.getElementById('gameContent').innerHTML = '';
+
+            // Notify projector that game ended
+            if (projectorMode) {
+                projectorChannel.postMessage({ type: 'game_end' });
+            }
+        }
+
+        // Restart current game
+        function restartGame() {
+            if (!currentGame) return;
+
+            // Check if game has a restart method (for games with setup like darts multiplayer)
+            if (typeof currentGame.restartGame === 'function') {
+                currentGame.restartGame();
+            } else {
+                // For simpler games, just reinitialize
+                currentGame.cleanup();
+                currentGame.init();
+            }
+
+            // Notify connector about game restart
+            if (connector) {
+                connector.selectGame(currentGame.constructor.name.replace('Game', '').toLowerCase());
+            }
+        }
+
+        // Send test shot (generates random shot data for testing)
+        function sendTestShot() {
+            if (!currentGame) return;
+
+            // Generate random test shot
+            const testShot = {
+                ball_speed: 80 + Math.random() * 100,
+                hla: (Math.random() - 0.5) * 30,
+                vla: 5 + Math.random() * 20,
+                total_spin: 2000 + Math.random() * 2000,
+                back_spin: 2000 + Math.random() * 2000,
+                side_spin: (Math.random() - 0.5) * 1000,
+                spin_axis: (Math.random() - 0.5) * 30,
+                carry_distance: 150 + Math.random() * 150
+            };
+
+            currentGame.handleShot(testShot);
+            updateDataDisplay(testShot);
+        }
+
+        // Show shot feedback
+        function showShotFeedback(points, message) {
+            const feedback = document.getElementById('shotFeedback');
+            if (!feedback) {
+                console.error('Shot feedback element not found');
+                return;
+            }
+
+            feedback.querySelector('.points').textContent = points > 0 ? `+${points}` : points;
+            feedback.querySelector('.message').textContent = message;
+            feedback.classList.add('show');
+
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 2000);
+
+            // Send to projector if in projector mode
+            if (projectorMode) {
+                projectorChannel.postMessage({
+                    type: 'shot_feedback',
+                    data: { points, message }
+                });
+            }
+        }
+
+        // Update data display panels
+        function updateDataDisplay(shotData) {
+            // Ball data
+            document.getElementById('dataBallSpeed').textContent =
+                shotData.ball_speed ? `${shotData.ball_speed.toFixed(1)} mph` : '--';
+            document.getElementById('dataHLA').textContent =
+                shotData.hla !== undefined ? `${shotData.hla.toFixed(1)}°` : '--';
+            document.getElementById('dataVLA').textContent =
+                shotData.vla !== undefined ? `${shotData.vla.toFixed(1)}°` : '--';
+            document.getElementById('dataTotalSpin').textContent =
+                shotData.total_spin ? `${shotData.total_spin.toFixed(0)} rpm` : '--';
+            document.getElementById('dataSpinAxis').textContent =
+                shotData.spin_axis !== undefined ? `${shotData.spin_axis.toFixed(1)}°` : '--';
+            document.getElementById('dataCarry').textContent =
+                shotData.carry_distance ? `${shotData.carry_distance.toFixed(0)} yds` : '--';
+
+            // Club data (if available)
+            if (shotData.club) {
+                const clubPanel = document.getElementById('clubDataPanel');
+                clubPanel.style.display = 'block';
+
+                document.getElementById('dataClubSpeed').textContent =
+                    shotData.club.speed ? `${shotData.club.speed.toFixed(1)} mph` : '--';
+                document.getElementById('dataAttackAngle').textContent =
+                    shotData.club.angle_of_attack !== undefined ? `${shotData.club.angle_of_attack.toFixed(1)}°` : '--';
+                document.getElementById('dataFaceTarget').textContent =
+                    shotData.club.face_to_target !== undefined ? `${shotData.club.face_to_target.toFixed(1)}°` : '--';
+                document.getElementById('dataClubPath').textContent =
+                    shotData.club.path !== undefined ? `${shotData.club.path.toFixed(1)}°` : '--';
+                document.getElementById('dataImpactSpeed').textContent =
+                    shotData.club.speed_at_impact ? `${shotData.club.speed_at_impact.toFixed(1)} mph` : '--';
+            }
+        }
+
+        // Toggle fullscreen dropdown menu
+        function toggleFullscreenDropdown() {
+            const dropdown = document.getElementById('fullscreenDropdownContent');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown
+        function closeFullscreenDropdown() {
+            const dropdown = document.getElementById('fullscreenDropdownContent');
+            dropdown.classList.remove('show');
+        }
+
+        // Select Computer Fullscreen
+        function selectComputerFullscreen() {
+            closeFullscreenDropdown();
+            toggleComputerFullscreen();
+        }
+
+        // Select Projector Fullscreen
+        function selectProjectorFullscreen() {
+            closeFullscreenDropdown();
+            toggleProjectorFullscreen();
+        }
+
+        // Computer Fullscreen (standard fullscreen)
+        function toggleComputerFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error('Error entering fullscreen:', err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Projector Fullscreen (separate window)
+        function toggleProjectorFullscreen() {
+            if (projectorWindow && !projectorWindow.closed) {
+                // Close projector window
+                projectorWindow.close();
+                projectorWindow = null;
+                projectorMode = false;
+                document.body.classList.remove('projector-mode');
+                console.log('Projector window closed');
+            } else {
+                // Open projector window
+                projectorWindow = window.open(
+                    'projector.html',
+                    'ProjectorView',
+                    'width=1920,height=1080,toolbar=no,menubar=no,location=no'
+                );
+
+                if (projectorWindow) {
+                    projectorMode = true;
+                    document.body.classList.add('projector-mode');
+                    console.log('Projector window opened');
+
+                    // If a game is already running, sync it
+                    if (currentGame) {
+                        setTimeout(() => {
+                            broadcastGameStart(currentGame.constructor.name.replace('Game', '').toLowerCase());
+                            syncGameState();
+                        }, 1000);
+                    }
+                } else {
+                    alert('Could not open projector window. Please allow popups for this site.');
+                }
+            }
+        }
+
+        // Broadcast game start to projector
+        function broadcastGameStart(gameType) {
+            projectorChannel.postMessage({
+                type: 'game_start',
+                data: { gameType }
+            });
+        }
+
+        // Sync game state to projector
+        function syncGameState() {
+            // Find the canvas (dartboard, game board, etc.)
+            const canvas = document.querySelector('#gameContent canvas');
+
+            if (canvas) {
+                // Send canvas as image data
+                try {
+                    const dataUrl = canvas.toDataURL();
+                    projectorChannel.postMessage({
+                        type: 'game_update',
+                        data: {
+                            canvasData: dataUrl,
+                            width: canvas.width,
+                            height: canvas.height
+                        }
+                    });
+                } catch (err) {
+                    console.error('Error syncing canvas:', err);
+                }
+            }
+        }
+
+        // Auto-sync game content to projector when it changes
+        function setupProjectorSync() {
+            const gameContent = document.getElementById('gameContent');
+            if (!gameContent) return;
+
+            const observer = new MutationObserver(() => {
+                if (projectorMode) {
+                    syncGameState();
+                }
+            });
+
+            observer.observe(gameContent, {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                characterData: true
+            });
+
+            // Also sync canvas periodically (canvas pixels don't trigger mutations)
+            setInterval(() => {
+                if (projectorMode) {
+                    syncGameState();
+                }
+            }, 100); // Sync every 100ms for smooth updates
+        }
+
+        // Listen for projector window messages
+        projectorChannel.onmessage = (event) => {
+            const { type } = event.data;
+
+            if (type === 'projector_ready') {
+                console.log('Projector is ready');
+                // Sync current game state if game is active
+                if (currentGame) {
+                    broadcastGameStart(currentGame.constructor.name.replace('Game', '').toLowerCase());
+                    syncGameState();
+                }
+            }
+        };
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', (event) => {
+            const dropdown = document.getElementById('fullscreenDropdown');
+            const dropdownContent = document.getElementById('fullscreenDropdownContent');
+
+            // If click is outside the dropdown, close it
+            if (dropdown && !dropdown.contains(event.target)) {
+                dropdownContent.classList.remove('show');
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            connectRemote();
+            setupProjectorSync();
+        });
+    </script>
+
+    <!-- Load remote connector -->
+    <script src="client_connector.js"></script>
+
+    <!-- Load game scripts -->
+    <script src="darts_multiplayer.js"></script>
+    <script src="beerpong.js"></script>
+    <script src="horseshoes.js"></script>
+    <script src="jenga.js"></script>
+    <script src="tictactoe.js"></script>
+    <script src="dotsandboxes.js"></script>
+    <script src="matchcards.js"></script>
+    <script src="connect4.js"></script>
+    <script src="othello.js"></script>
+    <script src="homerunderby.js"></script>
+</body>
+</html>

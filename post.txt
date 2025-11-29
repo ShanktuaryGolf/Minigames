@@ -1,0 +1,121 @@
+ Hey everyone! 👋
+
+  If you've got a golf simulator with a launch monitor, I've built something you might enjoy - Shanktuary Golf Mini Games!
+
+  What is it?
+  It's a free app that connects to your launch monitor (via GSPro Open Connect - TCP 921) and lets you play arcade-style mini games using
+   your actual golf shots. Think of it as turning your sim into a full game room!
+
+  ---
+  🎮 Games Included:
+
+  🎳 Bowling (NEWEST - v3.6.0)
+  - Full 10-frame regulation bowling with strikes & spares
+  - Realistic pin physics (they actually knock each other down!)
+  - Per-player bumpers for kids
+  - Power boost options for slower swing speeds
+  - Automatic pin camera that shows the collision
+  - Hit putter shots: speed = power, HLA = aim, spin = hook
+
+  ⚾ Baseball (3 Modes!)
+  - Practice Mode - Free swinging with stats
+  - Home Run Derby - 10 strikes, longest drive tracking
+  - 9-Inning Game - Full baseball with base runners!
+  - MLB-sized stadium, realistic hit distances
+
+  🎯 Darts (5 Game Modes!)
+  - Practice, 301, 501, Cricket, Killer
+  - 1-6 players, projector mode
+  - Calibration wizard for accuracy
+  - Great for wedge practice!
+
+  ⛳ Putting Practice (2 Modes!)
+  - Practice Mode - 1-40ft putts, adjustable stimp/break/slope
+  - Ladder Mode - Progressive training (2ft → 40ft)
+  - Real Stanford physics for realistic roll
+  - Topographical grid shows break direction
+
+  ---
+  🔌 How It Works:
+  Connects to GSPro Open Connect (TCP 921) - if your LM can talk to GSPro, it can play these games!
+
+  Compatible with:
+  Mevo+, SkyTrak, GCQuad, Bushnell Launch Pro, Uneekor, FlightScope, etc.
+
+  Works even if GSPro isn't running! Just needs port 921 active.
+
+  ---
+  ✨ Cool Features:
+  ✅ Multiplayer support (1-6 players)
+  ✅ Per-player colors, names, settings
+  ✅ Realistic physics engines (Cannon.js, McNally aerodynamics, Stanford putting model)
+  ✅ CSV export for data nerds
+  ✅ Cross-platform (Windows/Linux/Mac)
+  ✅ Free to download!
+
+  ---
+  📥 Want to try it?
+  [Add download link or instructions here]
+
+  💬 Questions?
+  Drop them below! Always happy to help with setup or answer questions about the games.
+
+  🛠 Suggestions?
+  I'm actively developing this - if you have ideas for new games or features, let me know!
+
+  ---
+  Latest version: 3.6.0 (Nov 2025) - Just added Cannon.js physics to bowling for ultra-realistic pin action! 🎳
+
+  ---
+  Shorter/Punchier Version:
+
+  ---
+  🎮 Shanktuary Golf Mini Games - Arcade Games for Your Launch Monitor!
+
+  Turn your golf sim into a game room! 🎳⚾🎯⛳🎱
+
+  What you get:
+  🎳 Bowling - Full 10-frame game w/ realistic pin physics (NEW Cannon.js engine!)
+  ⚾ Baseball - Practice, Derby, or full 9-inning games with base runners
+  🎯 Darts - 301/501/Cricket/Killer, 1-6 players, projector mode
+  ⛳ Putting - Practice mode (1-40ft) + Ladder training mode
+
+  Works with any LM that can use GSPro Open Connect (TCP 921)
+  Mevo+, SkyTrak, GCQuad, Bushnell, Uneekor, FlightScope, etc.
+
+  Features:
+  ✅ Multiplayer (1-6 players)
+  ✅ Per-player settings (bumpers for kids, power boost, custom colors)
+  ✅ Realistic physics (Cannon.js, McNally aero, Stanford putting)
+  ✅ Free! Windows/Linux/Mac
+
+  Perfect for:
+  - Practice variety (wedges → darts, putting drills)
+  - Family fun (bowling bumpers for kids!)
+  - Rainy day entertainment
+  - Sim league side games
+
+  Download: [link]
+  Questions? Ask away! 👇
+
+  ---
+  Super Short "Announcement" Style:
+
+  ---
+  🎮 NEW: Shanktuary Golf Mini Games v3.6.0
+
+  I built an arcade suite for golf simulators - 5 games that use your launch monitor data!
+
+  🎳 Bowling (realistic physics!)
+  ⚾ Baseball (Practice/Derby/9-inning)
+  🎯 Darts (301/501/Cricket/Killer)
+  ⛳ Putting (Practice + Ladder mode)
+
+  Connects via GSPro Open Connect (TCP 921) - works with Mevo+, SkyTrak, GCQuad, Bushnell, Uneekor, FlightScope, etc.
+
+  Free download: [link]
+
+  Multiplayer, realistic physics, cross-platform. Great for practice variety or family fun!
+
+  Try it out and let me know what you think! 💬
+

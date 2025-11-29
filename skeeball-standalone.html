@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skee-Ball Putting</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContent"></div>
+
+    <!-- Three.js r128 from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Cannon-ES from unpkg (UMD format, not CJS) -->
+    <script src="https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js" type="module"></script>
+    <script type="module">
+        import * as CANNON from 'https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js';
+        window.CANNON = CANNON;
+
+        console.log('CANNON loaded via module:', typeof CANNON);
+
+        // Trigger init after CANNON is loaded
+        if (window.initGame) {
+            window.initGame();
+        }
+    </script>
+
+    <!-- Load the game script -->
+    <script src="skeeball_putting.js"></script>
+
+    <script>
+        // Global game instance
+        let game = null;
+
+        // Demo shot data
+        const demoShots = [
+            {BallData: {Speed: 25, HLA: 0, VLA: 10, TotalSpin: 800, BackSpin: 750, SideSpin: 50}},
+            {BallData: {Speed: 30, HLA: -2, VLA: 12, TotalSpin: 900, BackSpin: 850, SideSpin: -100}},
+            {BallData: {Speed: 35, HLA: 3, VLA: 8, TotalSpin: 1000, BackSpin: 950, SideSpin: 150}},
+            {BallData: {Speed: 28, HLA: -1, VLA: 11, TotalSpin: 850, BackSpin: 800, SideSpin: -50}}
+        ];
+
+        let shotIndex = 0;
+
+        // Initialize game
+        window.initGame = function() {
+            // Wait a bit for CANNON to be available
+            setTimeout(() => {
+                console.log('🎱 Initializing Skee-Ball...');
+                console.log('THREE available:', typeof THREE);
+                console.log('CANNON available:', typeof CANNON);
+                console.log('CANNON object:', window.CANNON);
+
+                if (typeof SkeeBallGame !== 'undefined') {
+                    game = new SkeeBallGame('gameContent');
+                    console.log('✓ Game instance created');
+
+                    // Set to 1 player and start immediately
+                    game.setPlayerCount(1);
+
+                    // Small delay to let UI render, then start
+                    setTimeout(() => {
+                        game.startGame();
+                        console.log('✓ Game started');
+                    }, 100);
+                } else {
+                    console.error('❌ SkeeBallGame not defined');
+                }
+            }, 200);
+        };
+
+        // Simulate shots automatically
+        function simulateShot() {
+            if (game && game.gameActive) {
+                const shot = demoShots[shotIndex % demoShots.length];
+                shotIndex++;
+
+                console.log('📊 Simulating shot:', shot);
+                game.handleShot(shot);
+            }
+        }
+
+        // Auto-simulate shots every 4 seconds
+        setInterval(simulateShot, 4000);
+
+        // Try init when DOM ready (in case CANNON already loaded)
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                if (window.CANNON && window.initGame) {
+                    window.initGame();
+                }
+            });
+        } else if (window.CANNON) {
+            window.initGame();
+        }
+    </script>
+</body>
+</html>

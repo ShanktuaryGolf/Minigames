@@ -1,0 +1,155 @@
+{
+  "shotScope_validated": [
+    {
+      "name": "Test 1: Weak Contact - Pop Fly",
+      "ball_speed": 70,
+      "vla": 25,
+      "hla": -3,
+      "total_spin": 8000,
+      "spin_axis": 5,
+      "expected_carry_yards": 83.9,
+      "expected_result": "Pop Fly"
+    },
+    {
+      "name": "Test 2: Medium Contact",
+      "ball_speed": 100,
+      "vla": 18,
+      "hla": 4,
+      "total_spin": 5500,
+      "spin_axis": 8,
+      "expected_carry_yards": 147.5,
+      "expected_result": "Monster Shot"
+    },
+    {
+      "name": "Test 3: Good Contact - Monster Shot",
+      "ball_speed": 150,
+      "vla": 12,
+      "hla": -6,
+      "total_spin": 2700,
+      "spin_axis": 12,
+      "expected_carry_yards": 271.2,
+      "expected_result": "Monster Shot"
+    },
+    {
+      "name": "Test 4: Extreme Contact - Monster Shot",
+      "ball_speed": 212,
+      "vla": 10,
+      "hla": 7,
+      "total_spin": 2000,
+      "spin_axis": 15,
+      "expected_carry_yards": 455.1,
+      "expected_result": "Monster Shot"
+    }
+  ],
+  "boundary_tests": [
+    {
+      "name": "Test 5: Just Below Home Run Threshold",
+      "ball_speed": 135,
+      "vla": 20,
+      "hla": 0,
+      "total_spin": 3500,
+      "spin_axis": 0,
+      "expected_carry_feet": 360,
+      "expected_result": "Long Fly Out"
+    },
+    {
+      "name": "Test 6: Just Above Home Run Threshold",
+      "ball_speed": 145,
+      "vla": 20,
+      "hla": 0,
+      "total_spin": 3500,
+      "spin_axis": 0,
+      "expected_carry_feet": 390,
+      "expected_result": "Home Run"
+    },
+    {
+      "name": "Test 7: Foul Ball (Too Far Left)",
+      "ball_speed": 160,
+      "vla": 15,
+      "hla": -30,
+      "total_spin": 3000,
+      "spin_axis": 20,
+      "expected_result": "Foul Ball"
+    },
+    {
+      "name": "Test 8: Foul Ball (Too Far Right)",
+      "ball_speed": 160,
+      "vla": 15,
+      "hla": 30,
+      "total_spin": 3000,
+      "spin_axis": 25,
+      "expected_result": "Foul Ball"
+    },
+    {
+      "name": "Test 9: Too Weak",
+      "ball_speed": 130,
+      "vla": 25,
+      "hla": 0,
+      "total_spin": 4000,
+      "spin_axis": 0,
+      "expected_result": "Too Weak! Need 140+ mph"
+    }
+  ],
+  "additional_tests": [
+    {
+      "name": "Test 10: Perfect Center Shot",
+      "ball_speed": 180,
+      "vla": 15,
+      "hla": 0,
+      "total_spin": 2500,
+      "spin_axis": 0,
+      "expected_carry_feet": 600,
+      "expected_result": "Monster Shot"
+    },
+    {
+      "name": "Test 11: High Launch, Lower Speed",
+      "ball_speed": 155,
+      "vla": 30,
+      "hla": 2,
+      "total_spin": 4000,
+      "spin_axis": 10,
+      "expected_carry_feet": 435,
+      "expected_result": "Monster Shot"
+    },
+    {
+      "name": "Test 12: Low Launch, High Speed",
+      "ball_speed": 175,
+      "vla": 8,
+      "hla": -2,
+      "total_spin": 2000,
+      "spin_axis": 18,
+      "expected_carry_feet": 495,
+      "expected_result": "Monster Shot"
+    },
+    {
+      "name": "Test 13: Draw Shot (Hook Spin)",
+      "ball_speed": 165,
+      "vla": 14,
+      "hla": -5,
+      "total_spin": 3200,
+      "spin_axis": 25,
+      "expected_carry_feet": 540,
+      "expected_result": "Monster Shot (curves left)"
+    },
+    {
+      "name": "Test 14: Fade Shot (Slice Spin)",
+      "ball_speed": 165,
+      "vla": 14,
+      "hla": 5,
+      "total_spin": 3200,
+      "spin_axis": 30,
+      "expected_carry_feet": 540,
+      "expected_result": "Monster Shot (curves right)"
+    },
+    {
+      "name": "Test 15: Maximum Spin Axis",
+      "ball_speed": 170,
+      "vla": 16,
+      "hla": 10,
+      "total_spin": 3500,
+      "spin_axis": 45,
+      "expected_carry_feet": 570,
+      "expected_result": "Monster Shot (heavy curve)"
+    }
+  ]
+}

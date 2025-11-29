@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Darts - Shanktuary Golf Mini Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #1a1a1a;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            width: 240px;
+            max-width: 240px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .control-section {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #444;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        h3 {
+            color: #FFD700;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 3px 0;
+            font-size: 12px;
+        }
+
+        .stat-label {
+            color: #aaa;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin: 4px 0;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .calibration-point {
+            background: #FF9800;
+            margin: 5px 0;
+        }
+
+        .calibration-point:hover {
+            background: #F57C00;
+        }
+
+        .calibration-status {
+            color: #4CAF50;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        #notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 2000;
+            display: none;
+            text-align: center;
+            border: 3px solid #4CAF50;
+        }
+
+        .score-display {
+            font-size: 1.5em;
+            text-align: center;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div id="controls">
+        <h2>🎯 3D Darts</h2>
+
+        <div class="control-section">
+            <h3>Calibration</h3>
+            <div style="text-align: center; padding: 10px; background: rgba(59, 130, 246, 0.2); border-radius: 5px; margin-bottom: 10px;">
+                <div style="font-size: 0.9em; opacity: 0.8;">Uses main menu calibration</div>
+                <div style="font-size: 0.85em; opacity: 0.6; margin-top: 5px;">Run calibration wizard from main menu</div>
+            </div>
+        </div>
+
+        <div class="control-section" id="setupSection">
+            <h3>Setup Game</h3>
+            <button onclick="showSetupScreen()">Start New Game</button>
+        </div>
+
+        <div class="control-section" id="gameStatusSection" style="display: none;">
+            <h3>Current Turn</h3>
+            <div class="stat-row">
+                <span class="stat-label">Player:</span>
+                <span class="stat-value" id="currentPlayerName">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Mode:</span>
+                <span class="stat-value" id="gameModeName">-</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Score:</span>
+                <span class="stat-value" id="currentPlayerScore">-</span>
+            </div>
+        </div>
+
+        <div class="control-section" id="scoreboardSection" style="display: none;">
+            <h3>Scoreboard</h3>
+            <div id="scoreboard"></div>
+        </div>
+
+        <div class="control-section">
+            <h3>Last Throw</h3>
+            <div id="lastThrow" style="text-align: center; color: #4CAF50; font-size: 1.5em;">
+                --
+            </div>
+        </div>
+
+        <div class="control-section">
+            <button onclick="testThrow()">Test Throw (Bullseye)</button>
+            <button onclick="clearDarts()">Clear All Darts</button>
+            <button onclick="nextPlayerManual()" id="nextPlayerBtn" style="display: none;">Next Player</button>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <!-- Game Setup Modal -->
+    <div id="setupModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; overflow-y: auto;">
+        <div style="max-width: 800px; margin: 40px auto; padding: 30px; background: rgba(30, 30, 30, 0.95); border-radius: 15px; border: 2px solid #4CAF50;">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #4CAF50;">🎯 Setup 3D Darts Game</h2>
+
+            <div id="setupStep1" class="setup-step">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Number of Players</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 30px;">
+                    <button onclick="setPlayerCount(1)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">1 Player</button>
+                    <button onclick="setPlayerCount(2)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">2 Players</button>
+                    <button onclick="setPlayerCount(3)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">3 Players</button>
+                    <button onclick="setPlayerCount(4)" style="flex: 1; min-width: 80px; padding: 15px; font-size: 1.2em; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">4 Players</button>
+                </div>
+            </div>
+
+            <div id="setupStep2" class="setup-step" style="display: none;">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Player Names</h3>
+                <div id="playerNamesContainer"></div>
+                <button onclick="confirmPlayerNames()" style="width: 100%; padding: 15px; margin-top: 15px; font-size: 1.1em; background: rgba(34, 197, 94, 0.3); border: 2px solid #22c55e; color: white; border-radius: 8px; cursor: pointer;">Continue</button>
+            </div>
+
+            <div id="setupStep3" class="setup-step" style="display: none;">
+                <h3 style="color: #FFD700; margin-bottom: 15px;">Game Mode</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                    <button onclick="startGameMode('practice')" style="padding: 20px; background: rgba(59, 130, 246, 0.3); border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">🎯</div>
+                        <div style="font-weight: bold;">Practice</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Just throw darts</div>
+                    </button>
+                    <button onclick="startGameMode('301')" style="padding: 20px; background: rgba(239, 68, 68, 0.3); border: 2px solid #ef4444; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">3️⃣</div>
+                        <div style="font-weight: bold;">301</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Race to zero</div>
+                    </button>
+                    <button onclick="startGameMode('501')" style="padding: 20px; background: rgba(16, 185, 129, 0.3); border: 2px solid #10b981; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">5️⃣</div>
+                        <div style="font-weight: bold;">501</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Race to zero</div>
+                    </button>
+                    <button onclick="startGameMode('cricket')" style="padding: 20px; background: rgba(245, 158, 11, 0.3); border: 2px solid #f59e0b; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">🦗</div>
+                        <div style="font-weight: bold;">Cricket</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Close the numbers</div>
+                    </button>
+                    <button onclick="startGameMode('killer')" style="padding: 20px; background: rgba(139, 92, 246, 0.3); border: 2px solid #8b5cf6; color: white; border-radius: 8px; cursor: pointer;">
+                        <div style="font-size: 2em; margin-bottom: 5px;">💀</div>
+                        <div style="font-weight: bold;">Killer</div>
+                        <div style="font-size: 0.9em; opacity: 0.8;">Eliminate opponents</div>
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeSetupModal()" style="width: 100%; padding: 12px; margin-top: 20px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); color: white; border-radius: 8px; cursor: pointer;">Close</button>
+        </div>
+    </div>
+
+    <script src="./three.min.js"></script>
+    <script>
+        // Global variables
+        let scene, camera, renderer;
+        let dartboard;
+        let darts = [];
+
+        // Game state
+        let gameMode = null;
+        let players = [];
+        let currentPlayerIndex = 0;
+        let gameActive = false;
+        const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+
+        // Dartboard constants (scaled up 30x for large projector-like display)
+        const DARTBOARD_SCALE = 30.0;
+        const DARTBOARD_RADIUS = 0.225 * DARTBOARD_SCALE; // 450mm diameter = 225mm radius
+        const BULLSEYE_RADIUS = 0.00635 * DARTBOARD_SCALE; // 12.7mm diameter = 6.35mm radius
+        const OUTER_BULL_RADIUS = 0.015875 * DARTBOARD_SCALE; // 31.75mm diameter = 15.875mm radius
+        const TRIPLE_INNER_RADIUS = 0.099 * DARTBOARD_SCALE;
+        const TRIPLE_OUTER_RADIUS = 0.107 * DARTBOARD_SCALE;
+        const DOUBLE_INNER_RADIUS = 0.162 * DARTBOARD_SCALE;
+        const DOUBLE_OUTER_RADIUS = 0.170 * DARTBOARD_SCALE;
+
+        // Dartboard number arrangement (clockwise from top)
+        const DARTBOARD_NUMBERS = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+
+            // Create camera (zoomed in tight on dartboard)
+            camera = new THREE.PerspectiveCamera(
+                45, // Narrower FOV = more zoom
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 1.73 * DARTBOARD_SCALE, 10); // Very close - about 10 meters from wall
+            camera.lookAt(0, 1.73 * DARTBOARD_SCALE, -0.49 * DARTBOARD_SCALE);
+
+            // Create renderer
+            const canvas = document.getElementById('canvas');
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+
+            // Lights (scaled for larger scene)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 3 * DARTBOARD_SCALE, 1 * DARTBOARD_SCALE);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Spotlight on dartboard
+            const spotLight = new THREE.SpotLight(0xffffff, 1.5);
+            spotLight.position.set(0, 2.5 * DARTBOARD_SCALE, 0.5 * DARTBOARD_SCALE);
+            spotLight.target.position.set(0, 1.73 * DARTBOARD_SCALE, 0);
+            spotLight.angle = Math.PI / 6;
+            scene.add(spotLight);
+            scene.add(spotLight.target);
+
+            // Create environment
+            createWall();
+            createFloor();
+            createDartboard();
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Electron IPC setup
+            setupElectronIPC();
+
+            // Start animation loop
+            animate();
+        }
+
+        function createWall() {
+            const wallGeometry = new THREE.PlaneGeometry(10 * DARTBOARD_SCALE, 5 * DARTBOARD_SCALE);
+            const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Brown wood
+            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+            wall.position.set(0, 2.5 * DARTBOARD_SCALE, -0.5 * DARTBOARD_SCALE);
+            wall.receiveShadow = true;
+            scene.add(wall);
+        }
+
+        function createFloor() {
+            const floorGeometry = new THREE.PlaneGeometry(10 * DARTBOARD_SCALE, 10 * DARTBOARD_SCALE);
+            const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+        }
+
+        function createDartboard() {
+            dartboard = new THREE.Group();
+
+            // Dartboard backing (black circle)
+            const backingGeometry = new THREE.CircleGeometry(DARTBOARD_RADIUS, 64);
+            const backingMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+            const backing = new THREE.Mesh(backingGeometry, backingMaterial);
+            backing.receiveShadow = true;
+            dartboard.add(backing);
+
+            // Create colored segments
+            createDartboardSegments();
+
+            // Bullseye (red center)
+            const bullseyeGeometry = new THREE.CircleGeometry(BULLSEYE_RADIUS, 32);
+            const bullseyeMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
+            const bullseye = new THREE.Mesh(bullseyeGeometry, bullseyeMaterial);
+            bullseye.position.z = 0.001;
+            dartboard.add(bullseye);
+
+            // Outer bull (green)
+            const outerBullGeometry = new THREE.RingGeometry(BULLSEYE_RADIUS, OUTER_BULL_RADIUS, 32);
+            const outerBullMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00 });
+            const outerBull = new THREE.Mesh(outerBullGeometry, outerBullMaterial);
+            outerBull.position.z = 0.001;
+            dartboard.add(outerBull);
+
+            // Add number markers
+            createNumberMarkers();
+
+            // Position dartboard on wall at regulation height (5'8" = 1.73m to bullseye, scaled)
+            dartboard.position.set(0, 1.73 * DARTBOARD_SCALE, -0.49 * DARTBOARD_SCALE);
+
+            scene.add(dartboard);
+        }
+
+        function createDartboardSegments() {
+            // Create 20 segments with alternating colors
+            const segmentAngle = (Math.PI * 2) / 20;
+
+            for (let i = 0; i < 20; i++) {
+                const isBlack = i % 2 === 0;
+                const scoreColor = isBlack ? 0x000000 : 0xF5DEB3; // Black or cream
+                const tripleColor = isBlack ? 0xFF0000 : 0x00FF00; // Red or green
+                const doubleColor = isBlack ? 0xFF0000 : 0x00FF00; // Red or green
+
+                // 20 is centered at top, clockwise order
+                // Negate i to reverse direction (clockwise instead of counter-clockwise)
+                const startAngle = -i * segmentAngle + Math.PI / 2 - segmentAngle / 2;
+                const endAngle = -(i + 1) * segmentAngle + Math.PI / 2 - segmentAngle / 2;
+
+                // Single score area (outer bull to triple)
+                const singleInner = new THREE.RingGeometry(
+                    OUTER_BULL_RADIUS,
+                    TRIPLE_INNER_RADIUS,
+                    32,
+                    1,
+                    startAngle,
+                    segmentAngle
+                );
+                const singleInnerMesh = new THREE.Mesh(
+                    singleInner,
+                    new THREE.MeshLambertMaterial({ color: scoreColor })
+                );
+                singleInnerMesh.position.z = 0.0005;
+                dartboard.add(singleInnerMesh);
+
+                // Triple ring
+                const triple = new THREE.RingGeometry(
+                    TRIPLE_INNER_RADIUS,
+                    TRIPLE_OUTER_RADIUS,
+                    32,
+                    1,
+                    startAngle,
+                    segmentAngle
+                );
+                const tripleMesh = new THREE.Mesh(
+                    triple,
+                    new THREE.MeshLambertMaterial({ color: tripleColor })
+                );
+                tripleMesh.position.z = 0.0005;
+                dartboard.add(tripleMesh);
+
+                // Single score area (triple to double)
+                const singleOuter = new THREE.RingGeometry(
+                    TRIPLE_OUTER_RADIUS,
+                    DOUBLE_INNER_RADIUS,
+                    32,
+                    1,
+                    startAngle,
+                    segmentAngle
+                );
+                const singleOuterMesh = new THREE.Mesh(
+                    singleOuter,
+                    new THREE.MeshLambertMaterial({ color: scoreColor })
+                );
+                singleOuterMesh.position.z = 0.0005;
+                dartboard.add(singleOuterMesh);
+
+                // Double ring
+                const double = new THREE.RingGeometry(
+                    DOUBLE_INNER_RADIUS,
+                    DOUBLE_OUTER_RADIUS,
+                    32,
+                    1,
+                    startAngle,
+                    segmentAngle
+                );
+                const doubleMesh = new THREE.Mesh(
+                    double,
+                    new THREE.MeshLambertMaterial({ color: doubleColor })
+                );
+                doubleMesh.position.z = 0.0005;
+                dartboard.add(doubleMesh);
+
+                // Outer edge (double to edge)
+                const outer = new THREE.RingGeometry(
+                    DOUBLE_OUTER_RADIUS,
+                    DARTBOARD_RADIUS,
+                    32,
+                    1,
+                    startAngle,
+                    segmentAngle
+                );
+                const outerMesh = new THREE.Mesh(
+                    outer,
+                    new THREE.MeshLambertMaterial({ color: scoreColor })
+                );
+                outerMesh.position.z = 0.0005;
+                dartboard.add(outerMesh);
+            }
+        }
+
+        function createNumberMarkers() {
+            // Add number text at edge of dartboard
+            const segmentAngle = (Math.PI * 2) / 20;
+            const textRadius = DARTBOARD_RADIUS + (0.03 * DARTBOARD_SCALE);
+
+            for (let i = 0; i < 20; i++) {
+                // Position number at center of each segment (clockwise from top)
+                const angle = -i * segmentAngle + Math.PI / 2;
+                const number = DARTBOARD_NUMBERS[i];
+
+                // Create canvas for number
+                const canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(number.toString(), 32, 32);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
+                const sprite = new THREE.Sprite(spriteMaterial);
+
+                sprite.position.x = Math.cos(angle) * textRadius;
+                sprite.position.y = Math.sin(angle) * textRadius;
+                sprite.position.z = 0.002;
+                sprite.scale.set(0.04 * DARTBOARD_SCALE, 0.04 * DARTBOARD_SCALE, 1);
+
+                dartboard.add(sprite);
+            }
+        }
+
+        function createDart(position, rotation) {
+            const dart = new THREE.Group();
+
+            // Dart tip (cone) - scaled
+            const tipGeometry = new THREE.ConeGeometry(0.002 * DARTBOARD_SCALE, 0.02 * DARTBOARD_SCALE, 8);
+            const tipMaterial = new THREE.MeshPhongMaterial({
+                color: 0xC0C0C0,
+                shininess: 100
+            });
+            const tip = new THREE.Mesh(tipGeometry, tipMaterial);
+            tip.position.z = 0.01 * DARTBOARD_SCALE;
+            tip.rotation.x = Math.PI / 2;
+            dart.add(tip);
+
+            // Dart barrel (cylinder) - scaled
+            const barrelGeometry = new THREE.CylinderGeometry(0.004 * DARTBOARD_SCALE, 0.004 * DARTBOARD_SCALE, 0.05 * DARTBOARD_SCALE, 8);
+            const barrelMaterial = new THREE.MeshPhongMaterial({
+                color: 0x8B4513,
+                shininess: 50
+            });
+            const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+            barrel.rotation.x = Math.PI / 2;
+            dart.add(barrel);
+
+            // Dart flight (fins) - scaled
+            const flightGeometry = new THREE.PlaneGeometry(0.02 * DARTBOARD_SCALE, 0.03 * DARTBOARD_SCALE);
+            const flightMaterial = new THREE.MeshLambertMaterial({
+                color: 0xFF0000,
+                side: THREE.DoubleSide
+            });
+
+            // Create 4 fins
+            for (let i = 0; i < 4; i++) {
+                const fin = new THREE.Mesh(flightGeometry, flightMaterial);
+                fin.position.z = -0.03 * DARTBOARD_SCALE;
+                fin.rotation.y = (i * Math.PI) / 2;
+                dart.add(fin);
+            }
+
+            // Position and rotate dart
+            dart.position.copy(position);
+            if (rotation) {
+                dart.rotation.copy(rotation);
+            }
+
+            dart.castShadow = true;
+            scene.add(dart);
+            darts.push(dart);
+
+            return dart;
+        }
+
+        function throwDart(speed, vla, hla) {
+            // Calculate landing position using calibration
+            const landingPos = calculateLandingPosition(speed, vla, hla);
+
+            // Calculate score
+            const score = calculateScore(landingPos);
+
+            // Show score
+            document.getElementById('lastThrow').textContent = score.text;
+            showNotification(score.text);
+
+            // Create dart at landing position (scaled for 3D visualization)
+            const dartPosition = new THREE.Vector3(
+                landingPos.x * DARTBOARD_SCALE,
+                landingPos.y * DARTBOARD_SCALE,
+                -0.48 * DARTBOARD_SCALE // Slightly in front of dartboard
+            );
+
+            // Calculate rotation to point into board
+            const dartRotation = new THREE.Euler(
+                Math.PI / 2, // Point forward
+                0,
+                0
+            );
+
+            const dart = createDart(dartPosition, dartRotation);
+
+            // If game is active, add to player's darts and process throw
+            if (gameActive && players.length > 0) {
+                const currentPlayer = players[currentPlayerIndex];
+                currentPlayer.dartsThrown.push({ x: landingPos.x, y: landingPos.y });
+                processThrow(score);
+            }
+        }
+
+        function calculateLandingPosition(speed, vla, hla) {
+            // Use calibration profiles from main menu (same as 2D darts)
+            const DARTBOARD_RADIUS_REAL = 0.225; // 225mm in meters
+
+            // Get active calibration profile (set by main app based on projector mode)
+            const profile = window.calibrationProfiles ? window.calibrationProfiles[window.activeCalibrationProfile || 'computer'] : null;
+
+            if (profile && profile.hla_scale !== undefined) {
+                let normalizedX, normalizedY;
+
+                // Check if polynomial regression is available and should be used
+                if (profile.usePolynomial && profile.hla_poly && profile.usePolynomial.hla) {
+                    // POLYNOMIAL (quadratic): x = a*hla² + b*hla + c
+                    const poly = profile.hla_poly;
+                    normalizedX = poly.a * hla * hla + poly.b * hla + poly.c;
+                } else {
+                    // LINEAR: x = hla * scale + offset
+                    normalizedX = hla * profile.hla_scale + profile.hla_offset;
+                }
+
+                if (profile.usePolynomial && profile.vla_poly && profile.usePolynomial.vla) {
+                    // POLYNOMIAL (quadratic): y = a*vla² + b*vla + c
+                    const poly = profile.vla_poly;
+                    normalizedY = poly.a * vla * vla + poly.b * vla + poly.c;
+                } else {
+                    // LINEAR: y = vla * scale + offset
+                    normalizedY = vla * profile.vla_scale + profile.vla_offset;
+                }
+
+                const x = normalizedX * DARTBOARD_RADIUS_REAL;
+                const y = 1.73 + (normalizedY * DARTBOARD_RADIUS_REAL); // 1.73m = regulation dartboard height
+
+                return { x, y };
+            } else {
+                // FALLBACK: Old system (hardcoded assumptions)
+                const x = (hla / 15.0) * DARTBOARD_RADIUS_REAL;
+                const y = 1.73 - ((vla - 15.0) / 10.0) * DARTBOARD_RADIUS_REAL;
+                return { x, y };
+            }
+        }
+
+        function calculateScore(position) {
+            // Convert position to dartboard coordinates (unscaled real-world meters)
+            const dx = position.x;
+            const dy = position.y - 1.73; // Relative to bullseye
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Use unscaled dartboard dimensions for hit detection
+            const REAL_DARTBOARD_RADIUS = 0.225;
+            const REAL_BULLSEYE_RADIUS = 0.00635;
+            const REAL_OUTER_BULL_RADIUS = 0.015875;
+            const REAL_TRIPLE_INNER = 0.099;
+            const REAL_TRIPLE_OUTER = 0.107;
+            const REAL_DOUBLE_INNER = 0.162;
+            const REAL_DOUBLE_OUTER = 0.170;
+
+            // Check if hit dartboard
+            if (distance > REAL_DARTBOARD_RADIUS) {
+                return { value: 0, text: 'Miss', multiplier: 0, zone: 'miss', number: 0 };
+            }
+
+            // Check bullseye
+            if (distance <= REAL_BULLSEYE_RADIUS) {
+                return { value: 50, text: 'Bullseye! 50', multiplier: 1, zone: 'bullseye', number: 25 };
+            }
+
+            // Check outer bull
+            if (distance <= REAL_OUTER_BULL_RADIUS) {
+                return { value: 25, text: 'Bull 25', multiplier: 1, zone: 'bull_ring', number: 25 };
+            }
+
+            // Calculate segment (0-19)
+            let angle = Math.atan2(dy, dx);
+            if (angle < 0) angle += Math.PI * 2;
+
+            // Adjust for dartboard rotation (20 centered at top, clockwise)
+            // atan2 gives 0 at right, we need to convert to our coordinate system
+            // Negate to reverse direction (clockwise), add PI/2 to start at top, add half segment offset
+            angle = (-angle + Math.PI / 2 + (Math.PI / 20)) % (Math.PI * 2);
+            if (angle < 0) angle += Math.PI * 2;
+
+            const segmentAngle = (Math.PI * 2) / 20;
+            let segment = Math.floor(angle / segmentAngle);
+
+            const number = DARTBOARD_NUMBERS[segment];
+
+            // Check multipliers
+            if (distance >= REAL_DOUBLE_INNER && distance <= REAL_DOUBLE_OUTER) {
+                return { value: number * 2, text: `Double ${number}`, multiplier: 2, zone: 'double', number: number };
+            }
+            if (distance >= REAL_TRIPLE_INNER && distance <= REAL_TRIPLE_OUTER) {
+                return { value: number * 3, text: `Triple ${number}`, multiplier: 3, zone: 'triple', number: number };
+            }
+
+            // Single
+            return { value: number, text: `${number}`, multiplier: 1, zone: 'single', number: number };
+        }
+
+        // ===== GAME SETUP FUNCTIONS =====
+        function showSetupScreen() {
+            document.getElementById('setupModal').style.display = 'block';
+            document.getElementById('setupStep1').style.display = 'block';
+            document.getElementById('setupStep2').style.display = 'none';
+            document.getElementById('setupStep3').style.display = 'none';
+        }
+
+        function closeSetupModal() {
+            document.getElementById('setupModal').style.display = 'none';
+        }
+
+        function setPlayerCount(count) {
+            players = [];
+            for (let i = 0; i < count; i++) {
+                players.push({
+                    name: `Player ${i + 1}`,
+                    color: PLAYER_COLORS[i],
+                    score: 0,
+                    dartsInRound: 0,
+                    dartsThrown: []
+                });
+            }
+
+            // Show player names input
+            const container = document.getElementById('playerNamesContainer');
+            container.innerHTML = players.map((p, i) => `
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: ${p.color}; font-weight: bold;">Player ${i + 1}</label>
+                    <input type="text" id="playerNameInput${i}" value="${p.name}"
+                           style="width: 100%; padding: 10px; background: rgba(0,0,0,0.3); border: 2px solid ${p.color}; color: white; border-radius: 5px;">
+                </div>
+            `).join('');
+
+            document.getElementById('setupStep1').style.display = 'none';
+            document.getElementById('setupStep2').style.display = 'block';
+        }
+
+        function confirmPlayerNames() {
+            // Update player names from inputs
+            players.forEach((p, i) => {
+                const input = document.getElementById(`playerNameInput${i}`);
+                if (input && input.value.trim()) {
+                    p.name = input.value.trim();
+                }
+            });
+
+            // Show game mode selection
+            document.getElementById('setupStep2').style.display = 'none';
+            document.getElementById('setupStep3').style.display = 'block';
+        }
+
+        function startGameMode(mode) {
+            gameMode = mode;
+            currentPlayerIndex = 0;
+            gameActive = true;
+
+            // Initialize game-specific data
+            switch(mode) {
+                case 'practice':
+                    initPracticeMode();
+                    break;
+                case '301':
+                    init301Mode();
+                    break;
+                case '501':
+                    init501Mode();
+                    break;
+                case 'cricket':
+                    initCricketMode();
+                    break;
+                case 'killer':
+                    initKillerMode();
+                    break;
+            }
+
+            closeSetupModal();
+            updateGameUI();
+            clearDarts();
+        }
+
+        // ===== GAME MODE INITIALIZATION =====
+        function initPracticeMode() {
+            players.forEach(p => {
+                p.score = 0;
+                p.dartsThrown = [];
+                p.roundsComplete = 0;
+            });
+        }
+
+        function init301Mode() {
+            players.forEach(p => {
+                p.score = 301;
+                p.dartsThrown = [];
+                p.dartsInRound = 0;
+            });
+        }
+
+        function init501Mode() {
+            players.forEach(p => {
+                p.score = 501;
+                p.dartsThrown = [];
+                p.dartsInRound = 0;
+            });
+        }
+
+        function initCricketMode() {
+            const cricketNumbers = [20, 19, 18, 17, 16, 15, 25]; // 25 is bull
+            players.forEach(p => {
+                p.cricketMarks = {};
+                cricketNumbers.forEach(n => p.cricketMarks[n] = 0);
+                p.score = 0;
+                p.dartsThrown = [];
+            });
+        }
+
+        function initKillerMode() {
+            players.forEach(p => {
+                p.lives = 3;
+                p.killerNumber = null;
+                p.isKiller = false;
+                p.dartsThrown = [];
+            });
+        }
+
+        // ===== GAME LOGIC =====
+        function processThrow(result) {
+            if (!gameActive) return;
+
+            const currentPlayer = players[currentPlayerIndex];
+
+            switch(gameMode) {
+                case 'practice':
+                    processPractice(currentPlayer, result);
+                    break;
+                case '301':
+                case '501':
+                    processX01(currentPlayer, result);
+                    break;
+                case 'cricket':
+                    processCricket(currentPlayer, result);
+                    break;
+                case 'killer':
+                    processKiller(currentPlayer, result);
+                    break;
+            }
+
+            updateGameUI();
+        }
+
+        function processPractice(player, result) {
+            player.score += result.value;
+            if (player.dartsThrown.length % 3 === 0) {
+                player.roundsComplete = Math.floor(player.dartsThrown.length / 3);
+                nextPlayer();
+            }
+        }
+
+        function processX01(player, result) {
+            const newScore = player.score - result.value;
+
+            if (newScore === 0 && result.zone === 'double') {
+                player.score = 0;
+                endGame(player);
+            } else if (newScore > 0 && newScore !== 1) {
+                player.score = newScore;
+            } else {
+                showNotification('Bust!', 1500);
+            }
+
+            player.dartsInRound = (player.dartsInRound || 0) + 1;
+            if (player.dartsInRound >= 3) {
+                player.dartsInRound = 0;
+                nextPlayer();
+            }
+        }
+
+        function processCricket(player, result) {
+            let num = result.number;
+            if (result.zone === 'bullseye' || result.zone === 'bull_ring') {
+                num = 25;
+            }
+
+            // Process valid cricket numbers
+            if (num && [15,16,17,18,19,20,25].includes(num)) {
+                let marksToAdd = 1;
+                if (result.zone === 'triple') marksToAdd = 3;
+                else if (result.zone === 'double') marksToAdd = 2;
+                else if (result.zone === 'bullseye') marksToAdd = 2;
+                else if (result.zone === 'bull_ring') marksToAdd = 1;
+
+                const currentMarks = player.cricketMarks[num] || 0;
+                const newMarks = currentMarks + marksToAdd;
+
+                const allOpponentsClosed = players
+                    .filter(p => p !== player)
+                    .every(p => (p.cricketMarks[num] || 0) >= 3);
+
+                if (currentMarks < 3) {
+                    player.cricketMarks[num] = Math.min(newMarks, 3);
+                }
+
+                if (currentMarks >= 3 && !allOpponentsClosed) {
+                    player.score += num * marksToAdd;
+                } else if (currentMarks < 3 && newMarks > 3 && !allOpponentsClosed) {
+                    const extraMarks = newMarks - 3;
+                    player.score += num * extraMarks;
+                }
+
+                checkCricketWin();
+            }
+
+            // Only advance to next player after 3 darts
+            if (player.dartsThrown.length % 3 === 0) {
+                nextPlayer();
+            }
+        }
+
+        function checkCricketWin() {
+            const cricketNumbers = [20, 19, 18, 17, 16, 15, 25];
+            const playersWithAllClosed = players.filter(p => {
+                return cricketNumbers.every(num => (p.cricketMarks[num] || 0) >= 3);
+            });
+
+            if (playersWithAllClosed.length === 0) return;
+
+            const maxScore = Math.max(...playersWithAllClosed.map(p => p.score));
+            const winner = playersWithAllClosed.find(p => p.score === maxScore);
+
+            if (winner) {
+                endGame(winner);
+            }
+        }
+
+        function processKiller(player, result) {
+            if (result.zone === 'double' && !player.isKiller) {
+                player.isKiller = true;
+                showNotification('You are now a KILLER!', 2000);
+            } else if (player.isKiller && result.zone === 'double') {
+                const victim = players.find(p => p !== player && p.killerNumber === result.number);
+                if (victim) {
+                    victim.lives--;
+                    if (victim.lives === 0) {
+                        showNotification(`${victim.name} eliminated!`, 2000);
+                    }
+                }
+            }
+
+            nextPlayer();
+        }
+
+        function nextPlayer() {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            updateGameUI();
+        }
+
+        function nextPlayerManual() {
+            nextPlayer();
+        }
+
+        function endGame(winner) {
+            gameActive = false;
+            setTimeout(() => {
+                alert(`🎉 ${winner.name} WINS! 🎉\n\nClick "Start New Game" to play again!`);
+            }, 1000);
+        }
+
+        function updateGameUI() {
+            if (!gameActive || players.length === 0) return;
+
+            const currentPlayer = players[currentPlayerIndex];
+
+            // Update current turn info
+            document.getElementById('gameStatusSection').style.display = 'block';
+            document.getElementById('currentPlayerName').textContent = currentPlayer.name;
+            document.getElementById('currentPlayerName').style.color = currentPlayer.color;
+            document.getElementById('gameModeName').textContent = gameMode.toUpperCase();
+            document.getElementById('currentPlayerScore').textContent = getPlayerScoreDisplay(currentPlayer);
+
+            // Update scoreboard
+            document.getElementById('scoreboardSection').style.display = 'block';
+            const scoreboard = document.getElementById('scoreboard');
+
+            if (gameMode === 'cricket') {
+                scoreboard.innerHTML = renderCricketScoreboard();
+            } else {
+                scoreboard.innerHTML = players.map((p, i) => {
+                    const isActive = i === currentPlayerIndex;
+                    return `
+                        <div style="padding: 8px; margin-bottom: 5px; background: ${isActive ? 'rgba(59, 130, 246, 0.2)' : 'transparent'};
+                                    border-radius: 5px; border-left: 4px solid ${p.color};">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: ${p.color}; font-weight: bold;">${isActive ? '👉 ' : ''}${p.name}</span>
+                                <span style="color: white;">${getPlayerScoreDisplay(p)}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function getPlayerScoreDisplay(player) {
+            switch(gameMode) {
+                case 'practice':
+                    return player.score;
+                case '301':
+                case '501':
+                    return player.score;
+                case 'cricket':
+                    return `${player.score} pts`;
+                case 'killer':
+                    return '❤️'.repeat(player.lives) + (player.isKiller ? ' 💀' : '');
+                default:
+                    return player.score;
+            }
+        }
+
+        function renderCricketScoreboard() {
+            const cricketNumbers = [20, 19, 18, 17, 16, 15, 25];
+            let html = `
+                <div style="overflow-x: auto; font-size: 0.85em;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.3);">
+                                <th style="padding: 5px; text-align: left;">Player</th>
+            `;
+
+            cricketNumbers.forEach(num => {
+                html += `<th style="padding: 5px; text-align: center; font-size: 0.9em;">${num === 25 ? 'B' : num}</th>`;
+            });
+
+            html += `<th style="padding: 5px; text-align: center;">Pts</th></tr></thead><tbody>`;
+
+            players.forEach((p, i) => {
+                const isActive = i === currentPlayerIndex;
+                html += `
+                    <tr style="background: ${isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent'};">
+                        <td style="padding: 5px; color: ${p.color}; font-weight: bold; font-size: 0.9em;">${isActive ? '👉' : ''}${p.name.substring(0, 8)}</td>
+                `;
+
+                cricketNumbers.forEach(num => {
+                    const marks = p.cricketMarks[num] || 0;
+                    const marksSymbol = marks === 0 ? '' : marks === 1 ? '/' : marks === 2 ? 'X' : '⊗';
+                    const isClosed = marks >= 3;
+                    html += `<td style="padding: 5px; text-align: center; background: ${isClosed ? 'rgba(34, 197, 94, 0.2)' : 'transparent'}; font-weight: bold;">${marksSymbol}</td>`;
+                });
+
+                html += `<td style="padding: 5px; text-align: center; font-weight: bold;">${p.score}</td></tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            return html;
+        }
+
+        function clearDarts() {
+            darts.forEach(dart => scene.remove(dart));
+            darts = [];
+
+            // Also clear player dart records if game is active
+            if (gameActive && players.length > 0) {
+                players.forEach(p => p.dartsThrown = []);
+            }
+        }
+
+        function testThrow() {
+            // Simulate a bullseye throw (center of dartboard)
+            // Using typical values: 0 degrees for center
+            throwDart(50, 0, 0); // speed=50mph, vla=0°, hla=0°
+        }
+
+        function showNotification(message, duration = 2000) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+
+        function setupElectronIPC() {
+            if (typeof window.electronAPI !== 'undefined') {
+                window.electronAPI.onShotData((shotData) => {
+                    const speed = shotData.ball_speed || 0;
+                    const vla = shotData.vla || 0;
+                    const hla = shotData.hla || 0;
+
+                    throwDart(speed, vla, hla);
+                });
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>

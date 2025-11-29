@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skee-Ball Model Inspector</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            max-width: 400px;
+            z-index: 100;
+        }
+        #info h3 {
+            margin: 0 0 10px 0;
+        }
+        #info pre {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        #pauseBtn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 100;
+        }
+        #pauseBtn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h3>Model Inspector</h3>
+        <div id="modelInfo">Loading model...</div>
+    </div>
+    <button id="pauseBtn">Pause Rotation</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="./GLTFLoader.js"></script>
+
+    <script>
+        let scene, camera, renderer, model;
+        let isPaused = false;
+
+        function init() {
+            // Pause button
+            document.getElementById('pauseBtn').addEventListener('click', () => {
+                isPaused = !isPaused;
+                document.getElementById('pauseBtn').textContent = isPaused ? 'Resume Rotation' : 'Pause Rotation';
+            });
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a1616);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3, 8);
+            camera.lookAt(0, 2, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            directionalLight.position.set(5, 10, 5);
+            scene.add(directionalLight);
+
+            // Load model
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+                './skeeball_model.glb',
+                (gltf) => {
+                    model = gltf.scene;
+                    model.scale.set(3, 3, 3);
+                    model.position.set(0, 0, 0);
+                    scene.add(model);
+
+                    // Calculate bounding box
+                    const box = new THREE.Box3().setFromObject(model);
+                    const size = new THREE.Vector3();
+                    const center = new THREE.Vector3();
+                    box.getSize(size);
+                    box.getCenter(center);
+
+                    // Display model info
+                    const infoDiv = document.getElementById('modelInfo');
+                    infoDiv.innerHTML = `
+                        <pre><strong>Bounding Box:</strong>
+Min: (${box.min.x.toFixed(2)}, ${box.min.y.toFixed(2)}, ${box.min.z.toFixed(2)})
+Max: (${box.max.x.toFixed(2)}, ${box.max.y.toFixed(2)}, ${box.max.z.toFixed(2)})
+
+<strong>Size:</strong>
+Width: ${size.x.toFixed(2)}
+Height: ${size.y.toFixed(2)}
+Depth: ${size.z.toFixed(2)}
+
+<strong>Center:</strong>
+(${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)})
+
+<strong>Lane Surface Y:</strong> ${box.min.y.toFixed(2)}
+<strong>Top of Backboard Y:</strong> ${box.max.y.toFixed(2)}</pre>
+                    `;
+
+                    console.log('Model loaded!');
+                    console.log('Bounding box:', box);
+
+                    // Add multiple test balls at different heights to find the lane surface
+                    const testHeights = [
+                        { y: box.min.y + 0.04, color: 0xff0000, label: 'Min Y' },
+                        { y: 0.5, color: 0x00ff00, label: 'Y=0.5' },
+                        { y: 0.8, color: 0x0000ff, label: 'Y=0.8' },
+                        { y: 1.0, color: 0xffff00, label: 'Y=1.0' },
+                        { y: 1.2, color: 0xff00ff, label: 'Y=1.2' }
+                    ];
+
+                    testHeights.forEach((test, i) => {
+                        const sphereGeometry = new THREE.SphereGeometry(0.04, 32, 32);
+                        const sphereMaterial = new THREE.MeshStandardMaterial({
+                            color: test.color,
+                            emissive: test.color,
+                            emissiveIntensity: 0.5
+                        });
+                        const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                        sphere.position.set(-0.3 + (i * 0.15), test.y, 3);
+                        scene.add(sphere);
+                        console.log(`${test.label} ball at Y=${test.y}`);
+                    });
+                },
+                (progress) => {
+                    console.log('Loading:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+                },
+                (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('modelInfo').innerHTML = '<span style="color: red;">Error loading model!</span>';
+                }
+            );
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Slowly rotate the model for inspection
+            if (model && !isPaused) {
+                model.rotation.y += 0.002;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+﻿No.,Carry (yd),Roll (yd),Total (yd),Lateral (yd),Ball (mph),Spin (rpm),Spin Axis (deg),Launch V (deg),Launch H (deg),Time (s),Height (ft),Wind Speed (mph),Wind Direction (deg),Air Pressure (psi),Temperature (F),Humidity (%),Ball type
+1,248.8,8.5,257.3,0,155,2850,0,12,0,6.7,91.6,-,-,14.69,77,50,Standard
+2,274.5,12.1,286.6,0,170,2200,0,10,0,6.6,83.6,-,-,14.69,77,50,Standard
+3,218.6,6.1,224.7,0,140,3500,0,14,0,6.5,93.3,-,-,14.69,77,50,Standard
+4,265.1,9.8,274.8,28.9 L,165,2600,10 L,11,2 L,6.7,89.8,-,-,14.69,77,50,Standard
