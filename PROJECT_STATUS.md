@@ -1,13 +1,106 @@
 # Shanktuary Golf Mini Games - Project Status
 
-**Date:** November 23, 2025
-**Version:** 4.7.0
+**Date:** November 30, 2025
+**Version:** 4.10.0
 **Status:** ✅ Production Ready
 **Location:** `/home/shreen/minigames/web/`
 
 ---
 
-## 📋 Recent Updates (November 23, 2025)
+## 📋 Recent Updates (November 30, 2025)
+
+### Version 4.10.0 (Current) - BEER PONG GAME
+**Date:** 2025-11-30
+
+#### Changes in this version:
+
+**🍺 BEER PONG MULTIPLAYER GAME**
+- Added complete 3D beer pong game with physics simulation (beer-pong.html)
+- Regulation 8ft x 2ft table with 10-cup triangle formations per team
+- Physics-based ball trajectory with launch monitor integration
+- Speed scaling (0.5x) to make 20mph shots feel achievable
+- 2-bounce maximum rule enforced
+- Cup collision detection - ball bounces off sides/bottom, scores from top only
+- Ball radius: 0.02m (realistic ping pong ball size)
+
+**🎮 GAME RULES & FEATURES**
+- **Shoot Again Rule**: Team that makes a cup gets to shoot again
+- **Rebuttal Rule**: When last cup is made, losing team gets one rebuttal shot to stay alive
+  - If rebuttal is made, cup is restored and game continues
+  - If rebuttal is missed, game ends
+- **Camera System**: Auto-switches to shooting team's perspective
+  - Red team view: behind red cups looking toward blue
+  - Blue team view: behind blue cups looking toward red
+- **Turn Indicator**: HUD shows current team and cups remaining
+- **Win Detection**: Game ends when all cups eliminated (unless rebuttal)
+
+**🎯 DEBUG PANEL**
+- Speed slider (5-40 mph)
+- Launch angle slider (5-45°)
+- Side angle slider (-30° to +30°)
+- Quick presets: Soft Lob (15mph, 30°), Medium (20mph, 25°), Fast (30mph, 20°)
+- Test shot button for physics testing without launch monitor
+- Keyboard shortcut: 'T' to shoot, 'D' to toggle debug panel
+
+**🏛️ BAR ATMOSPHERE ENVIRONMENT**
+- **Wood Paneling**: Procedural vertical plank texture on lower 2m of walls
+  - Realistic wood grain, shadows, and highlights
+  - Chair rail divider at 1.5m height separating paneling from upper walls
+- **Bar Setup**: Full bar on right side (Z=2.3) with:
+  - Dark wood counter at 1m height
+  - 3 bar stools with metal legs and footrests
+  - 5 pint glasses filled with amber beer and foam
+- **Vintage Signs**: 10+ framed vintage signs scattered on walls
+  - Various sizes (large, medium, small)
+  - Vintage colors (tan, green, brown, blue)
+  - Wood frames with aged texture overlay
+  - Support for image loading (jesus.jpeg, meme1.png) when files present
+- **Lighting**: Warm bar atmosphere
+  - Bright ambient lighting (0.8 intensity)
+  - Overhead point lights
+  - Wall-mounted lights
+  - String lights with alternating yellow/orange bulbs (7 bulbs)
+  - Pink neon "BEER PONG" sign at top center
+- **Floor**: Dark wood planks at Y=-0.81
+
+**📂 FILES MODIFIED/CREATED**
+- **beer-pong.html** (NEW): Complete beer pong game
+  - THREE.js 3D rendering
+  - Physics simulation (gravity, bounce, friction)
+  - Cup collision detection with proper reflection
+  - Launch monitor integration via electronAPI
+  - Rebuttal and shoot-again rule implementation
+  - Wood paneling and vintage sign generation
+  - Bar furniture and decorations
+- **electron-index.html**: Added "Beer Pong" menu button with `startBeerPong()` function
+- **package.json**: Version bump 4.9.0 → 4.10.0
+
+**🔧 TECHNICAL DETAILS**
+- Table dimensions: 2.44m x 0.61m (8ft x 2ft regulation)
+- Cup dimensions: 0.04m radius, 0.115m height
+- Ball physics: gravity -9.81 m/s², bounce coefficient 0.75, friction 0.85
+- Collision radius: cupRadius + ballRadius * 2 (expanded for fast-moving ball detection)
+- Velocity calculation: VLA (vertical launch angle), HLA (horizontal launch angle)
+- Camera positions: (-2.0, 1.0, 0) for red, (2.0, 1.0, 0) for blue
+- Bar position: (0.8, 0.12, 2.3) - right side of room
+
+**🎨 AESTHETIC IMPROVEMENTS**
+- Removed dark brown "blurry" atmosphere from initial iterations
+- Added procedural wood grain texture for authentic paneling look
+- Bright, well-lit environment (fog pushed to 15-30m range)
+- Vintage framed signs with canvas-generated textures
+- Logo decal on table center (rotated 90° readable from red side)
+
+**🐛 BUGS FIXED**
+- Ball velocity X component was 0 (sin/cos swapped in formula) - FIXED
+- Ball flying over table (starting height too high) - FIXED with 0.3m start height
+- Ball passing through cups - FIXED with expanded collision radius and proper reflection physics
+- Bar furniture floating - FIXED by adjusting Y positions relative to floor at -0.81
+- Colored squares instead of text signs - FIXED with framed vintage sign textures
+
+---
+
+## 📋 Previous Updates (November 23, 2025)
 
 ### Version 4.7.0 (Current) - AUTO-UPDATER
 **Date:** 2025-11-23

@@ -68,7 +68,7 @@ function createApplicationMenu() {
 
     const template = [
         {
-            label: 'Settings',
+            label: 'Golf Settings',
             submenu: [
                 {
                     label: 'Green Speed (Stimpmeter)',
@@ -102,7 +102,8 @@ function createApplicationMenu() {
                                     '9-10 ft: Medium greens (standard)\n' +
                                     '11-12 ft: Fast greens (tournament)\n' +
                                     '13-14 ft: Very fast (professional)\n\n' +
-                                    'Higher speeds = ball rolls farther on putts'
+                                    'Higher speeds = ball rolls farther on putts\n\n' +
+                                    'Only applies to Golf Par 3 and Putting games.'
                         });
                     }
                 }
@@ -112,14 +113,15 @@ function createApplicationMenu() {
             label: 'Help',
             submenu: [
                 {
-                    label: 'Toggle DevTools',
+                    label: 'Toggle DevTools (Active Window)',
                     accelerator: 'F12',
                     click: () => {
-                        if (mainWindow && !mainWindow.isDestroyed()) {
-                            if (mainWindow.webContents.isDevToolsOpened()) {
-                                mainWindow.webContents.closeDevTools();
+                        const focusedWindow = BrowserWindow.getFocusedWindow();
+                        if (focusedWindow && !focusedWindow.isDestroyed()) {
+                            if (focusedWindow.webContents.isDevToolsOpened()) {
+                                focusedWindow.webContents.closeDevTools();
                             } else {
-                                mainWindow.webContents.openDevTools();
+                                focusedWindow.webContents.openDevTools();
                             }
                         }
                     }
@@ -260,6 +262,15 @@ function startGSProServer() {
 
             launchMonitorSocket = socket;
             let socketBuffer = '';
+
+            // CRITICAL: Send "GSPro ready" immediately upon connection
+            // This tells SquareGolf connector to activate ball detection mode
+            const readyMessage = {
+                Message: "GSPro ready"
+            };
+            socket.write(JSON.stringify(readyMessage) + '\n');
+            console.log('🚀 Sent initial "GSPro ready" to activate launch monitor');
+            console.log('   This tells SquareGolf to enter ball detection mode\n');
 
             // Notify renderer
             if (mainWindow && !mainWindow.isDestroyed()) {

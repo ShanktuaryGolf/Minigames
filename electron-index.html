@@ -441,8 +441,11 @@
                 <button class="start-button" onclick="startGame()" style="width: 100%; margin: 0 0 15px 0; padding: 30px 20px; background: rgba(59, 130, 246, 0.3); border-color: #3b82f6; box-sizing: border-box; font-size: 1.1em;">
                     🎯 Darts (2D)
                 </button>
-                <button class="start-button" onclick="startDarts3D()" style="width: 100%; margin: 0; padding: 30px 20px; background: rgba(139, 92, 246, 0.3); border-color: #8b5cf6; box-sizing: border-box; font-size: 1.1em;">
+                <button class="start-button" onclick="startDarts3D()" style="width: 100%; margin: 0 0 15px 0; padding: 30px 20px; background: rgba(139, 92, 246, 0.3); border-color: #8b5cf6; box-sizing: border-box; font-size: 1.1em;">
                     🎯 Darts 3D (Beta)
+                </button>
+                <button class="start-button" onclick="startBeerPong()" style="width: 100%; margin: 0; padding: 30px 20px; background: rgba(239, 68, 68, 0.3); border-color: #ef4444; box-sizing: border-box; font-size: 1.1em;">
+                    🍺 Beer Pong (Beta)
                 </button>
             </div>
 
@@ -453,7 +456,7 @@
                     ⚾ Baseball
                 </button>
                 <button class="start-button" onclick="startSoccerPenalty()" style="width: 100%; margin: 0 0 15px 0; padding: 30px 20px; background: rgba(34, 197, 94, 0.3); border-color: #22c55e; box-sizing: border-box; font-size: 1.1em;">
-                    ⚽ Soccer Penalty (Beta)
+                    ⚽ Soccer
                 </button>
                 <button class="start-button" onclick="startGolfPar3()" style="width: 100%; margin: 0; padding: 30px 20px; background: rgba(16, 185, 129, 0.3); border-color: #10b981; box-sizing: border-box; font-size: 1.1em;">
                     ⛳ Shanktuary Hills Golf
@@ -3944,6 +3947,17 @@
             window.electronAPI.openGameWindow({
                 url: 'soccer-penalty.html',
                 title: 'Soccer Penalty Kick',
+                width: 1400,
+                height: 900
+            });
+        }
+
+        function startBeerPong() {
+            console.log('🍺 Starting Beer Pong...');
+            // Open in new window using Electron IPC
+            window.electronAPI.openGameWindow({
+                url: 'beer-pong.html',
+                title: 'Beer Pong',
                 width: 1400,
                 height: 900
             });

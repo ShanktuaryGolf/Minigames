@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beer Pong</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 2px solid #ff6b35;
+            text-align: center;
+            min-width: 320px;
+        }
+
+        #currentPlayer {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        #teamScores {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            gap: 20px;
+        }
+
+        .team-score {
+            text-align: center;
+        }
+
+        .team-score h3 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .team-score .cups-remaining {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .red-team {
+            color: #ef4444;
+        }
+
+        .blue-team {
+            color: #3b82f6;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 250px;
+        }
+
+        #controlsHeader {
+            padding: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            user-select: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #controlsHeader:hover {
+            background: rgba(255, 107, 53, 0.2);
+        }
+
+        #controlsContent {
+            padding: 15px;
+            display: block;
+        }
+
+        #controlsContent.collapsed {
+            display: none;
+        }
+
+        #controls button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        #controls button:hover {
+            background: #ff8555;
+        }
+
+        #shotInfo {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            font-size: 14px;
+            display: none;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px 60px;
+            border-radius: 15px;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            border: 3px solid #ff6b35;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div id="hud">
+        <div id="currentPlayer">Red Team's Turn</div>
+        <div id="teamScores">
+            <div class="team-score red-team">
+                <h3>🔴 Red Team</h3>
+                <div class="cups-remaining">10</div>
+                <div>cups remaining</div>
+            </div>
+            <div class="team-score blue-team">
+                <h3>🔵 Blue Team</h3>
+                <div class="cups-remaining">10</div>
+                <div>cups remaining</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div id="controlsHeader" onclick="toggleControls()">
+            Controls ▼
+        </div>
+        <div id="controlsContent">
+            <button onclick="resetGame()">Reset Game</button>
+            <button onclick="changeCamera()">Change View</button>
+            <div style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
+                Connect launch monitor to shoot!
+            </div>
+        </div>
+    </div>
+
+    <div id="shotInfo"></div>
+    <div id="message"></div>
+
+    <script src="three.min.js"></script>
+    <script>
+        // Game State
+        let currentTeam = 'red'; // 'red' or 'blue'
+        let redCupsRemaining = 10;
+        let blueCupsRemaining = 10;
+        let ballInFlight = false;
+        let cupWasMade = false; // Track if current shot made a cup
+        let rebuttalMode = false; // Rebuttal shot active
+        let rebuttalTeam = null; // Which team is taking rebuttal
+        let lastRemovedCup = null; // Track last removed cup for restoration
+
+        // THREE.js Setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x3a3028); // Warm brown background
+        scene.fog = new THREE.Fog(0x3a3028, 15, 30); // Lighter fog, farther away
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        // Camera positions - Behind each team
+        const cameraPositions = {
+            red: { pos: new THREE.Vector3(-2.0, 1.0, 0), lookAt: new THREE.Vector3(0.8, 0.3, 0) }, // Behind red cups, looking at blue
+            blue: { pos: new THREE.Vector3(2.0, 1.0, 0), lookAt: new THREE.Vector3(-0.8, 0.3, 0) }  // Behind blue cups, looking at red
+        };
+
+        function changeCamera() {
+            // Manual toggle between cameras
+            const currentCam = camera.position.equals(cameraPositions.red.pos) ? 'blue' : 'red';
+            updateCamera(currentCam);
+        }
+
+        function updateCamera(team = currentTeam) {
+            const camPos = cameraPositions[team];
+            camera.position.copy(camPos.pos);
+            camera.lookAt(camPos.lookAt);
+        }
+
+        updateCamera();
+
+        // Lighting - Much brighter
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Bright white ambient
+        scene.add(ambientLight);
+
+        // Main overhead light (very bright)
+        const overheadLight = new THREE.PointLight(0xffffff, 3.0, 15);
+        overheadLight.position.set(0, 3, 0);
+        overheadLight.castShadow = true;
+        overheadLight.shadow.mapSize.width = 2048;
+        overheadLight.shadow.mapSize.height = 2048;
+        scene.add(overheadLight);
+
+        // Wall lights to illuminate decorations
+        const wallLight1 = new THREE.PointLight(0xffddaa, 2.0, 10);
+        wallLight1.position.set(0, 2.5, -2);
+        scene.add(wallLight1);
+
+        const wallLight2 = new THREE.PointLight(0xffddaa, 1.5, 8);
+        wallLight2.position.set(-2, 2, 0);
+        scene.add(wallLight2);
+
+        const wallLight3 = new THREE.PointLight(0xffddaa, 1.5, 8);
+        wallLight3.position.set(2, 2, 0);
+        scene.add(wallLight3);
+
+        // Beer Pong Table (8ft x 2ft = 2.44m x 0.61m)
+        const tableGeometry = new THREE.BoxGeometry(2.44, 0.1, 0.61);
+        const tableMaterial = new THREE.MeshStandardMaterial({
+            color: 0xa88f5f, // Bright wood color
+            roughness: 0.4,
+            metalness: 0.1
+        });
+        const table = new THREE.Mesh(tableGeometry, tableMaterial);
+        table.position.y = 0;
+        table.receiveShadow = true;
+        scene.add(table);
+
+        // Logo decal in center of table (separate plane on top)
+        const textureLoader = new THREE.TextureLoader();
+        const logoTexture = textureLoader.load('logo.png');
+        const logoGeometry = new THREE.PlaneGeometry(0.5, 0.5);
+        const logoMaterial = new THREE.MeshStandardMaterial({
+            map: logoTexture,
+            transparent: true,
+            alphaTest: 0.1
+        });
+        const logoDecal = new THREE.Mesh(logoGeometry, logoMaterial);
+        logoDecal.rotation.x = -Math.PI / 2; // Flat on table
+        logoDecal.rotation.z = Math.PI / 2;  // Rotate 90° so text is readable from red side (left)
+        logoDecal.position.set(0, 0.051, 0); // Slightly above table surface
+        scene.add(logoDecal);
+
+        // Table legs - Wood to match table
+        const legGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.76);
+        const legMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4a2f1a, // Darker wood
+            roughness: 0.8
+        });
+        const legPositions = [
+            [-1.15, -0.43, -0.25],
+            [-1.15, -0.43, 0.25],
+            [1.15, -0.43, -0.25],
+            [1.15, -0.43, 0.25]
+        ];
+        legPositions.forEach(pos => {
+            const leg = new THREE.Mesh(legGeometry, legMaterial);
+            leg.position.set(...pos);
+            leg.castShadow = true;
+            scene.add(leg);
+        });
+
+        // Floor - Lighter wood planks
+        const floorGeometry = new THREE.PlaneGeometry(10, 10);
+        const floorMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4a3a2f,
+            roughness: 0.8,
+            metalness: 0
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = -0.81;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        // Function to create wood paneling texture
+        function createWoodPaneling() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Base wood color
+            ctx.fillStyle = '#4a3020';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Vertical planks
+            const plankWidth = 120;
+            for (let x = 0; x < canvas.width; x += plankWidth) {
+                // Plank edge shadow
+                ctx.fillStyle = '#2a1810';
+                ctx.fillRect(x, 0, 3, canvas.height);
+
+                // Plank highlight
+                ctx.fillStyle = '#5a4030';
+                ctx.fillRect(x + 3, 0, 2, canvas.height);
+
+                // Wood grain
+                ctx.strokeStyle = '#3a2515';
+                ctx.lineWidth = 1;
+                for (let y = 0; y < canvas.height; y += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 10, y);
+                    ctx.lineTo(x + plankWidth - 10, y + Math.random() * 10);
+                    ctx.stroke();
+                }
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const woodTexture = createWoodPaneling();
+        woodTexture.wrapS = THREE.RepeatWrapping;
+        woodTexture.wrapT = THREE.RepeatWrapping;
+
+        // Back wall - Upper part (painted)
+        const upperWallGeometry = new THREE.PlaneGeometry(10, 3);
+        const upperWallMaterial = new THREE.MeshStandardMaterial({
+            color: 0x554433,
+            roughness: 0.9
+        });
+        const backWallUpper = new THREE.Mesh(upperWallGeometry, upperWallMaterial);
+        backWallUpper.position.set(0, 3, -2.99);
+        backWallUpper.receiveShadow = true;
+        scene.add(backWallUpper);
+
+        // Back wall - Lower part (wood paneling)
+        const lowerWallGeometry = new THREE.PlaneGeometry(10, 2);
+        const woodPanelingMaterial = new THREE.MeshStandardMaterial({
+            map: woodTexture,
+            roughness: 0.7
+        });
+        const backWallLower = new THREE.Mesh(lowerWallGeometry, woodPanelingMaterial);
+        backWallLower.position.set(0, 0.5, -2.99);
+        backWallLower.receiveShadow = true;
+        scene.add(backWallLower);
+
+        // Side walls - Upper parts
+        const sideWallUpper1 = new THREE.Mesh(upperWallGeometry, upperWallMaterial);
+        sideWallUpper1.rotation.y = Math.PI / 2;
+        sideWallUpper1.position.set(-5, 3, 0);
+        sideWallUpper1.receiveShadow = true;
+        scene.add(sideWallUpper1);
+
+        const sideWallUpper2 = new THREE.Mesh(upperWallGeometry, upperWallMaterial);
+        sideWallUpper2.rotation.y = -Math.PI / 2;
+        sideWallUpper2.position.set(5, 3, 0);
+        sideWallUpper2.receiveShadow = true;
+        scene.add(sideWallUpper2);
+
+        // Side walls - Lower parts (wood paneling)
+        const sideWallLower1 = new THREE.Mesh(lowerWallGeometry, woodPanelingMaterial);
+        sideWallLower1.rotation.y = Math.PI / 2;
+        sideWallLower1.position.set(-5, 0.5, 0);
+        sideWallLower1.receiveShadow = true;
+        scene.add(sideWallLower1);
+
+        const sideWallLower2 = new THREE.Mesh(lowerWallGeometry, woodPanelingMaterial);
+        sideWallLower2.rotation.y = -Math.PI / 2;
+        sideWallLower2.position.set(5, 0.5, 0);
+        sideWallLower2.receiveShadow = true;
+        scene.add(sideWallLower2);
+
+        // Chair rail divider between wood and upper wall
+        const dividerGeometry = new THREE.BoxGeometry(10, 0.08, 0.05);
+        const dividerMaterial = new THREE.MeshStandardMaterial({
+            color: '#3a2515',
+            roughness: 0.5
+        });
+        const backDivider = new THREE.Mesh(dividerGeometry, dividerMaterial);
+        backDivider.position.set(0, 1.5, -2.97);
+        scene.add(backDivider);
+
+        // Wall Decorations - Simplified and very bright
+
+        // Large neon "BEER PONG" sign - very bright pink/red
+        const signGeometry = new THREE.PlaneGeometry(2.0, 0.6);
+        const signMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff4488, // Very bright pink (MeshBasicMaterial always visible)
+        });
+        const neonSign = new THREE.Mesh(signGeometry, signMaterial);
+        neonSign.position.set(0, 3.2, -2.95);
+        scene.add(neonSign);
+
+        // String lights - big bright bulbs across the top
+        const bulbPositions = [
+            [-2.4, 3.8, -2.8],
+            [-1.6, 3.8, -2.8],
+            [-0.8, 3.8, -2.8],
+            [0, 3.8, -2.8],
+            [0.8, 3.8, -2.8],
+            [1.6, 3.8, -2.8],
+            [2.4, 3.8, -2.8]
+        ];
+
+        bulbPositions.forEach((pos, i) => {
+            const bulbColor = i % 2 === 0 ? 0xffee66 : 0xffaa44;
+            const bulbGeometry = new THREE.SphereGeometry(0.12, 16, 16);
+            const bulbMaterial = new THREE.MeshBasicMaterial({
+                color: bulbColor
+            });
+            const bulb = new THREE.Mesh(bulbGeometry, bulbMaterial);
+            bulb.position.set(pos[0], pos[1], pos[2]);
+            scene.add(bulb);
+        });
+
+        // Vintage signs on walls - BIGGER sizes for better visibility
+        const largeSignGeo = new THREE.PlaneGeometry(1.0, 0.75);
+        const mediumSignGeo = new THREE.PlaneGeometry(0.8, 0.6);
+        const smallSignGeo = new THREE.PlaneGeometry(0.6, 0.45);
+
+        // Create vintage sign with frame
+        function createFramedSign(width, height, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Wood frame
+            ctx.fillStyle = '#2a1810';
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Inner frame
+            ctx.fillStyle = '#8b7355';
+            ctx.fillRect(15, 15, 226, 226);
+
+            // Sign background
+            ctx.fillStyle = color;
+            ctx.fillRect(25, 25, 206, 206);
+
+            // Vintage texture overlay
+            for (let i = 0; i < 500; i++) {
+                ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.1})`;
+                ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Image loader for actual picture signs from pics folder
+        const imageLoader = new THREE.TextureLoader();
+
+        // All pictures from pics folder with their wall positions
+        const pictureList = [
+            // Back wall - upper row
+            { file: 'pics/jesus.jpeg', geo: largeSignGeo, pos: [-2.3, 2.8, -2.94] },
+            { file: 'pics/broodwich.png', geo: mediumSignGeo, pos: [-1.2, 2.6, -2.94] },
+            { file: 'pics/funniest-golf-memes-1.png', geo: largeSignGeo, pos: [-0.1, 2.7, -2.94] },
+            { file: 'pics/funniest-golf-memes-5.png', geo: mediumSignGeo, pos: [1.1, 2.5, -2.94] },
+            { file: 'pics/meme1.png', geo: largeSignGeo, pos: [2.2, 2.8, -2.94] },
+
+            // Back wall - lower row
+            { file: 'pics/funniest-golf-memes-17.png', geo: smallSignGeo, pos: [-2.2, 0.9, -2.94] },
+            { file: 'pics/funniest-golf-memes-29.png', geo: mediumSignGeo, pos: [-1.1, 1.0, -2.94] },
+            { file: 'pics/golfmeme1.png', geo: smallSignGeo, pos: [0, 0.8, -2.94] },
+            { file: 'pics/funniest-golf-memes-31.png', geo: mediumSignGeo, pos: [1.2, 1.1, -2.94] },
+            { file: 'pics/funniest-golf-memes-38.png', geo: smallSignGeo, pos: [2.2, 0.9, -2.94] },
+
+            // Additional signs (puddin, meme2)
+            { file: 'pics/puddin.png', geo: mediumSignGeo, pos: [-2.5, 1.8, -2.94] },
+            { file: 'pics/meme2.png', geo: mediumSignGeo, pos: [2.5, 1.8, -2.94] }
+        ];
+
+        // Load all pictures
+        let loadedCount = 0;
+        pictureList.forEach(pic => {
+            imageLoader.load(pic.file,
+                (texture) => {
+                    const sign = new THREE.Mesh(pic.geo, new THREE.MeshBasicMaterial({ map: texture }));
+                    sign.position.set(pic.pos[0], pic.pos[1], pic.pos[2]);
+                    scene.add(sign);
+                    loadedCount++;
+                    console.log(`✅ Loaded ${pic.file} (${loadedCount}/${pictureList.length})`);
+                },
+                undefined,
+                (err) => console.log(`❌ Failed to load ${pic.file}`)
+            );
+        });
+
+        // Sign behind the bar on right wall
+        const barSignGeo = new THREE.PlaneGeometry(1.2, 0.9);
+        const barSignTexture = createFramedSign(256, 256, '#aa7744');
+        const barSign = new THREE.Mesh(barSignGeo, new THREE.MeshBasicMaterial({ map: barSignTexture }));
+        barSign.rotation.y = -Math.PI / 2; // Face left (toward red cups)
+        barSign.position.set(4.95, 2.2, 1.5); // On right wall, above bar area
+        scene.add(barSign);
+
+        // Bar on right side wall (when looking from red side)
+        // Bar counter - floor is at Y=-0.81, bar height ~1.0m
+        const barCounterGeometry = new THREE.BoxGeometry(2.5, 0.15, 0.6);
+        const barCounterMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4a3020,
+            roughness: 0.5,
+            metalness: 0.2
+        });
+        const barCounter = new THREE.Mesh(barCounterGeometry, barCounterMaterial);
+        barCounter.position.set(0.8, 0.12, 2.3); // Moved further right (Z: 1.8 -> 2.3)
+        barCounter.castShadow = true;
+        barCounter.receiveShadow = true;
+        scene.add(barCounter);
+
+        // Bar front panel
+        const barFrontGeometry = new THREE.BoxGeometry(2.5, 0.8, 0.1);
+        const barFrontMaterial = new THREE.MeshStandardMaterial({
+            color: 0x654321,
+            roughness: 0.7
+        });
+        const barFront = new THREE.Mesh(barFrontGeometry, barFrontMaterial);
+        barFront.position.set(0.8, -0.21, 2.05); // Moved right (Z: 1.55 -> 2.05)
+        barFront.receiveShadow = true;
+        scene.add(barFront);
+
+        // Bar stools (3 stools)
+        const stoolPositions = [
+            [0.0, 0.0, 1.8],  // Moved right (Z: 1.3 -> 1.8)
+            [0.8, 0.0, 1.8],
+            [1.6, 0.0, 1.8]
+        ];
+
+        stoolPositions.forEach(pos => {
+            // Stool seat - 0.65m high
+            const seatGeometry = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 16);
+            const seatMaterial = new THREE.MeshStandardMaterial({
+                color: 0x8b4513,
+                roughness: 0.6
+            });
+            const seat = new THREE.Mesh(seatGeometry, seatMaterial);
+            seat.position.set(pos[0], -0.16, pos[2]); // Floor -0.81 + 0.65 height = -0.16
+            seat.castShadow = true;
+            scene.add(seat);
+
+            // Stool leg
+            const legGeometry = new THREE.CylinderGeometry(0.02, 0.03, 0.6, 8);
+            const legMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2a2a2a,
+                metalness: 0.6,
+                roughness: 0.4
+            });
+            const leg = new THREE.Mesh(legGeometry, legMaterial);
+            leg.position.set(pos[0], -0.51, pos[2]); // Floor -0.81 + half leg height (0.3) = -0.51
+            leg.castShadow = true;
+            scene.add(leg);
+
+            // Stool footrest
+            const footrestGeometry = new THREE.TorusGeometry(0.12, 0.015, 8, 16);
+            const footrest = new THREE.Mesh(footrestGeometry, legMaterial);
+            footrest.rotation.x = Math.PI / 2;
+            footrest.position.set(pos[0], -0.56, pos[2]); // 0.25m above floor
+            scene.add(footrest);
+        });
+
+        // Pint glasses on bar (5 glasses)
+        const glassPositions = [
+            [-0.3, 0.27, 2.3], // Moved right (Z: 1.8 -> 2.3)
+            [0.3, 0.27, 2.3],
+            [0.9, 0.27, 2.3],
+            [1.3, 0.27, 2.3],
+            [1.7, 0.27, 2.3]
+        ];
+
+        glassPositions.forEach(pos => {
+            // Glass body
+            const glassGeometry = new THREE.CylinderGeometry(0.04, 0.035, 0.15, 12);
+            const glassMaterial = new THREE.MeshStandardMaterial({
+                color: 0xaaccff,
+                transparent: true,
+                opacity: 0.3,
+                roughness: 0.1,
+                metalness: 0.1
+            });
+            const glass = new THREE.Mesh(glassGeometry, glassMaterial);
+            glass.position.set(pos[0], pos[1], pos[2]);
+            glass.castShadow = true;
+            scene.add(glass);
+
+            // Beer inside glass (amber liquid)
+            const beerGeometry = new THREE.CylinderGeometry(0.038, 0.033, 0.12, 12);
+            const beerMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffaa33,
+                transparent: true,
+                opacity: 0.6,
+                emissive: 0x884411,
+                emissiveIntensity: 0.2
+            });
+            const beer = new THREE.Mesh(beerGeometry, beerMaterial);
+            beer.position.set(pos[0], pos[1] - 0.015, pos[2]);
+            scene.add(beer);
+
+            // Foam on top
+            const foamGeometry = new THREE.CylinderGeometry(0.04, 0.038, 0.02, 12);
+            const foamMaterial = new THREE.MeshStandardMaterial({
+                color: 0xfff8dc,
+                roughness: 0.9
+            });
+            const foam = new THREE.Mesh(foamGeometry, foamMaterial);
+            foam.position.set(pos[0], pos[1] + 0.065, pos[2]);
+            scene.add(foam);
+        });
+
+        // Cups Storage
+        const redCups = [];
+        const blueCups = [];
+
+        // Create Cups Function
+        function createCup(x, z, team) {
+            const cupHeight = 0.115; // 4.5 inches
+            const cupRadius = 0.04;  // Red Solo cup radius
+
+            const cupGeometry = new THREE.CylinderGeometry(cupRadius, cupRadius * 0.8, cupHeight, 16);
+            const cupMaterial = new THREE.MeshStandardMaterial({
+                color: team === 'red' ? 0xef4444 : 0x3b82f6,
+                roughness: 0.4,
+                metalness: 0.1
+            });
+
+            const cup = new THREE.Mesh(cupGeometry, cupMaterial);
+            cup.position.set(x, 0.05 + cupHeight / 2, z);
+            cup.castShadow = true;
+            cup.receiveShadow = true;
+            cup.userData.team = team;
+            cup.userData.active = true;
+
+            scene.add(cup);
+            return cup;
+        }
+
+        // Setup Cup Formations (10-cup triangle)
+        function setupCups() {
+            // Clear existing cups
+            redCups.forEach(cup => scene.remove(cup));
+            blueCups.forEach(cup => scene.remove(cup));
+            redCups.length = 0;
+            blueCups.length = 0;
+
+            const spacing = 0.09; // Space between cups
+
+            // Red cups (left side) - 10 cup triangle
+            const redStartX = -0.8;
+            const rows = [4, 3, 2, 1]; // 10 cups total
+            let cupIndex = 0;
+            let rowStartZ = 0;
+
+            rows.forEach((numCups, rowIdx) => {
+                const rowOffset = -(numCups - 1) * spacing / 2;
+                for (let i = 0; i < numCups; i++) {
+                    const z = rowOffset + i * spacing;
+                    const x = redStartX + rowIdx * spacing * 0.866; // 0.866 = cos(30°) for equilateral triangle
+                    redCups.push(createCup(x, z, 'red'));
+                }
+            });
+
+            // Blue cups (right side) - 10 cup triangle (mirrored)
+            const blueStartX = 0.8;
+            rows.forEach((numCups, rowIdx) => {
+                const rowOffset = -(numCups - 1) * spacing / 2;
+                for (let i = 0; i < numCups; i++) {
+                    const z = rowOffset + i * spacing;
+                    const x = blueStartX - rowIdx * spacing * 0.866;
+                    blueCups.push(createCup(x, z, 'blue'));
+                }
+            });
+        }
+
+        setupCups();
+
+        // Ball
+        let ball = null;
+        let ballVelocity = new THREE.Vector3();
+        const gravity = new THREE.Vector3(0, -9.81, 0);
+        const ballRadius = 0.02; // 40mm ping pong ball (original size)
+        let bounceCount = 0; // Track number of bounces
+
+        function createBall(startX) {
+            console.log('  🏀 createBall() called');
+            console.log('    Removing old ball:', ball !== null);
+            if (ball) scene.remove(ball);
+
+            const ballGeometry = new THREE.SphereGeometry(ballRadius, 16, 16);
+            const ballMaterial = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.2,
+                metalness: 0.1
+            });
+            ball = new THREE.Mesh(ballGeometry, ballMaterial);
+
+            // Start ball BEHIND the cups on the shooting team's side
+            // Red cups are at -0.8, so red shoots from -1.5 (farther back)
+            // Blue cups are at 0.8, so blue shoots from 1.5 (farther back)
+            const shootingX = currentTeam === 'red' ? -1.5 : 1.5;
+            console.log('    Shooting team:', currentTeam, '-> X position:', shootingX);
+            ball.position.set(shootingX, 0.3, 0); // Start low (hand height above table)
+            ball.castShadow = true;
+            scene.add(ball);
+            console.log('    Ball added to scene at:', ball.position);
+            console.log('    Ball radius:', ballRadius);
+            console.log('    Ball color:', ball.material.color);
+
+            return ball;
+        }
+
+        // Physics Update
+        let physicsFrameCount = 0;
+        function updatePhysics(deltaTime) {
+            if (!ball || !ballInFlight) return;
+
+            physicsFrameCount++;
+            if (physicsFrameCount % 30 === 0) { // Log every 30 frames (~0.5 seconds)
+                console.log('⚙️ Physics update #' + physicsFrameCount,
+                    'Ball pos:', {x: ball.position.x.toFixed(2), y: ball.position.y.toFixed(2), z: ball.position.z.toFixed(2)},
+                    'Velocity:', {x: ballVelocity.x.toFixed(2), y: ballVelocity.y.toFixed(2), z: ballVelocity.z.toFixed(2)});
+            }
+
+            // Apply gravity
+            ballVelocity.add(gravity.clone().multiplyScalar(deltaTime));
+
+            // Update position
+            ball.position.add(ballVelocity.clone().multiplyScalar(deltaTime));
+
+            // Table collision - Ping pong ball physics
+            if (ball.position.y <= 0.05 + ballRadius && ballVelocity.y < 0) {
+                ball.position.y = 0.05 + ballRadius;
+                bounceCount++;
+
+                console.log(`🏓 BOUNCE #${bounceCount}! Height:`, ball.position.y.toFixed(2), 'Velocity Y:', ballVelocity.y.toFixed(2));
+
+                // Stop after 2 bounces (allow 2nd bounce, prevent 3rd)
+                if (bounceCount > 2) {
+                    console.log('⏹️ Ball stopped - max 2 bounces reached, no 3rd bounce allowed');
+                    ballInFlight = false;
+                    ballVelocity.set(0, 0, 0);
+
+                    // Remove ball and switch turn after a short delay
+                    setTimeout(() => {
+                        if (ball) scene.remove(ball);
+                        ball = null;
+                        switchTurn();
+                    }, 500);
+                    return;
+                }
+
+                ballVelocity.y *= -0.75; // Ping pong balls bounce well (higher restitution)
+                ballVelocity.x *= 0.85;  // Less friction on smooth table
+                ballVelocity.z *= 0.85;
+
+                if (bounceCount === 2) {
+                    console.log('⚠️ LAST BOUNCE! Ball will stop on next table contact.');
+                }
+
+                // Stop if moving very slowly
+                if (Math.abs(ballVelocity.y) < 0.2 && ballVelocity.length() < 0.8) {
+                    console.log('⏹️ Ball stopped - too slow');
+                    ballInFlight = false;
+                    ballVelocity.set(0, 0, 0);
+                }
+            }
+
+            // Check cup collisions
+            checkCupCollisions();
+
+            // Out of bounds check
+            if (ball.position.y < -1 || Math.abs(ball.position.x) > 3 || Math.abs(ball.position.z) > 2) {
+                ballInFlight = false;
+                setTimeout(() => {
+                    if (ball) scene.remove(ball);
+                    ball = null;
+                    switchTurn();
+                }, 500);
+            }
+        }
+
+        // Cup Collision Detection
+        let lastCupCheckFrame = 0;
+        function checkCupCollisions() {
+            const targetCups = currentTeam === 'red' ? blueCups : redCups;
+
+            targetCups.forEach(cup => {
+                if (!cup.userData.active) return;
+
+                const dx = ball.position.x - cup.position.x;
+                const dz = ball.position.z - cup.position.z;
+                const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+
+                const cupRadius = 0.04;
+                const cupHeight = 0.115;
+                const cupTop = cup.position.y + cupHeight/2;
+                const cupBottom = cup.position.y - cupHeight/2;
+
+                // EXPANDED collision radius to catch fast-moving balls
+                const collisionRadius = cupRadius + ballRadius * 2;
+
+                // Debug logging every 30 frames when near a cup
+                if (physicsFrameCount - lastCupCheckFrame > 30 && horizontalDistance < collisionRadius) {
+                    console.log('🔍 Cup check:', {
+                        distance: horizontalDistance.toFixed(3),
+                        cupRadius,
+                        collisionRadius,
+                        ballY: ball.position.y.toFixed(3),
+                        cupTop: cupTop.toFixed(3),
+                        cupBottom: cupBottom.toFixed(3),
+                        velocityY: ballVelocity.y.toFixed(2)
+                    });
+                    lastCupCheckFrame = physicsFrameCount;
+                }
+
+                // Check if ball is near cup (expanded collision zone)
+                if (horizontalDistance < collisionRadius) {
+                    // Ball is near cup
+
+                    // Check if ball entered from the top (scored!)
+                    // Only score if ball is moving downward and near the top opening
+                    if (ball.position.y > cupTop - ballRadius * 2 &&
+                        ball.position.y < cupTop + ballRadius * 3 &&
+                        ballVelocity.y < 0 &&
+                        horizontalDistance < cupRadius - ballRadius * 0.5) {
+                        // Ball is entering from the top - SCORE!
+                        console.log('🎯 CUP SCORED! Ball entered from top');
+
+                        // Check if this triggers rebuttal or rebuttal success
+                        if (rebuttalMode) {
+                            console.log('✅ REBUTTAL MADE! Restoring cup.');
+                            restoreCup();
+                            showMessage('🎯 REBUTTAL! Cup Restored!', 2000);
+                            rebuttalMode = false;
+                            rebuttalTeam = null;
+                            cupWasMade = true; // They get to keep shooting
+                        } else {
+                            removeCup(cup);
+
+                            // Check if opponent now has only 1 cup (triggers rebuttal)
+                            const opponentCups = cup.userData.team === 'red' ? redCupsRemaining : blueCupsRemaining;
+                            if (opponentCups === 0) {
+                                // Game over unless rebuttal applies
+                                const opposingTeam = currentTeam === 'red' ? 'blue' : 'red';
+                                rebuttalMode = true;
+                                rebuttalTeam = opposingTeam;
+                                showMessage('🎯 CUP HIT! REBUTTAL CHANCE!', 2000);
+                                console.log(`🔄 REBUTTAL MODE: ${rebuttalTeam} team gets a chance to stay alive!`);
+                            } else {
+                                showMessage('🎯 CUP HIT! Shoot Again!', 1500);
+                            }
+                            cupWasMade = true; // Team made it, gets to shoot again
+                        }
+
+                        ballInFlight = false;
+                        setTimeout(() => {
+                            if (ball) scene.remove(ball);
+                            ball = null;
+                        }, 1000);
+                        return; // Exit after scoring
+                    }
+                    // Ball hit the side/bottom of cup - BOUNCE OFF
+                    else if (ball.position.y >= cupBottom - ballRadius && ball.position.y <= cupTop + ballRadius) {
+                        console.log('🚫 Cup side/bottom collision detected!', {
+                            horizontalDistance: horizontalDistance.toFixed(3),
+                            ballY: ball.position.y.toFixed(3),
+                            cupBottom: cupBottom.toFixed(3),
+                            cupTop: cupTop.toFixed(3)
+                        });
+
+                        // Calculate reflection direction
+                        const normalX = dx / horizontalDistance;
+                        const normalZ = dz / horizontalDistance;
+
+                        // Reflect velocity off the cup's cylindrical surface
+                        const dotProduct = ballVelocity.x * normalX + ballVelocity.z * normalZ;
+                        ballVelocity.x = ballVelocity.x - 2 * dotProduct * normalX;
+                        ballVelocity.z = ballVelocity.z - 2 * dotProduct * normalZ;
+
+                        // Apply energy loss from collision
+                        ballVelocity.multiplyScalar(0.7);
+
+                        // Push ball outside collision radius to prevent repeated collisions
+                        const pushDistance = collisionRadius + 0.01; // Small buffer
+                        ball.position.x = cup.position.x + normalX * pushDistance;
+                        ball.position.z = cup.position.z + normalZ * pushDistance;
+
+                        console.log('  Bounced! New velocity:', {
+                            x: ballVelocity.x.toFixed(2),
+                            y: ballVelocity.y.toFixed(2),
+                            z: ballVelocity.z.toFixed(2)
+                        });
+                    }
+                }
+            });
+        }
+
+        function removeCup(cup) {
+            cup.userData.active = false;
+            lastRemovedCup = cup; // Store for potential restoration
+
+            // Animate cup removal
+            const startY = cup.position.y;
+            const startScale = 1;
+            let time = 0;
+
+            const animateRemoval = () => {
+                time += 0.05;
+                cup.position.y = startY - time * 2;
+                cup.scale.set(1 - time, 1 - time, 1 - time);
+
+                if (time < 1) {
+                    requestAnimationFrame(animateRemoval);
+                } else {
+                    scene.remove(cup);
+                }
+            };
+            animateRemoval();
+
+            // Update scores
+            if (cup.userData.team === 'red') {
+                redCupsRemaining--;
+            } else {
+                blueCupsRemaining--;
+            }
+            updateHUD();
+            checkWinCondition();
+        }
+
+        function restoreCup() {
+            if (!lastRemovedCup) return;
+
+            // Restore cup state
+            lastRemovedCup.userData.active = true;
+
+            // Re-add to scene and reset position/scale
+            const cupHeight = 0.115;
+            lastRemovedCup.position.y = 0.05 + cupHeight / 2;
+            lastRemovedCup.scale.set(1, 1, 1);
+            scene.add(lastRemovedCup);
+
+            // Update scores
+            if (lastRemovedCup.userData.team === 'red') {
+                redCupsRemaining++;
+            } else {
+                blueCupsRemaining++;
+            }
+            updateHUD();
+
+            lastRemovedCup = null;
+        }
+
+        function switchTurn() {
+            // Handle rebuttal mode - switch to rebuttal team
+            if (rebuttalMode && !cupWasMade) {
+                console.log(`🔄 Switching to ${rebuttalTeam} for rebuttal shot`);
+                currentTeam = rebuttalTeam;
+                updateCamera();
+                updateHUD();
+                return;
+            }
+
+            // If rebuttal team misses, game is over
+            if (rebuttalMode && !cupWasMade) {
+                console.log('❌ Rebuttal missed - game over');
+                rebuttalMode = false;
+                rebuttalTeam = null;
+                checkWinCondition();
+                return;
+            }
+
+            // Only switch if they didn't make a cup
+            if (!cupWasMade) {
+                currentTeam = currentTeam === 'red' ? 'blue' : 'red';
+                updateCamera(); // Move camera to shooting team's perspective
+            } else {
+                console.log('🔄 Team made a cup! Same team shoots again.');
+            }
+            cupWasMade = false; // Reset for next shot
+            updateHUD();
+        }
+
+        function checkWinCondition() {
+            // Don't end game if in rebuttal mode
+            if (rebuttalMode) {
+                console.log('⏸️ Game continues - rebuttal mode active');
+                return;
+            }
+
+            if (redCupsRemaining === 0) {
+                showMessage('🏆 BLUE TEAM WINS! 🏆', 0);
+            } else if (blueCupsRemaining === 0) {
+                showMessage('🏆 RED TEAM WINS! 🏆', 0);
+            }
+        }
+
+        function updateHUD() {
+            let turnText = currentTeam === 'red' ? "🔴 Red Team's Turn" : "🔵 Blue Team's Turn";
+            if (rebuttalMode) {
+                turnText += " - REBUTTAL!";
+            }
+            document.getElementById('currentPlayer').textContent = turnText;
+
+            document.querySelector('.red-team .cups-remaining').textContent = redCupsRemaining;
+            document.querySelector('.blue-team .cups-remaining').textContent = blueCupsRemaining;
+        }
+
+        function showMessage(text, duration) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.style.display = 'block';
+
+            if (duration > 0) {
+                setTimeout(() => {
+                    msgEl.style.display = 'none';
+                }, duration);
+            }
+        }
+
+        function resetGame() {
+            currentTeam = 'red';
+            redCupsRemaining = 10;
+            blueCupsRemaining = 10;
+            ballInFlight = false;
+            cupWasMade = false;
+            rebuttalMode = false;
+            rebuttalTeam = null;
+            lastRemovedCup = null;
+
+            if (ball) {
+                scene.remove(ball);
+                ball = null;
+            }
+
+            setupCups();
+            updateHUD();
+            document.getElementById('message').style.display = 'none';
+        }
+
+        // Launch Monitor Integration
+        if (window.electronAPI && window.electronAPI.onShotData) {
+            window.electronAPI.onShotData((shotData) => {
+                if (ballInFlight) return; // Ignore if ball already in flight
+
+                console.log('Shot received:', shotData);
+
+                // Convert shot data to game coordinates
+                const speed_mph = shotData.ball_speed || shotData.speed || 0;
+                const vla = shotData.vla || 0;
+                const hla = shotData.hla || 0;
+
+                if (speed_mph < 1) return; // Ignore very slow shots
+
+                // Create ball on shooting team's side
+                createBall();
+
+                // Convert to meters per second and scale down for beer pong
+                // Scale factor of 0.5 makes 20 mph feel like 10 mph relative to table size
+                const speed_ms = speed_mph * 0.44704 * 0.5;
+
+                // Calculate velocity components
+                const vlaRad = vla * Math.PI / 180;
+                const hlaRad = hla * Math.PI / 180;
+
+                // Direction: shoot towards opposite side
+                const direction = currentTeam === 'red' ? 1 : -1;
+
+                ballVelocity.set(
+                    Math.cos(vlaRad) * Math.cos(hlaRad) * speed_ms * direction,
+                    Math.sin(vlaRad) * speed_ms,
+                    Math.cos(vlaRad) * Math.sin(hlaRad) * speed_ms
+                );
+
+                ballInFlight = true;
+                bounceCount = 0; // Reset bounce counter
+
+                // Show shot info
+                const shotInfo = document.getElementById('shotInfo');
+                shotInfo.textContent = `Speed: ${speed_mph.toFixed(1)} mph | Launch: ${vla.toFixed(1)}° | Side: ${hla.toFixed(1)}°`;
+                shotInfo.style.display = 'block';
+                setTimeout(() => {
+                    shotInfo.style.display = 'none';
+                }, 3000);
+            });
+        } else {
+            console.log('Running in browser mode - launch monitor not available');
+        }
+
+        // Animation Loop
+        let lastTime = Date.now();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = Date.now();
+            const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+
+            updatePhysics(deltaTime);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Controls Panel Toggle
+        function toggleControls() {
+            const content = document.getElementById('controlsContent');
+            const header = document.getElementById('controlsHeader');
+            content.classList.toggle('collapsed');
+            header.textContent = content.classList.contains('collapsed') ? 'Controls ▶' : 'Controls ▼';
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
