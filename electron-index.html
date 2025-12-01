@@ -370,9 +370,21 @@
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin-bottom: 10px;">
-        <div id="connectionStatus" class="connection-status disconnected">
-            <div class="status-indicator disconnected"></div>
-            <span>Connecting to Launch Monitor...</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div id="connectionStatus" class="connection-status disconnected">
+                <div class="status-indicator disconnected"></div>
+                <span>Connecting to Launch Monitor...</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                <span style="font-size: 13px; color: #9ca3af;">Port:</span>
+                <input type="number" id="portInput" min="1" max="65535" value="921"
+                       style="width: 70px; padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);
+                              border-radius: 4px; color: white; font-size: 13px; text-align: center;">
+                <button onclick="changePort()"
+                        style="background: rgba(34, 197, 94, 0.3); border: 1px solid #22c55e; color: white;
+                               padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Apply</button>
+            </div>
         </div>
 
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -1309,6 +1321,41 @@
             }
         }
 
+        // Port configuration functions
+        async function loadCurrentPort() {
+            try {
+                const port = await window.electronAPI.getGSProPort();
+                document.getElementById('portInput').value = port;
+            } catch (err) {
+                console.error('Failed to load current port:', err);
+            }
+        }
+
+        async function changePort() {
+            const portInput = document.getElementById('portInput');
+            const newPort = parseInt(portInput.value);
+
+            if (newPort < 1 || newPort > 65535) {
+                alert('Port must be between 1 and 65535');
+                await loadCurrentPort(); // Reset to current port
+                return;
+            }
+
+            try {
+                const result = await window.electronAPI.setGSProPort(newPort);
+                if (result.success) {
+                    alert(`Port changed to ${result.port}. Server restarting...`);
+                } else {
+                    alert(`Error: ${result.error}`);
+                    await loadCurrentPort(); // Reset to current port
+                }
+            } catch (err) {
+                console.error('Failed to change port:', err);
+                alert('Failed to change port. See console for details.');
+                await loadCurrentPort(); // Reset to current port
+            }
+        }
+
         // Graphics Settings
         let graphicsSettings = {
             ambientLight: 1.2,
@@ -2008,8 +2055,9 @@
         let wizardPendingShot = null; // {normalizedX, normalizedY, pixelX, pixelY} - awaiting confirmation
 
         // Check for first-time use on load
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             checkFirstTimeUse();
+            await loadCurrentPort();
         });
 
         function checkFirstTimeUse() {

@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on('stimp-changed', (event, stimp) => callback(stimp));
     },
 
+    // Get/Set GSPro port
+    getGSProPort: () => ipcRenderer.invoke('get-gspro-port'),
+    setGSProPort: (port) => ipcRenderer.invoke('set-gspro-port', port),
+
     // Auto-updater methods
     checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
     downloadUpdate: () => ipcRenderer.invoke('download-update'),

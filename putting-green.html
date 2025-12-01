@@ -416,12 +416,12 @@
                 <span class="stat-value" id="ballSpeed">--</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Backspin:</span>
-                <span class="stat-value" id="backSpin">--</span>
+                <span class="stat-label">HLA:</span>
+                <span class="stat-value" id="hla">--</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Sidespin:</span>
-                <span class="stat-value" id="sideSpin">--</span>
+                <span class="stat-label">VLA:</span>
+                <span class="stat-value" id="vla">--</span>
             </div>
         </div>
     </div>
@@ -2034,8 +2034,8 @@
 
             // Update display
             document.getElementById('ballSpeed').textContent = speed.toFixed(1) + ' mph';
-            document.getElementById('backSpin').textContent = Math.round(backspin) + ' rpm';
-            document.getElementById('sideSpin').textContent = Math.round(sidespin) + ' rpm';
+            document.getElementById('hla').textContent = hla.toFixed(1) + '°';
+            document.getElementById('vla').textContent = '0.0°'; // VLA is always 0 for putting
         }
 
         function setupElectronIPC() {

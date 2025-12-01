@@ -13,7 +13,7 @@ let hasReceivedData = false;
 let lastDataTime = null;
 
 // GSPro Connect Configuration
-const GSPRO_PORT = 921;
+let GSPRO_PORT = 921; // Default port, can be changed by user
 
 // Golf settings
 let greenStimp = 10.0; // Default green speed (Stimpmeter rating)
@@ -263,14 +263,16 @@ function startGSProServer() {
             launchMonitorSocket = socket;
             let socketBuffer = '';
 
-            // CRITICAL: Send "GSPro ready" immediately upon connection
-            // This tells SquareGolf connector to activate ball detection mode
+            // CRITICAL: Send Code 202 message immediately upon connection
+            // SquareGolf connector specifically looks for Code 202 to activate ball detection
             const readyMessage = {
-                Message: "GSPro ready"
+                Code: 202,
+                Message: "GSPro ready",
+                Player: null
             };
             socket.write(JSON.stringify(readyMessage) + '\n');
-            console.log('🚀 Sent initial "GSPro ready" to activate launch monitor');
-            console.log('   This tells SquareGolf to enter ball detection mode\n');
+            console.log('🚀 Sent Code 202 "GSPro ready" to activate SquareGolf launch monitor');
+            console.log('   This triggers the connector to enter ball detection mode\n');
 
             // Notify renderer
             if (mainWindow && !mainWindow.isDestroyed()) {
@@ -381,18 +383,34 @@ function startGSProServer() {
 
                     } else if (parsed.ShotDataOptions?.IsHeartBeat) {
                         console.log('Heartbeat received');
-                        // Respond to heartbeat
-                        const response = {
-                            Code: 200,
-                            Message: "Heartbeat acknowledged"
-                        };
-                        socket.write(JSON.stringify(response));
+
+                        // Check if heartbeat contains ball data (SquareGolf specific)
+                        const containsBallData = parsed.ShotDataOptions?.LaunchMonitorIsReady !== undefined ||
+                                                 parsed.ShotDataOptions?.LaunchMonitorBallDetected !== undefined;
+
+                        if (containsBallData) {
+                            // Heartbeat with ball data -> Send Code 202 (SquareGolf requirement)
+                            const response = {
+                                Code: 202,
+                                Message: "SMG ready",
+                                Player: null
+                            };
+                            socket.write(JSON.stringify(response) + '\n');
+                            console.log('✅ Sent Code 202 "SMG ready" to heartbeat with ball data (SquareGolf)');
+                        } else {
+                            // Regular heartbeat -> Send Code 200
+                            const response = {
+                                Code: 200,
+                                Message: "Heartbeat acknowledged"
+                            };
+                            socket.write(JSON.stringify(response) + '\n');
+                        }
 
                     } else {
                         console.log('Other message:', JSON.stringify(parsed).substring(0, 150));
 
                         // Special handling for ready state packets from SquareGolf
-                        // When SquareGolf sends LaunchMonitorIsReady, we must respond with "GSPro ready"
+                        // When SquareGolf sends heartbeat with ball data, respond with Code 202
                         if (parsed.ShotDataOptions?.LaunchMonitorIsReady !== undefined ||
                             parsed.ShotDataOptions?.LaunchMonitorBallDetected !== undefined) {
 
@@ -400,13 +418,15 @@ function startGSProServer() {
                             console.log('  LaunchMonitorIsReady:', parsed.ShotDataOptions.LaunchMonitorIsReady);
                             console.log('  LaunchMonitorBallDetected:', parsed.ShotDataOptions.LaunchMonitorBallDetected);
 
-                            // Send "GSPro ready" message to activate ball detection
+                            // Send Code 202 message to keep SquareGolf in ball detection mode
                             const readyResponse = {
-                                Message: "GSPro ready"
+                                Code: 202,
+                                Message: "GSPro ready",
+                                Player: null
                             };
-                            socket.write(JSON.stringify(readyResponse));
-                            console.log('✅ Sent "GSPro ready" response to launch monitor');
-                            console.log('   This tells SquareGolf we are ready to receive shots');
+                            socket.write(JSON.stringify(readyResponse) + '\n');
+                            console.log('✅ Sent Code 202 "GSPro ready" response to launch monitor');
+                            console.log('   This keeps SquareGolf in ball detection mode');
                         } else {
                             // Send generic 200 response
                             const response = {
@@ -569,6 +589,27 @@ ipcMain.handle('restart-listener', () => {
 
 ipcMain.handle('get-green-stimp', () => {
     return greenStimp;
+});
+
+ipcMain.handle('get-gspro-port', () => {
+    return GSPRO_PORT;
+});
+
+ipcMain.handle('set-gspro-port', (event, newPort) => {
+    const port = parseInt(newPort);
+    if (port < 1 || port > 65535) {
+        return { success: false, error: 'Port must be between 1 and 65535' };
+    }
+
+    GSPRO_PORT = port;
+
+    // Restart server with new port
+    stopGSProServer();
+    setTimeout(() => {
+        startGSProServer();
+    }, 1000);
+
+    return { success: true, port: GSPRO_PORT };
 });
 
 // Handle opening new game windows (Home Run Derby, Putting Practice)
