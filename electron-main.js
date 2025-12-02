@@ -1,7 +1,8 @@
 const { app, BrowserWindow, ipcMain, Menu, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const net = require('net');
-const { Bonjour } = require('bonjour-service'); // For mDNS discovery
+const dgram = require('dgram'); // For SSDP discovery
+const { Bonjour } = require('bonjour-service'); // For mDNS discovery fallback
 // Test comment for v4.8.3 auto-update
 const path = require('path');
 const https = require('https');
@@ -18,6 +19,7 @@ let GSPRO_PORT = 921; // Default port, can be changed by user
 
 // Nova Connect Configuration
 let novaClient = null;
+let novaDiscoverySocket = null;
 let novaBrowser = null;
 let novaConnected = false;
 let novaHost = null;
@@ -555,14 +557,106 @@ function sendNovaStatus(status, message) {
 }
 
 function discoverNova() {
-    console.log('🔍 Starting Nova mDNS discovery...');
-    sendNovaStatus('discovering', 'Searching for Nova...');
+    console.log('🔍 Starting Nova discovery (SSDP first, then mDNS fallback)...');
+    sendNovaStatus('discovering', 'Searching for Nova via SSDP...');
+
+    // Try SSDP first
+    discoverNovaSSDP();
+}
+
+function discoverNovaSSDP() {
+    console.log('📡 Attempting SSDP discovery...');
+
+    const SSDP_MULTICAST_ADDR = '239.255.255.250';
+    const SSDP_PORT = 1900;
+    const SERVICE_URN = 'urn:openlaunch:service:openapi:1';
+
+    // Create UDP socket for SSDP
+    novaDiscoverySocket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+
+    novaDiscoverySocket.on('message', (msg, rinfo) => {
+        const response = msg.toString('utf-8');
+
+        if (response.includes(SERVICE_URN)) {
+            console.log(`✅ Nova found via SSDP at ${rinfo.address}`);
+
+            // Parse SSDP response headers
+            const headers = {};
+            response.split('\r\n').forEach(line => {
+                if (line.includes(':')) {
+                    const [key, value] = line.split(':', 2);
+                    headers[key.trim().toUpperCase()] = value.trim();
+                }
+            });
+
+            // Extract host:port from LOCATION header
+            const location = headers['LOCATION'] || '';
+            const cleaned = location.replace('http://', '').replace('ws://', '').replace(/\/$/, '');
+
+            if (cleaned.includes(':')) {
+                const [host, port] = cleaned.split(':');
+                novaHost = host;
+                novaPort = parseInt(port);
+
+                console.log(`📡 Nova OpenAPI at ${novaHost}:${novaPort}`);
+
+                // Stop discovery and connect
+                novaDiscoverySocket.close();
+                novaDiscoverySocket = null;
+                connectToNova();
+            }
+        }
+    });
+
+    novaDiscoverySocket.on('error', (err) => {
+        console.error('SSDP discovery error:', err);
+        // Don't send error status yet, will try mDNS fallback
+    });
+
+    // Bind and send M-SEARCH
+    novaDiscoverySocket.bind(() => {
+        const searchRequest =
+            'M-SEARCH * HTTP/1.1\r\n' +
+            `HOST: ${SSDP_MULTICAST_ADDR}:${SSDP_PORT}\r\n` +
+            'MAN: "ssdp:discover"\r\n' +
+            'MX: 3\r\n' +
+            `ST: ${SERVICE_URN}\r\n` +
+            '\r\n';
+
+        novaDiscoverySocket.send(
+            Buffer.from(searchRequest),
+            SSDP_PORT,
+            SSDP_MULTICAST_ADDR,
+            (err) => {
+                if (err) {
+                    console.error('Failed to send M-SEARCH:', err);
+                } else {
+                    console.log('📤 Sent SSDP M-SEARCH for Nova');
+                }
+            }
+        );
+
+        // Timeout after 5 seconds, then try mDNS
+        setTimeout(() => {
+            if (novaDiscoverySocket) {
+                console.log('⏱️ SSDP discovery timeout - trying mDNS fallback...');
+                novaDiscoverySocket.close();
+                novaDiscoverySocket = null;
+                discoverNovaMDNS();
+            }
+        }, 5000);
+    });
+}
+
+function discoverNovaMDNS() {
+    console.log('🔍 Attempting mDNS discovery...');
+    sendNovaStatus('discovering', 'Searching for Nova via mDNS...');
 
     const bonjour = new Bonjour();
 
     // Browse for Nova OpenAPI service
     novaBrowser = bonjour.find({ type: 'openapi-nova' }, (service) => {
-        console.log('✅ Nova found!');
+        console.log('✅ Nova found via mDNS!');
         console.log('📋 Full service info:', JSON.stringify(service, null, 2));
         console.log(`📡 Nova OpenAPI at ${service.referer.address}:${service.port}`);
 
@@ -583,11 +677,11 @@ function discoverNova() {
     // Timeout after 5 seconds
     setTimeout(() => {
         if (novaBrowser) {
-            console.log('⏱️ Nova discovery timeout - no devices found');
+            console.log('⏱️ mDNS discovery timeout - Nova not found on network');
             novaBrowser.stop();
             novaBrowser = null;
             bonjour.destroy();
-            sendNovaStatus('not-found', 'Nova not found on network');
+            sendNovaStatus('not-found', 'Nova not found via SSDP or mDNS');
         }
     }, 5000);
 }
@@ -712,6 +806,11 @@ function mapNovaToInternalFormat(novaData) {
 
 function stopNova() {
     console.log('🛑 Stopping Nova connection...');
+
+    if (novaDiscoverySocket) {
+        novaDiscoverySocket.close();
+        novaDiscoverySocket = null;
+    }
 
     if (novaBrowser) {
         novaBrowser.stop();
