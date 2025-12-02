@@ -377,6 +377,16 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
+                <span style="font-size: 13px; color: #9ca3af;">Monitor:</span>
+                <select id="launchMonitorType" onchange="changeLaunchMonitorType()"
+                        style="padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);
+                               border-radius: 4px; color: white; font-size: 13px; cursor: pointer;">
+                    <option value="nova">Nova (Auto)</option>
+                    <option value="gspro">OpenAPI/Other</option>
+                </select>
+            </div>
+
+            <div id="gsproPortConfig" style="display: none; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);">
                 <span style="font-size: 13px; color: #9ca3af;">Port:</span>
                 <input type="number" id="portInput" min="1" max="65535" value="921"
                        style="width: 70px; padding: 4px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);
@@ -384,6 +394,15 @@
                 <button onclick="changePort()"
                         style="background: rgba(34, 197, 94, 0.3); border: 1px solid #22c55e; color: white;
                                padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">Apply</button>
+            </div>
+
+            <div id="novaStatus" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(139, 92, 246, 0.2); border-radius: 8px; border: 1px solid #8b5cf6; font-size: 13px; color: #c4b5fd;">
+                <span id="novaStatusText">🔍 Discovering Nova...</span>
+                <button onclick="retryNovaDiscovery()"
+                        style="background: rgba(139, 92, 246, 0.3); border: 1px solid #8b5cf6; color: white;
+                               padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                    🔄 Retry
+                </button>
             </div>
         </div>
 
@@ -1321,6 +1340,51 @@
             }
         }
 
+        // Retry Nova discovery
+        function retryNovaDiscovery() {
+            console.log('🔄 Retrying Nova discovery...');
+            if (window.electronAPI && window.electronAPI.startNovaDiscovery) {
+                window.electronAPI.startNovaDiscovery();
+            }
+        }
+
+        // Launch Monitor Type Selection
+        function changeLaunchMonitorType() {
+            const monitorType = document.getElementById('launchMonitorType').value;
+            const gsproConfig = document.getElementById('gsproPortConfig');
+            const novaStatus = document.getElementById('novaStatus');
+
+            if (monitorType === 'nova') {
+                // Hide GSPro port config, show Nova status
+                gsproConfig.style.display = 'none';
+                novaStatus.style.display = 'flex';
+
+                // Stop GSPro server and start Nova discovery
+                if (window.electronAPI) {
+                    if (window.electronAPI.stopGSProServer) {
+                        window.electronAPI.stopGSProServer();
+                    }
+                    if (window.electronAPI.startNovaDiscovery) {
+                        window.electronAPI.startNovaDiscovery();
+                    }
+                }
+            } else {
+                // Show GSPro port config, hide Nova status
+                gsproConfig.style.display = 'flex';
+                novaStatus.style.display = 'none';
+
+                // Stop Nova and start GSPro server
+                if (window.electronAPI) {
+                    if (window.electronAPI.stopNovaDiscovery) {
+                        window.electronAPI.stopNovaDiscovery();
+                    }
+                    if (window.electronAPI.startGSProServer) {
+                        window.electronAPI.startGSProServer();
+                    }
+                }
+            }
+        }
+
         // Port configuration functions
         async function loadCurrentPort() {
             try {
@@ -2058,6 +2122,15 @@
         window.addEventListener('load', async () => {
             checkFirstTimeUse();
             await loadCurrentPort();
+
+            // Auto-start Nova discovery if it's the selected monitor type
+            if (window.electronAPI && window.electronAPI.startNovaDiscovery) {
+                const monitorType = document.getElementById('launchMonitorType').value;
+                if (monitorType === 'nova') {
+                    console.log('🎯 Auto-starting Nova discovery on load');
+                    window.electronAPI.startNovaDiscovery();
+                }
+            }
         });
 
         function checkFirstTimeUse() {
@@ -3241,6 +3314,25 @@
                 updateConnectionStatus(status.connected, status.receivingData);
                 if (status.port) {
                     updateDebugPanel('Port', status.port);
+                }
+            });
+
+            // Listen for Nova status updates
+            window.electronAPI.onNovaStatus((status) => {
+                console.log('Nova status update:', status);
+                const novaStatusText = document.getElementById('novaStatusText');
+                if (novaStatusText) {
+                    const statusIcons = {
+                        'discovering': '🔍',
+                        'connecting': '🔌',
+                        'connected': '✅',
+                        'error': '❌',
+                        'not-found': '⚠️',
+                        'disconnected': '🔌',
+                        'stopped': '🛑'
+                    };
+                    const icon = statusIcons[status.status] || '📡';
+                    novaStatusText.textContent = `${icon} ${status.message}`;
                 }
             });
 

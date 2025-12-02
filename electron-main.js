@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Menu, shell } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const net = require('net');
+const { Bonjour } = require('bonjour-service'); // For mDNS discovery
 // Test comment for v4.8.3 auto-update
 const path = require('path');
 const https = require('https');
@@ -14,6 +15,13 @@ let lastDataTime = null;
 
 // GSPro Connect Configuration
 let GSPRO_PORT = 921; // Default port, can be changed by user
+
+// Nova Connect Configuration
+let novaClient = null;
+let novaBrowser = null;
+let novaConnected = false;
+let novaHost = null;
+let novaPort = null;
 
 // Golf settings
 let greenStimp = 10.0; // Default green speed (Stimpmeter rating)
@@ -267,11 +275,11 @@ function startGSProServer() {
             // SquareGolf connector specifically looks for Code 202 to activate ball detection
             const readyMessage = {
                 Code: 202,
-                Message: "GSPro ready",
+                Message: "SMG ready",
                 Player: null
             };
             socket.write(JSON.stringify(readyMessage) + '\n');
-            console.log('🚀 Sent Code 202 "GSPro ready" to activate SquareGolf launch monitor');
+            console.log('🚀 Sent Code 202 "SMG ready" to activate SquareGolf launch monitor');
             console.log('   This triggers the connector to enter ball detection mode\n');
 
             // Notify renderer
@@ -536,6 +544,189 @@ function stopGSProServer() {
     }
 }
 
+// ============================================================================
+// Nova Launch Monitor Integration
+// ============================================================================
+
+function sendNovaStatus(status, message) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('nova-status', { status, message });
+    }
+}
+
+function discoverNova() {
+    console.log('🔍 Starting Nova mDNS discovery...');
+    sendNovaStatus('discovering', 'Searching for Nova...');
+
+    const bonjour = new Bonjour();
+
+    // Browse for Nova OpenAPI service
+    novaBrowser = bonjour.find({ type: 'openapi-nova' }, (service) => {
+        console.log('✅ Nova found!');
+        console.log('📋 Full service info:', JSON.stringify(service, null, 2));
+        console.log(`📡 Nova OpenAPI at ${service.referer.address}:${service.port}`);
+
+        novaHost = service.referer.address;
+        novaPort = service.port;
+
+        console.log(`🎯 Will connect to: ${novaHost}:${novaPort}`);
+
+        // Stop discovery and connect
+        if (novaBrowser) {
+            novaBrowser.stop();
+            novaBrowser = null;
+        }
+        bonjour.destroy();
+        connectToNova();
+    });
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+        if (novaBrowser) {
+            console.log('⏱️ Nova discovery timeout - no devices found');
+            novaBrowser.stop();
+            novaBrowser = null;
+            bonjour.destroy();
+            sendNovaStatus('not-found', 'Nova not found on network');
+        }
+    }, 5000);
+}
+
+function connectToNova() {
+    if (!novaHost || !novaPort) {
+        console.error('No Nova host/port available');
+        return;
+    }
+
+    console.log(`🔌 Connecting to Nova at ${novaHost}:${novaPort}...`);
+    sendNovaStatus('connecting', `Connecting to ${novaHost}:${novaPort}...`);
+
+    novaClient = new net.Socket();
+    let buffer = '';
+
+    novaClient.connect(novaPort, novaHost, () => {
+        console.log('✅ Connected to Nova!');
+        novaConnected = true;
+        sendNovaStatus('connected', `Connected to Nova at ${novaHost}:${novaPort}`);
+
+        // Update connection status for UI
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('connection-status', {
+                connected: true,
+                receivingData: false,
+                type: 'nova'
+            });
+        }
+    });
+
+    novaClient.on('data', (data) => {
+        console.log('📥 Raw data received from Nova:', data.toString('utf-8'));
+        buffer += data.toString('utf-8');
+
+        // Process complete JSON lines
+        while (buffer.includes('\n')) {
+            const lineEnd = buffer.indexOf('\n');
+            const line = buffer.substring(0, lineEnd).trim();
+            buffer = buffer.substring(lineEnd + 1);
+
+            console.log('🔍 Processing line:', line);
+
+            if (line) {
+                try {
+                    const novaShotData = JSON.parse(line);
+                    console.log('📊 Parsed Nova shot data:', JSON.stringify(novaShotData, null, 2));
+
+                    // Map Nova format to our internal format
+                    const mappedData = mapNovaToInternalFormat(novaShotData);
+                    console.log('🔄 Mapped data:', JSON.stringify(mappedData, null, 2));
+
+                    // Send to ALL windows (main window + any game windows like Par 3, Putting, etc.)
+                    const { BrowserWindow } = require('electron');
+                    BrowserWindow.getAllWindows().forEach(window => {
+                        if (window && !window.isDestroyed()) {
+                            console.log(`📤 Sending shot data to window: ${window.getTitle()}`);
+                            window.webContents.send('shot-data', mappedData);
+                            window.webContents.send('connection-status', {
+                                connected: true,
+                                receivingData: true,
+                                type: 'nova'
+                            });
+                        }
+                    });
+                    console.log('✓ Shot data sent to all windows');
+                } catch (err) {
+                    console.error('❌ Error parsing Nova JSON:', err);
+                    console.error('❌ Failed line:', line);
+                }
+            }
+        }
+    });
+
+    novaClient.on('error', (err) => {
+        console.error('Nova connection error:', err);
+        novaConnected = false;
+        sendNovaStatus('error', `Connection error: ${err.message}`);
+    });
+
+    novaClient.on('close', () => {
+        console.log('Nova connection closed');
+        novaConnected = false;
+        novaClient = null;
+        sendNovaStatus('disconnected', 'Connection closed');
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('connection-status', {
+                connected: false,
+                receivingData: false,
+                type: 'nova'
+            });
+        }
+    });
+}
+
+function mapNovaToInternalFormat(novaData) {
+    // Nova OpenAPI format from the examples:
+    // {
+    //   "ShotNumber": 1,
+    //   "BallData": {
+    //     "Speed": 120.5,
+    //     "VLA": 12.3,
+    //     "HLA": -2.1,
+    //     "TotalSpin": 2500,
+    //     "SpinAxis": 15.0,
+    //     "BackSpin": 2400,
+    //     "SideSpin": 400
+    //   }
+    // }
+
+    return {
+        ball_speed: novaData.BallData.Speed,
+        hla: novaData.BallData.HLA,
+        vla: novaData.BallData.VLA,
+        back_spin: novaData.BallData.BackSpin || 0,
+        side_spin: novaData.BallData.SideSpin || 0,
+        total_spin: novaData.BallData.TotalSpin || 0,
+        spin_axis: novaData.BallData.SpinAxis || 0
+    };
+}
+
+function stopNova() {
+    console.log('🛑 Stopping Nova connection...');
+
+    if (novaBrowser) {
+        novaBrowser.stop();
+        novaBrowser = null;
+    }
+
+    if (novaClient) {
+        novaClient.destroy();
+        novaClient = null;
+        novaConnected = false;
+    }
+
+    sendNovaStatus('stopped', 'Nova disconnected');
+}
+
 // Enable GPU acceleration (native OpenGL on Linux)
 app.commandLine.appendSwitch('ignore-gpu-blacklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
@@ -544,7 +735,8 @@ app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.whenReady().then(() => {
     createApplicationMenu();
     createWindow();
-    startGSProServer();
+    // Don't auto-start GSPro server - only start when user selects OpenAPI/Other
+    // startGSProServer();
 
     // Check for updates after a short delay (let the app load first)
     setTimeout(() => {
@@ -593,6 +785,32 @@ ipcMain.handle('get-green-stimp', () => {
 
 ipcMain.handle('get-gspro-port', () => {
     return GSPRO_PORT;
+});
+
+// Nova IPC handlers
+ipcMain.handle('start-nova-discovery', () => {
+    console.log('🎯 Starting Nova discovery from renderer');
+    discoverNova();
+    return { success: true };
+});
+
+ipcMain.handle('stop-nova-discovery', () => {
+    console.log('🛑 Stopping Nova from renderer');
+    stopNova();
+    return { success: true };
+});
+
+// GSPro server control IPC handlers
+ipcMain.handle('start-gspro-server', () => {
+    console.log('🎯 Starting GSPro server from renderer');
+    startGSProServer();
+    return { success: true };
+});
+
+ipcMain.handle('stop-gspro-server', () => {
+    console.log('🛑 Stopping GSPro server from renderer');
+    stopGSProServer();
+    return { success: true };
 });
 
 ipcMain.handle('set-gspro-port', (event, newPort) => {

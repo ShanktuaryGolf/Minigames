@@ -47,5 +47,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Listen for launch monitor status updates
     onLaunchMonitorStatus: (callback) => {
         ipcRenderer.on('launch-monitor-status', (event, status) => callback(status));
-    }
+    },
+
+    // Nova launch monitor methods
+    startNovaDiscovery: () => ipcRenderer.invoke('start-nova-discovery'),
+    stopNovaDiscovery: () => ipcRenderer.invoke('stop-nova-discovery'),
+
+    // Listen for Nova status updates
+    onNovaStatus: (callback) => {
+        ipcRenderer.on('nova-status', (event, status) => callback(status));
+    },
+
+    // GSPro server control
+    startGSProServer: () => ipcRenderer.invoke('start-gspro-server'),
+    stopGSProServer: () => ipcRenderer.invoke('stop-gspro-server')
 });
