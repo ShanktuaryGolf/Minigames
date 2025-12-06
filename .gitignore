@@ -1,13 +1,123 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
 build/
+
+# Logs
 *.log
-.DS_Store
-.env
 logs/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+
+# Backups
 *.backup
 *.bak
+*_backup*
+*-backup*
 
-# Mobile/Android build files
+# Mobile/Android
 mobile/
 ANDROID_BUILD_STATUS.md
+
+# Development/Testing files
+test-*.js
+analyze-*.js
+flightscope*.js
+flightscope*.csv
+flightscope*.sh
+flightscope*.py
+calibrate-*.js
+optimize-*.js
+recalibrate.js
+retrain-*.js
+*.csv
+gspro_websocket_bridge.py
+server.py
+calc-spin.py
+
+# Documentation (dev notes, not user-facing)
+DISCORD_*.md
+CONNECTOR_UPDATE.md
+ELECTRON_README.md
+EMPIRICAL_MODEL_README.md
+FLIGHTSCOPE_HELPER.md
+HYBRID_PHYSICS_*.md
+PATCH_NOTES_*.md
+PHYSICS_ANALYSIS_*.md
+PROJECTOR_MODE.md
+SQUAREGOLF_FIX.md
+WINDOWS_FIREWALL_HELP.md
+test-cases.*
+*.txt
+post.txt
+retrain-model.txt
+
+# Images/Media (keep only essentials)
+meme*.png
+ui.png
+wiigolfui.png
+logo.png
+shanktuaryminigames*.png
+jesus.jpeg
+soccer-ball-texture.jpg
+*.pdf
+*.xlsx
+
+# Downloaded/External resources
+nova-developer-guide/
+nova-developer-guide-main.zip
+NOVA Extension/
+NOVA Extension.zip
+quickgrass/
+Quick_Grass-main.zip
+gsprogolf.com/
+libshotscope/
+www.mathworks.com/
+Projectile Motion*
+
+# GLB models (large files)
+*.glb
+
+# Game JS files (keep HTML, not separate JS)
+beerpong.js
+connect4.js
+darts.js
+darts_multiplayer.js
+dotsandboxes.js
+homerunderby.js
+horseshoes.js
+jenga.js
+matchcards.js
+othello.js
+skeeball_*.js
+tictactoe.js
+
+# Deprecated/old versions
+*_v1_*.html
+*_v2_*.html
+*_v3_*.html
+*_v4.*.html
+billiards-game.html
+billiards.html
+skeeball-*.html
+putting-green-ngbackup.html
+putting-green-option1.html
+
+# Directories
+__pycache__/
+.claude/
+physics/
+pics/
+billiards/
+shaders/
+github/
+
+# Lock files
+.~lock.*
+*.kate-swp

@@ -1,4 +1,0 @@
-  To retrain the model with new data:
-  1. Add new rows to all-shots.csv (just copy the format)
-  2. Tell me to retrain the model
-  3. I'll re-optimize the coefficients and update the game files
