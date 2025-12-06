@@ -7,3 +7,7 @@ build/
 logs/
 *.backup
 *.bak
+
+# Mobile/Android build files
+mobile/
+ANDROID_BUILD_STATUS.md
