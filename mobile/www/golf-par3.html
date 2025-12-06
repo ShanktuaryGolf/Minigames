@@ -142,6 +142,8 @@
             line-height: 1;
         }
     </style>
+    <script src="nova-mobile.js"></script>
+    <script src="nova-game-bridge.js"></script>
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -205,8 +207,8 @@
         <button id="resetBtn">Reset Hole</button>
         <button onclick="exportSessionCSV()" style="background: rgba(34, 197, 94, 0.3); border-color: #22c55e;">📊 Export CSV</button>
 
-        <!-- Demo Shot Controls (for testing) - ENABLED FOR TESTING -->
-        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100;">
+        <!-- Demo Shot Controls (for testing) - DISABLED FOR PRODUCTION -->
+        <!-- <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100;">
             <h3 style="margin-top: 0;">Demo Shot (Press 'D')</h3>
             <div style="display: grid; gap: 8px;">
                 <label>Ball Speed (mph): <input type="number" id="demoSpeed" value="55" step="1" style="width: 80px;"></label>
@@ -219,102 +221,13 @@
                 <strong>Press 'T'</strong> to run automated FlightScope tests<br>
                 <strong>Press 'F'</strong> to toggle free camera (WASD/QE to move)
             </div>
-        </div>
-    </div>
-
-    <!-- Shot Classification Panel -->
-    <div id="shotClassification" style="position: absolute; top: 120px; left: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; color: white; font-family: Arial; display: none; z-index: 100; border: 2px solid rgba(255,255,255,0.3); min-width: 280px;">
-        <h3 style="margin-top: 0; font-size: 16px;">🎯 Shot Analysis</h3>
-        <div id="shotNameDisplay" style="font-size: 24px; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            <!-- Shot name goes here -->
-        </div>
-        <div id="shotRankBadge" style="display: inline-block; padding: 8px 16px; border-radius: 6px; font-size: 20px; font-weight: bold; margin: 10px 0;">
-            <!-- Rank badge goes here -->
-        </div>
-        <div style="font-size: 12px; opacity: 0.9; margin-top: 10px; line-height: 1.6;">
-            <div><strong>Carry:</strong> <span id="carryValue">0</span> yds • <strong>Total:</strong> <span id="totalValue">0</span> yds</div>
-            <div><strong>Peak Height:</strong> <span id="peakHeightValue">0</span> yds</div>
-            <div><strong>Hang Time:</strong> <span id="hangTimeValue">0</span>s</div>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2);">
-                <div><strong>Backspin:</strong> <span id="backspinValue">0</span> RPM</div>
-                <div><strong>Sidespin:</strong> <span id="sidespinValue">0</span> RPM</div>
-            </div>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2);">
-                <div><strong>Smash Factor:</strong> <span id="smashFactorValue">0</span></div>
-                <div><strong>Efficiency:</strong> <span id="efficiencyValue">0</span>%</div>
-            </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- Minimap -->
     <canvas id="minimap" width="200" height="200" style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; z-index: 1000;"></canvas>
 
     <script src="./three.min.js"></script>
-    <script type="module">
-        // Import OpenGolfCoach for shot classification
-        import init, { calculate_derived_values } from './opengolfcoach.js';
-
-        // Initialize WASM module
-        let openGolfCoachReady = false;
-        init().then(() => {
-            openGolfCoachReady = true;
-            window.classifyShot = function(shotData) {
-                console.log('🔧 classifyShot called with:', shotData);
-
-                if (!openGolfCoachReady) {
-                    console.error('❌ OpenGolfCoach not ready!');
-                    return null;
-                }
-
-                try {
-                    // Convert to OpenGolfCoach format
-                    const input = {
-                        ball_speed_meters_per_second: shotData.speed * 0.44704, // mph to m/s
-                        vertical_launch_angle_degrees: shotData.vla,
-                        horizontal_launch_angle_degrees: shotData.hla || 0,
-                        total_spin_rpm: shotData.total_spin || 0,
-                        spin_axis_degrees: shotData.spin_axis || 0
-                    };
-
-                    console.log('📤 Sending to OpenGolfCoach:', input);
-
-                    // Call OpenGolfCoach
-                    const resultJson = calculate_derived_values(JSON.stringify(input));
-                    console.log('📥 Raw result from WASM:', resultJson);
-
-                    const result = JSON.parse(resultJson);
-                    console.log('🎯 Parsed OpenGolfCoach result:', result);
-
-                    // Extract from nested open_golf_coach object
-                    const ogc = result.open_golf_coach;
-
-                    return {
-                        shotName: ogc.shot_name || 'Unknown',
-                        shotRank: ogc.shot_rank || 'C',
-                        shotColor: ogc.shot_color_rgb || '0xFFFFFF',
-                        carryYards: ogc.carry_distance_meters * 1.09361,
-                        totalYards: ogc.total_distance_meters * 1.09361,
-                        offlineYards: ogc.offline_distance_meters * 1.09361,
-                        peakHeight: ogc.peak_height_meters * 1.09361,
-                        hangTime: ogc.hang_time_seconds,
-                        backspin: ogc.backspin_rpm || 0,
-                        sidespin: ogc.sidespin_rpm || 0,
-                        smashFactor: ogc.smash_factor || 0,
-                        efficiency: ogc.distance_efficiency_percent || 0,
-                        descentAngle: ogc.descent_angle_degrees || 0
-                    };
-                } catch (err) {
-                    console.error('❌ OpenGolfCoach error:', err);
-                    console.error('Error stack:', err.stack);
-                    return null;
-                }
-            };
-
-            console.log('✅ OpenGolfCoach WASM module loaded and ready!');
-        }).catch(err => {
-            console.error('Failed to load OpenGolfCoach:', err);
-        });
-    </script>
     <script>
         let scene, camera, renderer;
         let minimapCamera, minimapRenderer;
@@ -339,8 +252,6 @@
 
         // Game settings (set by Electron)
         let gimmieCirclesEnabled = false;
-        let ballStoppedTime = null; // Track when ball stopped moving
-        const GIMME_DELAY_MS = 300; // Wait 300ms after ball stops before checking gimme
 
         // Course layout (in meters, 1 yard = 0.9144 meters)
         const TEE_POSITION = new THREE.Vector3(0, 3, 0); // Elevated 3m
@@ -877,7 +788,8 @@
                     e.preventDefault();
                 }
 
-                // D key - Demo shot - ENABLED FOR TESTING
+                // D key - Demo shot - DISABLED FOR PRODUCTION
+                /*
                 if (e.key === 'd' || e.key === 'D') {
                     // Use demo shot controls
                     const speed = parseFloat(document.getElementById('demoSpeed').value);
@@ -896,6 +808,7 @@
                         }
                     });
                 }
+                */
 
                 // T key - Run automated tests - DISABLED FOR PRODUCTION
                 /*
@@ -2092,40 +2005,14 @@
             // Reset landing speed and spin for new shot
             window.ballLandingSpeedMPH = null;
             window.ballLandingSpinRPM = null;
-            ballStoppedTime = null; // Reset gimme timer for new shot
 
             // Handle both Electron IPC format (ball_speed) and demo shot format (speed)
             const data = event.detail;
             let speed = data.speed || data.ball_speed || 0;
-
-            // Get shot parameters BEFORE using them
-            let vla = data.vla || data.vertical_launch_angle || 0;
-            let hla = data.hla || data.horizontal_launch_angle || 0;
-            let total_spin = data.total_spin || data.totalSpin || 0;
-            let spin_axis = data.spin_axis || data.spinAxis || 0;
-
-            // Classify shot with OpenGolfCoach
-            console.log('🔍 Attempting shot classification:', { speed, vla, hla, total_spin, spin_axis });
-            if (window.classifyShot) {
-                const classification = window.classifyShot({
-                    speed: speed,
-                    vla: vla,
-                    hla: hla,
-                    total_spin: total_spin,
-                    spin_axis: spin_axis
-                });
-
-                console.log('📊 Classification result:', classification);
-
-                if (classification) {
-                    // Display shot classification
-                    displayShotClassification(classification);
-                    // Store for session tracking
-                    currentShotData.classification = classification;
-                }
-            } else {
-                console.warn('⚠️ window.classifyShot not available yet');
-            }
+            let vla = data.vla || 0;
+            let hla = data.hla || 0;
+            let total_spin = data.total_spin || 0;
+            let spin_axis = data.spin_axis || 0;
 
             // Store original input values for display
             const inputHLA = hla;
@@ -2416,39 +2303,30 @@
                     console.log(`📊 Putt added to CSV export (${sessionShots.length} total shots)`);
                 }
 
-                // Mark ball as stopped and schedule gimme check
-                if (!ballStoppedTime) {
-                    ballStoppedTime = performance.now();
-                    console.log('Ball stopped - starting gimme check timer');
-                }
+                // Check for gimmie if enabled
+                const distToHole = Math.sqrt(
+                    Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
+                    Math.pow(ballPosition.z - PIN_POSITION.z, 2)
+                );
+                const ft5InMeters = 5 * 0.3048; // 1.524m
+                const ft10InMeters = 10 * 0.3048; // 3.048m
+                console.log(`Ball stopped - Distance to hole: ${distToHole.toFixed(2)}m (${(distToHole * 3.28084).toFixed(1)}ft), Gimmie enabled: ${gimmieCirclesEnabled}`);
 
-                // Check for gimmie if enabled (ONLY after ball has been stopped for delay period)
-                const timeStopped = performance.now() - ballStoppedTime;
-                if (gimmieCirclesEnabled && timeStopped >= GIMME_DELAY_MS) {
-                    const distToHole = Math.sqrt(
-                        Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
-                        Math.pow(ballPosition.z - PIN_POSITION.z, 2)
-                    );
-                    const ft5InMeters = 5 * 0.3048; // 1.524m
-                    const ft10InMeters = 10 * 0.3048; // 3.048m
-                    console.log(`Ball at rest (${timeStopped.toFixed(0)}ms) - Distance: ${distToHole.toFixed(2)}m (${(distToHole * 3.28084).toFixed(1)}ft), Gimmie enabled: ${gimmieCirclesEnabled}`);
-
+                if (gimmieCirclesEnabled) {
                     if (distToHole <= ft5InMeters) {
                         // Within 5ft - automatic 1 putt
-                        console.log('GIMMIE: Ball came to rest within 5ft - automatic 1 putt added');
+                        console.log('GIMMIE: Within 5ft - automatic 1 putt added');
                         strokes += 1;
                         const player = window.golfPar3Players[window.currentPlayerIndex];
                         player.strokes += 1;
-                        ballStoppedTime = null; // Reset for next shot
                         scoreHole(); // Score the hole
                         return;
                     } else if (distToHole <= ft10InMeters) {
                         // Within 10ft - automatic 2 putts
-                        console.log('GIMMIE: Ball came to rest within 10ft - automatic 2 putts added');
+                        console.log('GIMMIE: Within 10ft - automatic 2 putts added');
                         strokes += 2;
                         const player = window.golfPar3Players[window.currentPlayerIndex];
                         player.strokes += 2;
-                        ballStoppedTime = null; // Reset for next shot
                         scoreHole(); // Score the hole
                         return;
                     }
@@ -3044,10 +2922,6 @@
                     // Rolling friction - spin-dependent (reduced for more roll distance)
                     const horizontalSpeed = Math.sqrt(ballVelocity.x * ballVelocity.x + ballVelocity.z * ballVelocity.z);
                     if (horizontalSpeed > 0.05) {
-                        // Ball is moving - reset stopped timer
-                        if (ballStoppedTime !== null) {
-                            ballStoppedTime = null;
-                        }
                         // High spin = more friction when rolling
                         // Use LANDING spin, not current spin (which decays during rollout)
                         // Note: This is BACKSPIN component only (sidespin doesn't affect rollout friction)
@@ -3192,18 +3066,11 @@
                     } else {
                         ballVelocity.x = 0;
                         ballVelocity.z = 0;
-
-                        // Don't mark as stopped yet if we haven't run the end-of-flight logic
-                        if (ballInFlight) {
-                            ballInFlight = false;
-                            // Ball will check for gimme after delay
+                        ballInFlight = false;
 
                         // Apply empirical model distance correction (but NOT for putts - speeds < 20 mph)
                         // Empirical model only works for full swings, not slow putts
-                        // ALSO skip if ball is on green - green has realistic physics, don't override it
-                        console.log(`   Empirical check: predicted=${empiricalPredictedDistance}, speed=${initialShotSpeedMPH}, lie=${currentLie.name}`);
-                        if (empiricalPredictedDistance !== null && empiricalPredictedDistance > 0 && initialShotSpeedMPH >= 20 && currentLie.name.toLowerCase() !== 'green') {
-                            console.log('   ✅ Applying empirical correction (not on green)');
+                        if (empiricalPredictedDistance !== null && empiricalPredictedDistance > 0 && initialShotSpeedMPH >= 20) {
                             // Calculate current physics-simulated distance
                             const physicsDistanceMeters = Math.sqrt(
                                 Math.pow(ballPosition.x - shotStartPos.x, 2) +
@@ -3235,7 +3102,32 @@
                             empiricalPredictedDistance = null;
                         }
 
-                        // Update total distance and rollout (camera rotation happens after 1.5s delay)
+                        // Always rotate camera toward pin after each shot (for convenience)
+                        // Calculate new base direction toward pin from current position
+                        const dx = PIN_POSITION.x - ballPosition.x;
+                        const dz = PIN_POSITION.z - ballPosition.z;
+                        const directionToPin = Math.atan2(dx, -dz) * 180 / Math.PI;
+
+                        // Check if auto-aim is enabled
+                        const currentPlayer = window.golfPar3Players[window.currentPlayerIndex];
+                        const autoAimEnabled = currentPlayer && currentPlayer.autoAim !== false;
+
+                        if (autoAimEnabled) {
+                            // Auto-aim ON: camera points to pin AND shot goes to pin
+                            baseDirection = directionToPin;
+                            console.log(`Ball stopped - AUTO-AIM ON: camera & shot → hole at ${baseDirection.toFixed(1)}°`);
+                        } else {
+                            // Auto-aim OFF: camera points to pin, but shot aims straight (0° adjustment)
+                            // Store the direction to pin, but player can adjust with arrow keys
+                            baseDirection = directionToPin;
+                            console.log(`Ball stopped - AUTO-AIM OFF: camera → hole at ${baseDirection.toFixed(1)}°, but shot goes straight from camera`);
+                        }
+
+                        // Reset aim adjustment to 0 (but keep base direction)
+                        aimAdjustment = 0;
+                        updateAimIndicator();
+
+                        // Update total distance and rollout BEFORE switching players
                         const totalDist = Math.sqrt(
                             Math.pow(ballPosition.x - shotStartPos.x, 2) +
                             Math.pow(ballPosition.z - shotStartPos.z, 2)
@@ -3268,39 +3160,29 @@
                             console.log(`📊 Shot added to CSV export (${sessionShots.length} total shots)`);
                         }
 
-                        // Mark ball as stopped and schedule gimme check
-                        if (!ballStoppedTime) {
-                            ballStoppedTime = performance.now();
-                            console.log('Ball stopped - starting gimme check timer');
-                        }
-
-                        // Check for gimmie if enabled (ONLY after ball has been stopped for delay period)
-                        const timeStopped = performance.now() - ballStoppedTime;
-                        if (gimmieCirclesEnabled && timeStopped >= GIMME_DELAY_MS) {
+                        // Check for gimmie if enabled
+                        if (gimmieCirclesEnabled) {
                             const distToHole = Math.sqrt(
                                 Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
                                 Math.pow(ballPosition.z - PIN_POSITION.z, 2)
                             );
                             const ft5InMeters = 5 * 0.3048; // 1.524m
                             const ft10InMeters = 10 * 0.3048; // 3.048m
-                            console.log(`Ball at rest (${timeStopped.toFixed(0)}ms) - Distance: ${distToHole.toFixed(2)}m (${(distToHole * 3.28084).toFixed(1)}ft), Gimmie enabled: ${gimmieCirclesEnabled}`);
 
                             if (distToHole <= ft5InMeters) {
                                 // Within 5ft - automatic 1 putt
-                                console.log('GIMMIE: Ball came to rest within 5ft - automatic 1 putt added');
+                                console.log('GIMMIE: Within 5ft - automatic 1 putt added');
                                 strokes += 1;
                                 const player = window.golfPar3Players[window.currentPlayerIndex];
                                 player.strokes += 1;
-                                ballStoppedTime = null; // Reset for next shot
                                 scoreHole(); // Score the hole
                                 return;
                             } else if (distToHole <= ft10InMeters) {
                                 // Within 10ft - automatic 2 putts
-                                console.log('GIMMIE: Ball came to rest within 10ft - automatic 2 putts added');
+                                console.log('GIMMIE: Within 10ft - automatic 2 putts added');
                                 strokes += 2;
                                 const player = window.golfPar3Players[window.currentPlayerIndex];
                                 player.strokes += 2;
-                                ballStoppedTime = null; // Reset for next shot
                                 scoreHole(); // Score the hole
                                 return;
                             }
@@ -3309,42 +3191,13 @@
                         // Check if in hole
                         checkHole();
 
-                        // Wait 1.5 seconds for ball to visually settle, then save state and rotate camera
-                        setTimeout(() => {
-                            // Always rotate camera toward pin after each shot (for convenience)
-                            // Calculate new base direction toward pin from current position
-                            const dx = PIN_POSITION.x - ballPosition.x;
-                            const dz = PIN_POSITION.z - ballPosition.z;
-                            const directionToPin = Math.atan2(dx, -dz) * 180 / Math.PI;
+                        // Save player state and switch to farthest player AFTER updating stats
+                        savePlayerState();
 
-                            // Check if auto-aim is enabled
-                            const currentPlayer = window.golfPar3Players[window.currentPlayerIndex];
-                            const autoAimEnabled = currentPlayer && currentPlayer.autoAim !== false;
-
-                            if (autoAimEnabled) {
-                                // Auto-aim ON: camera points to pin AND shot goes to pin
-                                baseDirection = directionToPin;
-                                console.log(`Ball settled - AUTO-AIM ON: camera & shot → hole at ${baseDirection.toFixed(1)}°`);
-                            } else {
-                                // Auto-aim OFF: camera points to pin, but shot aims straight (0° adjustment)
-                                // Store the direction to pin, but player can adjust with arrow keys
-                                baseDirection = directionToPin;
-                                console.log(`Ball settled - AUTO-AIM OFF: camera → hole at ${baseDirection.toFixed(1)}°, but shot goes straight from camera`);
-                            }
-
-                            // Reset aim adjustment to 0 (but keep base direction)
-                            aimAdjustment = 0;
-                            updateAimIndicator();
-
-                            // Save player state AFTER ball has settled
-                            savePlayerState();
-                        }, 1500);
-
-                        // Add 3.5 second pause total before switching players (1.5s settle + 2s view)
+                        // Add 2 second pause before switching players
                         setTimeout(() => {
                             switchToFarthestPlayer();
-                        }, 3500);
-                        } // End if (ballInFlight)
+                        }, 2000);
                     }
                 }
             }
@@ -4383,66 +4236,6 @@
             scene.add(gridLines);
 
             console.log('Grid enabled');
-        }
-
-        // OpenGolfCoach rank colors
-        const RANK_COLORS = {
-            'S+': '#23C4FF',
-            'S': '#00B3FF',
-            'A': '#00D977',
-            'B': '#7CB342',
-            'C': '#FFC107',
-            'D': '#FF7043',
-            'E': '#FF1744'
-        };
-
-        function displayShotClassification(classification) {
-            const panel = document.getElementById('shotClassification');
-            const nameDisplay = document.getElementById('shotNameDisplay');
-            const rankBadge = document.getElementById('shotRankBadge');
-            const backspinValue = document.getElementById('backspinValue');
-            const sidespinValue = document.getElementById('sidespinValue');
-            const carryValue = document.getElementById('carryValue');
-            const totalValue = document.getElementById('totalValue');
-            const peakHeightValue = document.getElementById('peakHeightValue');
-            const hangTimeValue = document.getElementById('hangTimeValue');
-            const smashFactorValue = document.getElementById('smashFactorValue');
-            const efficiencyValue = document.getElementById('efficiencyValue');
-
-            // Show panel
-            panel.style.display = 'block';
-
-            // Set shot name with color
-            const shotColor = classification.shotColor.replace('0x', '#');
-            nameDisplay.textContent = classification.shotName;
-            nameDisplay.style.color = shotColor;
-
-            // Set rank badge with color
-            const rankColor = RANK_COLORS[classification.shotRank] || '#FFFFFF';
-            rankBadge.textContent = `Rank ${classification.shotRank}`;
-            rankBadge.style.backgroundColor = rankColor;
-            rankBadge.style.color = '#000';
-
-            // Set distance values
-            carryValue.textContent = (classification.carryYards || 0).toFixed(1);
-            totalValue.textContent = (classification.totalYards || 0).toFixed(1);
-            peakHeightValue.textContent = (classification.peakHeight || 0).toFixed(1);
-            hangTimeValue.textContent = (classification.hangTime || 0).toFixed(1);
-
-            // Set spin values
-            backspinValue.textContent = Math.round(classification.backspin || 0);
-            sidespinValue.textContent = Math.round(classification.sidespin || 0);
-
-            // Set quality metrics
-            smashFactorValue.textContent = (classification.smashFactor || 0).toFixed(2);
-            efficiencyValue.textContent = Math.round(classification.efficiency || 0);
-
-            // Auto-hide after 8 seconds
-            setTimeout(() => {
-                panel.style.display = 'none';
-            }, 8000);
-
-            console.log(`🎯 ${classification.shotName} - Rank ${classification.shotRank}`);
         }
 
         function onWindowResize() {

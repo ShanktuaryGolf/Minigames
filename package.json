@@ -1,6 +1,6 @@
 {
   "name": "shanktuary-golf-mini-games",
-  "version": "4.11.2",
+  "version": "4.12.0",
   "description": "Shanktuary Golf Mini Games",
   "main": "electron-main.js",
   "repository": {
@@ -73,6 +73,9 @@
     }
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
     "bonjour-service": "^1.3.0",
     "cannon-es": "^0.20.0",
     "electron-updater": "^6.6.2",

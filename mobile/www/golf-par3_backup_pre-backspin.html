@@ -203,118 +203,28 @@
         <button id="viewBtn">Change View</button>
         <button id="gridBtn">Toggle Grid</button>
         <button id="resetBtn">Reset Hole</button>
-        <button onclick="exportSessionCSV()" style="background: rgba(34, 197, 94, 0.3); border-color: #22c55e;">📊 Export CSV</button>
 
-        <!-- Demo Shot Controls (for testing) - ENABLED FOR TESTING -->
-        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100;">
+        <!-- Demo Shot Controls (for testing) - DISABLED FOR PRODUCTION -->
+        <!-- <div style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100; display: none;">
             <h3 style="margin-top: 0;">Demo Shot (Press 'D')</h3>
             <div style="display: grid; gap: 8px;">
-                <label>Ball Speed (mph): <input type="number" id="demoSpeed" value="55" step="1" style="width: 80px;"></label>
-                <label>Launch V (deg): <input type="number" id="demoVLA" value="5" step="0.5" style="width: 80px;"></label>
+                <label>Ball Speed (mph): <input type="number" id="demoSpeed" value="75" step="1" style="width: 80px;"></label>
+                <label>Launch V (deg): <input type="number" id="demoVLA" value="18" step="0.5" style="width: 80px;"></label>
                 <label>Launch H (deg): <input type="number" id="demoHLA" value="0" step="0.5" style="width: 80px;"></label>
-                <label>Total Spin (rpm): <input type="number" id="demoTotalSpin" value="1200" step="100" style="width: 80px;"></label>
+                <label>Total Spin (rpm): <input type="number" id="demoTotalSpin" value="5500" step="100" style="width: 80px;"></label>
                 <label>Spin Axis (deg): <input type="number" id="demoSpinAxis" value="0" step="1" style="width: 80px;"></label>
             </div>
             <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 12px;">
                 <strong>Press 'T'</strong> to run automated FlightScope tests<br>
                 <strong>Press 'F'</strong> to toggle free camera (WASD/QE to move)
             </div>
-        </div>
-    </div>
-
-    <!-- Shot Classification Panel -->
-    <div id="shotClassification" style="position: absolute; top: 120px; left: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; color: white; font-family: Arial; display: none; z-index: 100; border: 2px solid rgba(255,255,255,0.3); min-width: 280px;">
-        <h3 style="margin-top: 0; font-size: 16px;">🎯 Shot Analysis</h3>
-        <div id="shotNameDisplay" style="font-size: 24px; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
-            <!-- Shot name goes here -->
-        </div>
-        <div id="shotRankBadge" style="display: inline-block; padding: 8px 16px; border-radius: 6px; font-size: 20px; font-weight: bold; margin: 10px 0;">
-            <!-- Rank badge goes here -->
-        </div>
-        <div style="font-size: 12px; opacity: 0.9; margin-top: 10px; line-height: 1.6;">
-            <div><strong>Carry:</strong> <span id="carryValue">0</span> yds • <strong>Total:</strong> <span id="totalValue">0</span> yds</div>
-            <div><strong>Peak Height:</strong> <span id="peakHeightValue">0</span> yds</div>
-            <div><strong>Hang Time:</strong> <span id="hangTimeValue">0</span>s</div>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2);">
-                <div><strong>Backspin:</strong> <span id="backspinValue">0</span> RPM</div>
-                <div><strong>Sidespin:</strong> <span id="sidespinValue">0</span> RPM</div>
-            </div>
-            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2);">
-                <div><strong>Smash Factor:</strong> <span id="smashFactorValue">0</span></div>
-                <div><strong>Efficiency:</strong> <span id="efficiencyValue">0</span>%</div>
-            </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- Minimap -->
     <canvas id="minimap" width="200" height="200" style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; z-index: 1000;"></canvas>
 
     <script src="./three.min.js"></script>
-    <script type="module">
-        // Import OpenGolfCoach for shot classification
-        import init, { calculate_derived_values } from './opengolfcoach.js';
-
-        // Initialize WASM module
-        let openGolfCoachReady = false;
-        init().then(() => {
-            openGolfCoachReady = true;
-            window.classifyShot = function(shotData) {
-                console.log('🔧 classifyShot called with:', shotData);
-
-                if (!openGolfCoachReady) {
-                    console.error('❌ OpenGolfCoach not ready!');
-                    return null;
-                }
-
-                try {
-                    // Convert to OpenGolfCoach format
-                    const input = {
-                        ball_speed_meters_per_second: shotData.speed * 0.44704, // mph to m/s
-                        vertical_launch_angle_degrees: shotData.vla,
-                        horizontal_launch_angle_degrees: shotData.hla || 0,
-                        total_spin_rpm: shotData.total_spin || 0,
-                        spin_axis_degrees: shotData.spin_axis || 0
-                    };
-
-                    console.log('📤 Sending to OpenGolfCoach:', input);
-
-                    // Call OpenGolfCoach
-                    const resultJson = calculate_derived_values(JSON.stringify(input));
-                    console.log('📥 Raw result from WASM:', resultJson);
-
-                    const result = JSON.parse(resultJson);
-                    console.log('🎯 Parsed OpenGolfCoach result:', result);
-
-                    // Extract from nested open_golf_coach object
-                    const ogc = result.open_golf_coach;
-
-                    return {
-                        shotName: ogc.shot_name || 'Unknown',
-                        shotRank: ogc.shot_rank || 'C',
-                        shotColor: ogc.shot_color_rgb || '0xFFFFFF',
-                        carryYards: ogc.carry_distance_meters * 1.09361,
-                        totalYards: ogc.total_distance_meters * 1.09361,
-                        offlineYards: ogc.offline_distance_meters * 1.09361,
-                        peakHeight: ogc.peak_height_meters * 1.09361,
-                        hangTime: ogc.hang_time_seconds,
-                        backspin: ogc.backspin_rpm || 0,
-                        sidespin: ogc.sidespin_rpm || 0,
-                        smashFactor: ogc.smash_factor || 0,
-                        efficiency: ogc.distance_efficiency_percent || 0,
-                        descentAngle: ogc.descent_angle_degrees || 0
-                    };
-                } catch (err) {
-                    console.error('❌ OpenGolfCoach error:', err);
-                    console.error('Error stack:', err.stack);
-                    return null;
-                }
-            };
-
-            console.log('✅ OpenGolfCoach WASM module loaded and ready!');
-        }).catch(err => {
-            console.error('Failed to load OpenGolfCoach:', err);
-        });
-    </script>
     <script>
         let scene, camera, renderer;
         let minimapCamera, minimapRenderer;
@@ -327,10 +237,6 @@
         window.golfPar3Players = [];
         window.currentPlayerIndex = 0;
 
-        // Session tracking for CSV export
-        let sessionShots = [];
-        let currentShotData = {}; // Store current shot's data for CSV export
-
         // Ball state (for current player)
         let ballPosition = new THREE.Vector3();
         let ballVelocity = new THREE.Vector3();
@@ -339,8 +245,6 @@
 
         // Game settings (set by Electron)
         let gimmieCirclesEnabled = false;
-        let ballStoppedTime = null; // Track when ball stopped moving
-        const GIMME_DELAY_MS = 300; // Wait 300ms after ball stops before checking gimme
 
         // Course layout (in meters, 1 yard = 0.9144 meters)
         const TEE_POSITION = new THREE.Vector3(0, 3, 0); // Elevated 3m
@@ -427,126 +331,6 @@
         // Magnus constant from Excel (D4)
         const MAGNUS_CONST = 0.00568249207;
 
-        // ============================================================================
-        // EMPIRICAL GOLF BALL FLIGHT MODEL
-        // Pure data-driven approach using multi-region linear regression
-        // Achieves 93% accuracy (≤10 yard tolerance) with 3.4 yard average error
-        // Optimized on 99 shots from all-shots.csv
-        // ============================================================================
-
-        // Region calibration data (optimized on 160 shots from all-shots.csv)
-        const EMPIRICAL_REGIONS = {
-            WEDGE: {
-                avgSpeed: 56.2,
-                avgVLA: 25.5,
-                avgSpin: 5260,
-                avgTotal: 58.3,
-                speedCoeff: 1.5,
-                vlaCoeff: 0,
-                spinCoeff: 0
-            },
-            IRON: {
-                avgSpeed: 80.4,
-                avgVLA: 21.5,
-                avgSpin: 5788,
-                avgTotal: 97.1,
-                speedCoeff: 2,
-                vlaCoeff: 2,      // Positive: high VLA increases distance for irons
-                spinCoeff: -0.005
-            },
-            POWER: {
-                avgSpeed: 125.2,
-                avgVLA: 19.3,
-                avgSpin: 5569,
-                avgTotal: 189.8,
-                speedCoeff: 2,
-                vlaCoeff: 1,
-                spinCoeff: -0.01
-            },
-            DRIVER_LOW_VLA: {
-                avgSpeed: 155.0,
-                avgVLA: 11.0,
-                avgSpin: 2786,
-                avgTotal: 265.6,
-                speedCoeff: 1.5,
-                vlaCoeff: 5,      // High VLA effect for low trajectory drivers
-                spinCoeff: -0.01
-            },
-            DRIVER: {
-                avgSpeed: 153.9,
-                avgVLA: 41.8,
-                avgSpin: 2568,
-                avgTotal: 271.1,
-                speedCoeff: 1.5,
-                vlaCoeff: 0,
-                spinCoeff: -0.01
-            }
-        };
-
-        /**
-         * Determine which region a shot belongs to
-         * @param {number} speedMPH - Ball speed in mph
-         * @param {number} vlaDegs - Vertical launch angle in degrees
-         * @returns {string} Region name (WEDGE, IRON, POWER, DRIVER_LOW_VLA, or DRIVER)
-         */
-        function getEmpiricalRegion(speedMPH, vlaDegs) {
-            if (speedMPH < 65) return 'WEDGE';
-            if (speedMPH < 100) return 'IRON';
-            if (speedMPH < 140) return 'POWER';
-            if (speedMPH >= 140 && vlaDegs < 13) return 'DRIVER_LOW_VLA';
-            return 'DRIVER';
-        }
-
-        /**
-         * Predict total carry + roll distance using empirical model
-         * @param {number} speedMPH - Ball speed in mph
-         * @param {number} vlaDegs - Vertical launch angle in degrees
-         * @param {number} spinRPM - Backspin in revolutions per minute
-         * @returns {number} Predicted total distance in yards
-         */
-        function predictEmpiricalDistance(speedMPH, vlaDegs, spinRPM) {
-            const region = getEmpiricalRegion(speedMPH, vlaDegs);
-            const r = EMPIRICAL_REGIONS[region];
-
-            // Calculate deltas from region averages
-            const speedDelta = speedMPH - r.avgSpeed;
-            const vlaDelta = vlaDegs - r.avgVLA;
-            const spinDelta = spinRPM - r.avgSpin;
-
-            // Linear regression: distance = baseline + weighted deltas
-            const distance = r.avgTotal
-                + r.speedCoeff * speedDelta
-                + r.vlaCoeff * vlaDelta
-                + r.spinCoeff * spinDelta;
-
-            return distance;
-        }
-
-        /**
-         * Get detailed prediction with metadata
-         * @param {number} speedMPH - Ball speed in mph
-         * @param {number} vlaDegs - Vertical launch angle in degrees
-         * @param {number} spinRPM - Backspin in revolutions per minute
-         * @returns {object} Prediction with distance, region, and coefficients used
-         */
-        function predictEmpirical(speedMPH, vlaDegs, spinRPM) {
-            const region = getEmpiricalRegion(speedMPH);
-            const distance = predictEmpiricalDistance(speedMPH, vlaDegs, spinRPM);
-
-            return {
-                distance: distance,
-                region: region,
-                coefficients: EMPIRICAL_REGIONS[region]
-            };
-        }
-
-        // Variable to store empirical prediction for trajectory scaling
-        let empiricalPredictedDistance = null;
-
-        // ============================================================================
-        // END EMPIRICAL MODEL
-        // ============================================================================
-
         // Drag constant formula from Excel: 0.07182*rho*(5.125/mass)*(circ/9.125)^2
         function getDragConstant(airDensitySlugs) {
             return 0.07182 * airDensitySlugs * (5.125 / BALL_MASS_OZ) * Math.pow(BALL_CIRC / 9.125, 2);
@@ -555,47 +339,25 @@
         const DRAG_CONST = getDragConstant(AIR_DENSITY_SLUGS_DEFAULT);
 
         // Stimpmeter putting physics (for putts with VLA <= 2 degrees)
-        // Synced with putting-green.html physics
         let currentStimp = 10; // Default green speed (10 feet)
         let puttingFriction = 0.15; // Will be calculated from Stimp
         const GRAVITY_MS2 = 9.81; // m/s² for putting physics
 
         // Calculate putting friction from Stimpmeter
-        // SYNCED WITH PUTTING-GREEN.HTML (lines 1072-1095)
         function updatePuttingFriction() {
-            // Stimpmeter model: ρ_g interpolated between slow (7 ft) and fast (14 ft)
-            // Based on Stanford physics paper (Kolkowitz 2007)
-            const rhoGSlow = 0.196;
+            // Stimpmeter model: ρ_g interpolated between slow (6.5 ft) and fast (13 ft)
+            const rhoGSlow = 0.131;
             const rhoGFast = 0.065;
-            const stimpRange = 14 - 7;
-            const t = (currentStimp - 7) / stimpRange; // 0 = slow, 1 = fast
+            const t = (currentStimp - 6.5) / (13 - 6.5);
             const rhoG = rhoGSlow - t * (rhoGSlow - rhoGFast);
 
-            // Friction coefficient: (5/7) × ρ_g
+            // Friction coefficient for rolling ball physics
             puttingFriction = rhoG * (5/7);
 
             console.log(`Stimp ${currentStimp} → ρ_g: ${rhoG.toFixed(4)}, Friction: ${puttingFriction.toFixed(4)}`);
         }
 
-        // Load Stimp from localStorage (set from player setup screen)
-        const savedStimp = localStorage.getItem('golfGreenStimp');
-        if (savedStimp) {
-            currentStimp = parseFloat(savedStimp);
-            updatePuttingFriction();
-            console.log(`✅ Loaded Stimp from player setup: ${currentStimp} ft`);
-        } else {
-            updatePuttingFriction();
-        }
-
-        // Listen for Stimp changes from Electron menu (fallback/override)
-        if (window.electronAPI) {
-            // Listen for Stimp changes
-            window.electronAPI.onStimpChanged((stimp) => {
-                currentStimp = stimp;
-                updatePuttingFriction();
-                console.log(`⚙️ Stimp updated from menu: ${stimp} ft`);
-            });
-        }
+        updatePuttingFriction();
 
         // Lookup table for lift and drag coefficients based on speed and spin rate
         // From golf-flight-sim-3d project (empirical data)
@@ -675,9 +437,6 @@
         let carryDistance = 0;
         let landingPos = new THREE.Vector3();
         let hasLanded = false;
-        let initialShotSpeedMPH = 0; // Track initial shot speed for five-regime physics
-        let initialVLADegs = 0; // Track initial VLA for five-regime physics
-        let physicsRegime = 'WEDGE'; // Physics regime: WEDGE, LOW_TRAJECTORY, MID_IRON, HIGH_IRON, or POWER_SHOT (FIVE-REGIME PHYSICS v4.5.0)
         let lastTime = performance.now();
         let debugMode = false; // Debug camera mode
 
@@ -795,27 +554,11 @@
             minimapCamera.lookAt(0, 0, 0);
             minimapCamera.layers.enableAll(); // Ensure camera can see all layers
 
-            // Lighting - Load from graphics settings
-            let ambientLightIntensity = 1.2;
-            let sunLightIntensity = 1.5;
-
-            // Load graphics settings from localStorage
-            try {
-                const savedSettings = localStorage.getItem('graphics_settings');
-                if (savedSettings) {
-                    const settings = JSON.parse(savedSettings);
-                    ambientLightIntensity = settings.ambientLight || 1.2;
-                    sunLightIntensity = settings.sunLight || 1.5;
-                    console.log('Applied graphics settings:', settings);
-                }
-            } catch (e) {
-                console.error('Error loading graphics settings:', e);
-            }
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, ambientLightIntensity);
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight(0xffffff, sunLightIntensity);
+            const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
             sunLight.position.set(50, 100, 50);
             sunLight.castShadow = true;
             sunLight.shadow.camera.left = -100;
@@ -877,7 +620,8 @@
                     e.preventDefault();
                 }
 
-                // D key - Demo shot - ENABLED FOR TESTING
+                // D key - Demo shot - DISABLED FOR PRODUCTION
+                /*
                 if (e.key === 'd' || e.key === 'D') {
                     // Use demo shot controls
                     const speed = parseFloat(document.getElementById('demoSpeed').value);
@@ -896,6 +640,7 @@
                         }
                     });
                 }
+                */
 
                 // T key - Run automated tests - DISABLED FOR PRODUCTION
                 /*
@@ -2092,40 +1837,14 @@
             // Reset landing speed and spin for new shot
             window.ballLandingSpeedMPH = null;
             window.ballLandingSpinRPM = null;
-            ballStoppedTime = null; // Reset gimme timer for new shot
 
             // Handle both Electron IPC format (ball_speed) and demo shot format (speed)
             const data = event.detail;
             let speed = data.speed || data.ball_speed || 0;
-
-            // Get shot parameters BEFORE using them
-            let vla = data.vla || data.vertical_launch_angle || 0;
-            let hla = data.hla || data.horizontal_launch_angle || 0;
-            let total_spin = data.total_spin || data.totalSpin || 0;
-            let spin_axis = data.spin_axis || data.spinAxis || 0;
-
-            // Classify shot with OpenGolfCoach
-            console.log('🔍 Attempting shot classification:', { speed, vla, hla, total_spin, spin_axis });
-            if (window.classifyShot) {
-                const classification = window.classifyShot({
-                    speed: speed,
-                    vla: vla,
-                    hla: hla,
-                    total_spin: total_spin,
-                    spin_axis: spin_axis
-                });
-
-                console.log('📊 Classification result:', classification);
-
-                if (classification) {
-                    // Display shot classification
-                    displayShotClassification(classification);
-                    // Store for session tracking
-                    currentShotData.classification = classification;
-                }
-            } else {
-                console.warn('⚠️ window.classifyShot not available yet');
-            }
+            let vla = data.vla || 0;
+            let hla = data.hla || 0;
+            let total_spin = data.total_spin || 0;
+            let spin_axis = data.spin_axis || 0;
 
             // Store original input values for display
             const inputHLA = hla;
@@ -2152,11 +1871,8 @@
                 hla = hla + directionToPin + aimAdjustment;
             } else {
                 // Auto-aim OFF: Shoot straight where camera is pointing
-                // Calculate direction from current camera orientation in real-time
-                const cameraDirection = new THREE.Vector3();
-                camera.getWorldDirection(cameraDirection);
-                const currentCameraAngle = Math.atan2(cameraDirection.x, -cameraDirection.z) * 180 / Math.PI;
-                hla = hla + currentCameraAngle + aimAdjustment;
+                // Use baseDirection (camera direction) + aimAdjustment
+                hla = hla + baseDirection + aimAdjustment;
             }
 
             // Convert spin axis to radians and calculate backspin/sidespin components
@@ -2181,38 +1897,6 @@
             }
             console.log(`⛳ Shot fired: ${speed.toFixed(1)} mph, VLA=${vla.toFixed(1)}°, HLA=${hla.toFixed(1)}° (${aimMode})`);
             console.log(`   Spin: ${total_spin.toFixed(0)} rpm @ ${spin_axis.toFixed(1)}° axis → Backspin: ${backspin.toFixed(0)} rpm, Sidespin: ${sidespin.toFixed(0)} rpm`);
-
-            // Empirical distance prediction (98% accurate, 2.2 yard error)
-            const empiricalResult = predictEmpirical(speed, vla, backspin);
-            empiricalPredictedDistance = empiricalResult.distance;
-            console.log(`   Empirical prediction: ${empiricalResult.distance.toFixed(1)} yards (Region: ${empiricalResult.region})`);
-
-            // Store initial shot parameters for five-regime physics (v4.5.0)
-            initialShotSpeedMPH = speed;
-            initialVLADegs = vla;
-
-            // Determine physics regime (FIVE REGIMES in v4.5.0)
-            // Priority 1: WEDGE regime (< 65 mph)
-            if (initialShotSpeedMPH < 65) {
-                physicsRegime = 'WEDGE';
-            }
-            // Priority 2: POWER_SHOT regime (>= 85 mph) - check speed BEFORE VLA
-            else if (initialShotSpeedMPH >= 85) {
-                physicsRegime = 'POWER_SHOT';
-            }
-            // Priority 3: LOW_TRAJECTORY (65-85 mph with VLA < 10°)
-            else if (initialVLADegs < 10) {
-                physicsRegime = 'LOW_TRAJECTORY';
-            }
-            // Priority 4: MID_IRON (65-85 mph with 10° <= VLA < 20°)
-            else if (initialVLADegs < 20) {
-                physicsRegime = 'MID_IRON';
-            }
-            // Priority 5: HIGH_IRON (65-85 mph with VLA >= 20°)
-            else {
-                physicsRegime = 'HIGH_IRON';
-            }
-            console.log(`   Physics Regime: ${physicsRegime} (${initialShotSpeedMPH.toFixed(1)} mph, ${initialVLADegs.toFixed(1)}° VLA) - FIVE-REGIME PHYSICS v4.5.0`);
 
             // Calculate velocity vector
             ballVelocity.set(
@@ -2240,21 +1924,6 @@
             }
             strokes++;
 
-            // Store shot data for CSV export later
-            const player = window.golfPar3Players[window.currentPlayerIndex];
-            currentShotData = {
-                timestamp: new Date().toISOString(),
-                player: player ? player.name : 'Unknown',
-                hole: HOLES[currentHoleIndex].number,
-                ballSpeed: speed,
-                launchAngle: vla,
-                sideAngle: inputHLA, // Original HLA before aim adjustments
-                totalSpin: total_spin,
-                spinAxis: spin_axis,
-                lie: currentLie.name,
-                startTime: Date.now()
-            };
-
             // Update shot details
             document.getElementById('shotSpeed').textContent = speed.toFixed(1) + ' mph';
             document.getElementById('shotVLA').textContent = vla.toFixed(1) + '°';
@@ -2273,82 +1942,6 @@
             updateUI();
         }
 
-        // FIVE-REGIME PHYSICS HELPER FUNCTIONS (v4.5.0)
-
-        // Get regime-specific friction multiplier
-        function getRegimeFrictionMultiplier(physicsRegime, spinRPM) {
-            switch (physicsRegime) {
-                case 'WEDGE':
-                    return 1.0;
-
-                case 'LOW_TRAJECTORY':
-                    return 0.70; // Lower friction for more roll (42.8% roll observed)
-
-                case 'MID_IRON':
-                    // Spin-dependent friction for mid irons
-                    if (spinRPM >= 2000) {
-                        return 1.4;
-                    } else {
-                        return 1.0;
-                    }
-
-                case 'HIGH_IRON':
-                    // Moderate friction with spin adjustment
-                    if (spinRPM >= 2000) {
-                        return 1.3;
-                    } else {
-                        return 1.1;
-                    }
-
-                case 'POWER_SHOT':
-                    return 1.1;
-
-                default:
-                    return 1.0;
-            }
-        }
-
-        // Get regime-specific bounce retention
-        function getRegimeBounceRetention(physicsRegime) {
-            switch (physicsRegime) {
-                case 'WEDGE':
-                    return 0.72;
-                case 'LOW_TRAJECTORY':
-                    return 0.78; // Moderate bounce for shallow trajectory
-                case 'MID_IRON':
-                    return 0.75;
-                case 'HIGH_IRON':
-                    return 0.70; // Sticky landings
-                case 'POWER_SHOT':
-                    return 0.75;
-                default:
-                    return 0.75;
-            }
-        }
-
-        // Get regime-specific magnus lift boost
-        function getMagnusLiftBoost(physicsRegime, vlaDegs) {
-            switch (physicsRegime) {
-                case 'WEDGE':
-                    return vlaDegs >= 20 ? 1.22 : 1.0;
-
-                case 'LOW_TRAJECTORY':
-                    return vlaDegs >= 20 ? 1.05 : 1.0; // Minimal boost
-
-                case 'MID_IRON':
-                    return vlaDegs >= 15 ? 1.15 : 1.0;
-
-                case 'HIGH_IRON':
-                    return vlaDegs >= 20 ? 1.05 : 1.0; // Minimal boost for high loft
-
-                case 'POWER_SHOT':
-                    return vlaDegs >= 15 ? 1.10 : 1.0;
-
-                default:
-                    return 1.0;
-            }
-        }
-
         function updatePuttingPhysics(deltaTime) {
             // Apply Stimpmeter-based friction
             const speed = ballVelocity.length();
@@ -2361,94 +1954,30 @@
                 ballVelocity.set(0, 0, 0);
                 ballInFlight = false;
 
-                // Apply empirical model distance correction (but NOT for putts - speeds < 20 mph)
-                // Empirical model only works for full swings, not slow putts
-                if (empiricalPredictedDistance !== null && empiricalPredictedDistance > 0 && initialShotSpeedMPH >= 20) {
-                    // Calculate current physics-simulated distance
-                    const physicsDistanceMeters = Math.sqrt(
-                        Math.pow(ballPosition.x - shotStartPos.x, 2) +
-                        Math.pow(ballPosition.z - shotStartPos.z, 2)
-                    );
-                    const physicsDistanceYards = physicsDistanceMeters * 1.09361;
+                // Check for gimmie if enabled
+                const distToHole = Math.sqrt(
+                    Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
+                    Math.pow(ballPosition.z - PIN_POSITION.z, 2)
+                );
+                const ft5InMeters = 5 * 0.3048; // 1.524m
+                const ft10InMeters = 10 * 0.3048; // 3.048m
+                console.log(`Ball stopped - Distance to hole: ${distToHole.toFixed(2)}m (${(distToHole * 3.28084).toFixed(1)}ft), Gimmie enabled: ${gimmieCirclesEnabled}`);
 
-                    // Calculate scaling factor (empirical / physics)
-                    const scaleFactor = empiricalPredictedDistance / physicsDistanceYards;
-
-                    // Scale the ball position from start position
-                    const deltaX = ballPosition.x - shotStartPos.x;
-                    const deltaZ = ballPosition.z - shotStartPos.z;
-
-                    ballPosition.x = shotStartPos.x + (deltaX * scaleFactor);
-                    ballPosition.z = shotStartPos.z + (deltaZ * scaleFactor);
-
-                    // Update ball visual position
-                    ball.position.copy(ballPosition);
-
-                    // Keep ball on ground at new position
-                    const groundY = getGroundHeightRaycast(ballPosition.x, ballPosition.z);
-                    ballPosition.y = groundY + BALL_RADIUS;
-                    ball.position.y = ballPosition.y;
-
-                    console.log(`   Distance correction (putt): Physics=${physicsDistanceYards.toFixed(1)} yds → Empirical=${empiricalPredictedDistance.toFixed(1)} yds (scale=${scaleFactor.toFixed(3)})`);
-
-                    // Reset empirical prediction for next shot
-                    empiricalPredictedDistance = null;
-                }
-
-                // Calculate putt distance for stats
-                const totalDist = Math.sqrt(
-                    Math.pow(ballPosition.x - shotStartPos.x, 2) +
-                    Math.pow(ballPosition.z - shotStartPos.z, 2)
-                ) * 1.09361;
-
-                // Add shot to session tracking for CSV export (putts)
-                if (currentShotData && currentShotData.startTime) {
-                    const flightTime = (Date.now() - currentShotData.startTime) / 1000;
-
-                    sessionShots.push({
-                        ...currentShotData,
-                        carryDistance: 0, // Putts have no carry
-                        totalDistance: totalDist,
-                        rollout: totalDist,
-                        apexHeight: 0,
-                        flightTime: flightTime
-                    });
-                    console.log(`📊 Putt added to CSV export (${sessionShots.length} total shots)`);
-                }
-
-                // Mark ball as stopped and schedule gimme check
-                if (!ballStoppedTime) {
-                    ballStoppedTime = performance.now();
-                    console.log('Ball stopped - starting gimme check timer');
-                }
-
-                // Check for gimmie if enabled (ONLY after ball has been stopped for delay period)
-                const timeStopped = performance.now() - ballStoppedTime;
-                if (gimmieCirclesEnabled && timeStopped >= GIMME_DELAY_MS) {
-                    const distToHole = Math.sqrt(
-                        Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
-                        Math.pow(ballPosition.z - PIN_POSITION.z, 2)
-                    );
-                    const ft5InMeters = 5 * 0.3048; // 1.524m
-                    const ft10InMeters = 10 * 0.3048; // 3.048m
-                    console.log(`Ball at rest (${timeStopped.toFixed(0)}ms) - Distance: ${distToHole.toFixed(2)}m (${(distToHole * 3.28084).toFixed(1)}ft), Gimmie enabled: ${gimmieCirclesEnabled}`);
-
+                if (gimmieCirclesEnabled) {
                     if (distToHole <= ft5InMeters) {
                         // Within 5ft - automatic 1 putt
-                        console.log('GIMMIE: Ball came to rest within 5ft - automatic 1 putt added');
+                        console.log('GIMMIE: Within 5ft - automatic 1 putt added');
                         strokes += 1;
                         const player = window.golfPar3Players[window.currentPlayerIndex];
                         player.strokes += 1;
-                        ballStoppedTime = null; // Reset for next shot
                         scoreHole(); // Score the hole
                         return;
                     } else if (distToHole <= ft10InMeters) {
                         // Within 10ft - automatic 2 putts
-                        console.log('GIMMIE: Ball came to rest within 10ft - automatic 2 putts added');
+                        console.log('GIMMIE: Within 10ft - automatic 2 putts added');
                         strokes += 2;
                         const player = window.golfPar3Players[window.currentPlayerIndex];
                         player.strokes += 2;
-                        ballStoppedTime = null; // Reset for next shot
                         scoreHole(); // Score the hole
                         return;
                     }
@@ -2569,175 +2098,47 @@
             // Drag = -const * Cd * speed * velocity_component
             let dragAccelX = 0, dragAccelY = 0, dragAccelZ = 0;
             if (speed > 0.1) {
-                // Calculate Cd based on speed using FIVE-REGIME PHYSICS (v4.5.0)
+                // Calculate Cd based on speed (Reynolds number effect)
+                // Multi-point interpolation from FlightScope calibration data
                 const speedMPH = speed / 1.467; // Convert ft/s to mph
                 let Cd;
 
-                // Get current VLA for low-trajectory check
-                const currentVLA = Math.asin(ballVelocity.y / Math.sqrt(
-                    ballVelocity.x * ballVelocity.x +
-                    ballVelocity.y * ballVelocity.y +
-                    ballVelocity.z * ballVelocity.z
-                )) * 180 / Math.PI;
-
-                // Special handling for LOW_TRAJECTORY shots (VLA < 10°) - regardless of regime
-                if (currentVLA < 10) {
-                    if (speedMPH <= 60) {
-                        Cd = 0.60;
-                    } else if (speedMPH <= 85) {
-                        const t = (speedMPH - 60) / (85 - 60);
-                        Cd = 0.60 - t * (0.60 - 0.55);
-                    } else {
-                        Cd = 0.55;
-                    }
-                }
-                // WEDGE REGIME (< 65 mph initial) - v4.4.1 calibration (already 100% accurate)
-                else if (physicsRegime === 'WEDGE') {
-                    if (speedMPH <= 55) {
-                        Cd = 0.85; // Higher drag for chips/wedges
-                    } else if (speedMPH <= 75) {
-                        const t = (speedMPH - 55) / (75 - 55);
-                        Cd = 0.85 - t * (0.85 - 0.31);
-                    } else if (speedMPH <= 100) {
-                        const t = (speedMPH - 75) / (100 - 75);
-                        Cd = 0.31 - t * (0.31 - 0.22);
-                    } else {
-                        Cd = 0.22;
-                    }
-                }
-                // POWER_SHOT REGIME (85+ mph initial) - Balanced drag for fast shots
-                else if (physicsRegime === 'POWER_SHOT') {
-                    if (speedMPH <= 55) {
-                        Cd = 0.78; // Moderate drag at low speeds
-                    } else if (speedMPH <= 75) {
-                        const t = (speedMPH - 55) / (75 - 55);
-                        Cd = 0.78 - t * (0.78 - 0.30);
-                    } else if (speedMPH <= 100) {
-                        const t = (speedMPH - 75) / (100 - 75);
-                        Cd = 0.30 - t * (0.30 - 0.22);
-                    } else if (speedMPH <= 126) {
-                        const t = (speedMPH - 100) / (126 - 100);
-                        Cd = 0.22 - t * (0.22 - 0.18);
-                    } else {
-                        Cd = 0.18;
-                    }
-                }
-                // MID_IRON REGIME - Standard iron drag curve with speed boost for 80+ mph
-                // HIGH_IRON REGIME - Higher drag curve for high loft
-                else {
-                    const isHighIron = physicsRegime === 'HIGH_IRON';
-                    const isMidIron = physicsRegime === 'MID_IRON';
-
-                    let baseDragBoost = 1.0;
-                    if (isHighIron) {
-                        baseDragBoost = 1.08;
-                    } else if (isMidIron && initialShotSpeedMPH >= 80) {
-                        baseDragBoost = 1.06; // Extra drag for fast mid-iron shots
-                    }
-
-                    if (speedMPH <= 55) {
-                        Cd = 0.75 * baseDragBoost;
-                    } else if (speedMPH <= 75) {
-                        const t = (speedMPH - 55) / (75 - 55);
-                        Cd = (0.75 - t * (0.75 - 0.25)) * baseDragBoost;
-                    } else if (speedMPH <= 100) {
-                        const t = (speedMPH - 75) / (100 - 75);
-                        Cd = (0.25 - t * (0.25 - 0.18)) * baseDragBoost;
-                    } else if (speedMPH <= 126) {
-                        const t = (speedMPH - 100) / (126 - 100);
-                        Cd = (0.18 - t * (0.18 - 0.14)) * baseDragBoost;
-                    } else if (speedMPH <= 150) {
-                        const t = (speedMPH - 126) / (150 - 126);
-                        Cd = (0.14 - t * (0.14 - 0.10)) * baseDragBoost;
-                    } else {
-                        Cd = 0.10 * baseDragBoost;
-                    }
+                // FlightScope calibration points - Tuned Cd values (8/10 tests passing)
+                if (speedMPH <= 55) {
+                    Cd = 0.70; // Less drag for low speeds
+                } else if (speedMPH <= 75) {
+                    const t = (speedMPH - 55) / (75 - 55);
+                    Cd = 0.70 - t * (0.70 - 0.31); // Transition to 75mph
+                } else if (speedMPH <= 100) {
+                    const t = (speedMPH - 75) / (100 - 75);
+                    Cd = 0.31 - t * (0.31 - 0.22); // Transition to 100mph
+                } else if (speedMPH <= 126) {
+                    const t = (speedMPH - 100) / (126 - 100);
+                    Cd = 0.22 - t * (0.22 - 0.17); // Transition to 126mph
+                } else if (speedMPH <= 150) {
+                    const t = (speedMPH - 126) / (150 - 126);
+                    Cd = 0.17 - t * (0.17 - 0.10); // Less drag for 150mph
+                } else {
+                    Cd = 0.10;
                 }
 
-                // Spin-dependent drag adjustment (regime-specific)
+                // Spin-dependent drag adjustment
+                // Higher spin = less effective drag (more lift keeps ball in air longer with less speed loss)
                 const currentSpinRPM = ballSpin.totalSpin;
                 let spinDragMultiplier = 1.0;
-
-                if (physicsRegime === 'WEDGE') {
-                    // Wedge regime spin adjustment (v4.4.1)
-                    if (currentSpinRPM >= 5000) {
-                        spinDragMultiplier = 0.85;
-                    } else if (currentSpinRPM >= 4000) {
-                        const t = (currentSpinRPM - 4000) / (5000 - 4000);
-                        spinDragMultiplier = 1.0 - t * 0.15;
-                    } else if (currentSpinRPM >= 3000) {
-                        const t = (currentSpinRPM - 3000) / (4000 - 3000);
-                        spinDragMultiplier = 1.05 - t * 0.05;
-                    } else {
-                        spinDragMultiplier = 1.05;
-                    }
-                } else if (physicsRegime === 'POWER_SHOT') {
-                    // Power shot spin adjustment - extra drag for low-spin high-speed
-                    if (currentSpinRPM >= 5000) {
-                        spinDragMultiplier = 0.90;
-                    } else if (currentSpinRPM >= 4000) {
-                        const t = (currentSpinRPM - 4000) / (5000 - 4000);
-                        spinDragMultiplier = 1.05 - t * 0.15;
-                    } else if (currentSpinRPM >= 3000) {
-                        const t = (currentSpinRPM - 3000) / (4000 - 3000);
-                        spinDragMultiplier = 1.05 - t * 0.00;
-                    } else if (currentSpinRPM >= 2000) {
-                        const t = (currentSpinRPM - 2000) / (3000 - 2000);
-                        spinDragMultiplier = 1.00 + t * 0.05;
-                    } else {
-                        spinDragMultiplier = 1.00; // Neutral for very low spin
-                    }
+                if (currentSpinRPM >= 5000) {
+                    spinDragMultiplier = 0.85; // 15% less drag at high spin
+                } else if (currentSpinRPM >= 4000) {
+                    const t = (currentSpinRPM - 4000) / (5000 - 4000);
+                    spinDragMultiplier = 1.0 - t * 0.15;
+                } else if (currentSpinRPM >= 3000) {
+                    const t = (currentSpinRPM - 3000) / (4000 - 3000);
+                    spinDragMultiplier = 1.05 - t * 0.05;
                 } else {
-                    // MID_IRON, HIGH_IRON, LOW_TRAJECTORY spin adjustment
-                    if (currentSpinRPM >= 5000) {
-                        spinDragMultiplier = 0.88;
-                    } else if (currentSpinRPM >= 4000) {
-                        const t = (currentSpinRPM - 4000) / (5000 - 4000);
-                        spinDragMultiplier = 1.01 - t * 0.13;
-                    } else if (currentSpinRPM >= 3000) {
-                        const t = (currentSpinRPM - 3000) / (4000 - 3000);
-                        spinDragMultiplier = 1.01 - t * 0.00;
-                    } else if (currentSpinRPM >= 2000) {
-                        const t = (currentSpinRPM - 2000) / (3000 - 2000);
-                        spinDragMultiplier = 0.98 + t * 0.03;
-                    } else {
-                        spinDragMultiplier = 0.95;
-                    }
+                    spinDragMultiplier = 1.05; // 5% more drag at low spin
                 }
 
-                // High-loft shot drag reduction (regime-specific)
-                const vlaDegs = Math.asin(ballVelocity.y / Math.sqrt(
-                    ballVelocity.x * ballVelocity.x +
-                    ballVelocity.y * ballVelocity.y +
-                    ballVelocity.z * ballVelocity.z
-                )) * 180 / Math.PI;
-
-                let highLoftDragMultiplier = 1.0;
-                if (vlaDegs >= 20) {
-                    if (physicsRegime === 'WEDGE') {
-                        // Wedge regime (v4.4.1)
-                        if (speedMPH >= 50) {
-                            highLoftDragMultiplier = 0.80;
-                        } else if (speedMPH >= 30) {
-                            const t = (speedMPH - 30) / (50 - 30);
-                            highLoftDragMultiplier = 0.90 + t * (0.80 - 0.90);
-                        } else {
-                            highLoftDragMultiplier = 0.95;
-                        }
-                    } else {
-                        // All other regimes (MID_IRON, HIGH_IRON, LOW_TRAJECTORY, POWER_SHOT)
-                        if (speedMPH >= 50) {
-                            highLoftDragMultiplier = 0.82;
-                        } else if (speedMPH >= 30) {
-                            const t = (speedMPH - 30) / (50 - 30);
-                            highLoftDragMultiplier = 0.90 + t * (0.82 - 0.90);
-                        } else {
-                            highLoftDragMultiplier = 0.95;
-                        }
-                    }
-                }
-
-                const dragFactor = -DRAG_CONST * Cd * speed * spinDragMultiplier * highLoftDragMultiplier;
+                const dragFactor = -DRAG_CONST * Cd * speed * spinDragMultiplier;
                 dragAccelX = dragFactor * vxFtS;
                 dragAccelY = dragFactor * vyFtS;
                 dragAccelZ = dragFactor * vzFtS;
@@ -2755,29 +2156,7 @@
                 // Lift coefficient: ClAmp * S^0.4 (from Excel column T)
                 const S = totalSpinRadS / speed; // Spin parameter (omega/v)
                 const ClAmp = 0.217; // From Excel G5
-                let liftCoeff = ClAmp * Math.pow(S, 0.4);
-
-                // Low-speed Magnus penalty (regime-specific)
-                const speedMPH_magnus = speed / 1.467;
-
-                if (speedMPH_magnus < 60) {
-                    const speedFactor = speedMPH_magnus / 60;
-                    if (physicsRegime === 'WEDGE') {
-                        liftCoeff *= (0.3 + 0.7 * speedFactor); // Wedge regime
-                    } else {
-                        liftCoeff *= (0.4 + 0.6 * speedFactor); // Iron regimes
-                    }
-                }
-
-                // Regime-specific Magnus boost (FIVE-REGIME PHYSICS v4.5.0)
-                const vlaDegs_magnus = Math.asin(ballVelocity.y / Math.sqrt(
-                    ballVelocity.x * ballVelocity.x +
-                    ballVelocity.y * ballVelocity.y +
-                    ballVelocity.z * ballVelocity.z
-                )) * 180 / Math.PI;
-
-                const magnusBoost = getMagnusLiftBoost(physicsRegime, vlaDegs_magnus);
-                liftCoeff *= magnusBoost;
+                const liftCoeff = ClAmp * Math.pow(S, 0.4);
 
                 // Magnus formula: const * (liftCoeff/omega) * speed * (w × v)
                 const magnusFactor = MAGNUS_CONST * (liftCoeff / totalSpinRadS) * speed;
@@ -2822,28 +2201,6 @@
             // Track max height
             if (ballPosition.y > maxHeight) {
                 maxHeight = ballPosition.y;
-            }
-
-            // Check if ball went underwater on island-hopping holes (catch during flight/roll)
-            const currentHole = HOLES[currentHoleIndex];
-            if (currentHole.type === 'island-hopping' && ballPosition.y < -0.5) {
-                // Ball went underwater - trigger OB
-                ballInFlight = false;
-                ballVelocity.set(0, 0, 0);
-
-                const player = window.golfPar3Players[window.currentPlayerIndex];
-                player.strokes += 1;
-                strokes += 1;
-
-                alert('OUT OF BOUNDS - Ball went in the water! Stroke and distance penalty. Please re-hit from previous position.');
-
-                // Reset to previous shot position
-                ballPosition.copy(shotStartPos);
-                ball.position.copy(ballPosition);
-
-                savePlayerState();
-                updatePlayerDisplay();
-                return;
             }
 
             // Flagstick collision detection (in-flight)
@@ -2941,44 +2298,24 @@
                     if (!window.ballLandingSpeedMPH) {
                         window.ballLandingSpeedMPH = landingSpeedMPH;
                         window.ballLandingSpinRPM = currentSpinRPM;
-
-                        // Calculate and store descent angle (for high-loft shot physics)
-                        const verticalSpeed = Math.abs(ballVelocity.y);
-                        const descentAngleDeg = Math.atan2(verticalSpeed, horizontalSpeed) * 180 / Math.PI;
-                        window.ballDescentAngle = descentAngleDeg;
                     }
 
-                    // Base bounce factor - FIVE-REGIME PHYSICS (v4.5.0)
-                    // Get regime-specific base bounce
-                    const regimeBounce = getRegimeBounceRetention(physicsRegime);
-
-                    // Speed-dependent bounce adjustment
+                    // Base bounce factor from landing speed - FlightScope tuned (8/10 tests passing)
                     let baseBounce;
                     if (landingSpeedMPH <= 30) {
-                        baseBounce = regimeBounce + 0.08;
+                        baseBounce = 0.80;
                     } else if (landingSpeedMPH <= 40) {
                         const t = (landingSpeedMPH - 30) / (40 - 30);
-                        baseBounce = (regimeBounce + 0.08) - t * 0.15;
+                        baseBounce = 0.80 - t * (0.80 - 0.65);
                     } else if (landingSpeedMPH <= 60) {
                         const t = (landingSpeedMPH - 40) / (60 - 40);
-                        baseBounce = (regimeBounce - 0.07) - t * 0.20;
+                        baseBounce = 0.65 - t * (0.65 - 0.45);
                     } else if (landingSpeedMPH <= 80) {
                         const t = (landingSpeedMPH - 60) / (80 - 60);
-                        baseBounce = (regimeBounce - 0.27) - t * 0.10;
+                        baseBounce = 0.45 - t * (0.45 - 0.35);
                     } else {
-                        baseBounce = regimeBounce - 0.37;
+                        baseBounce = 0.35;
                     }
-
-                    // High-loft shot adjustment: Steep descent angles convert more energy into forward roll
-                    const descentAngle = window.ballDescentAngle || 0;
-                    let descentBonus = 0;
-                    if (descentAngle >= 40) {
-                        descentBonus = 0.35; // Very steep (wedge shots) - significant forward energy
-                    } else if (descentAngle >= 30) {
-                        const t = (descentAngle - 30) / (40 - 30);
-                        descentBonus = 0.0 + t * 0.35;
-                    }
-                    baseBounce = Math.min(0.95, baseBounce + descentBonus);
 
                     // Spin adjustment: HIGH spin REDUCES bounce (ball grips and checks up)
                     // LOW spin INCREASES bounce (ball skips and rolls more)
@@ -3006,48 +2343,14 @@
 
                     const bounceFactor = Math.max(0.05, Math.min(0.95, baseBounce * (1 + spinAdjustment)));
 
-                    // Check for extreme backspin that can reverse ball direction (tour-level wedge shots)
-                    // This happens when spin rate overcomes forward momentum
-                    if (currentSpinRPM >= 8000 && landingSpeedMPH < 50 && currentLie.name === 'green') {
-                        // Calculate backspin component (only backspin can reverse, not sidespin)
-                        const spinAxisRad = ballSpin.spinAxis * Math.PI / 180;
-                        const backspinRPM = currentSpinRPM * Math.cos(spinAxisRad);
-
-                        if (backspinRPM >= 8000) {
-                            // Ball grips the green and spins backwards
-                            // Reverse velocity proportional to excess spin above threshold
-                            const excessSpin = backspinRPM - 7000;
-                            const reverseSpeed = excessSpin * 0.00025; // m/s per RPM (calibrated)
-
-                            // Get current direction
-                            const direction = new THREE.Vector2(ballVelocity.x, ballVelocity.z).normalize();
-
-                            // Reverse direction
-                            ballVelocity.x = -direction.x * reverseSpeed;
-                            ballVelocity.z = -direction.z * reverseSpeed;
-                            ballVelocity.y = 0; // No bounce, ball grips turf
-
-                            console.log(`🔄 BACKSPIN REVERSAL! ${backspinRPM.toFixed(0)} RPM → reversing at ${reverseSpeed.toFixed(2)} m/s`);
-                        } else {
-                            // Normal high-spin bounce
-                            ballVelocity.x *= bounceFactor;
-                            ballVelocity.z *= bounceFactor;
-                        }
-                    } else {
-                        // Normal bounce
-                        ballVelocity.x *= bounceFactor;
-                        ballVelocity.z *= bounceFactor;
-                    }
+                    ballVelocity.x *= bounceFactor;
+                    ballVelocity.z *= bounceFactor;
                 } else {
                     ballVelocity.y = 0;
 
                     // Rolling friction - spin-dependent (reduced for more roll distance)
                     const horizontalSpeed = Math.sqrt(ballVelocity.x * ballVelocity.x + ballVelocity.z * ballVelocity.z);
                     if (horizontalSpeed > 0.05) {
-                        // Ball is moving - reset stopped timer
-                        if (ballStoppedTime !== null) {
-                            ballStoppedTime = null;
-                        }
                         // High spin = more friction when rolling
                         // Use LANDING spin, not current spin (which decays during rollout)
                         // Note: This is BACKSPIN component only (sidespin doesn't affect rollout friction)
@@ -3077,12 +2380,9 @@
                             spinFrictionMultiplier = 1.0 + t * (2.0 - 1.0);
                         } else if (spinRPM >= 1500) {
                             const t = (spinRPM - 1500) / (2000 - 1500);
-                            spinFrictionMultiplier = 0.95 + t * (1.0 - 0.95);
-                        } else if (spinRPM >= 1000) {
-                            const t = (spinRPM - 1000) / (1500 - 1000);
-                            spinFrictionMultiplier = 1.05 + t * (0.95 - 1.05);
+                            spinFrictionMultiplier = 0.7 + t * (1.0 - 0.7);
                         } else {
-                            spinFrictionMultiplier = 1.05; // Very low spin = slightly higher friction
+                            spinFrictionMultiplier = 0.7; // Low spin = less friction for more roll
                         }
 
                         // Landing speed factor: soft landings roll more even with spin
@@ -3092,16 +2392,15 @@
                         let landingSpeedFactor;
 
                         // Base landing speed factor (calibrated for ~2500 RPM)
-                        // Low-speed shots need MORE friction, not less (they don't compress the turf as much)
                         let baseLandingSpeedFactor;
                         if (landingSpeedMPH <= 35) {
-                            baseLandingSpeedFactor = 0.42; // Soft landing - balanced friction for low-speed chips
+                            baseLandingSpeedFactor = 0.001; // Very soft landing base
                         } else if (landingSpeedMPH <= 50) {
                             const t = (landingSpeedMPH - 35) / (50 - 35);
-                            baseLandingSpeedFactor = 0.42 + t * (0.28 - 0.42);
+                            baseLandingSpeedFactor = 0.001 + t * (0.04 - 0.001);
                         } else if (landingSpeedMPH <= 70) {
                             const t = (landingSpeedMPH - 50) / (70 - 50);
-                            baseLandingSpeedFactor = 0.25 + t * (0.28 - 0.25);
+                            baseLandingSpeedFactor = 0.04 + t * (0.28 - 0.04);
                         } else if (landingSpeedMPH <= 90) {
                             const t = (landingSpeedMPH - 70) / (90 - 70);
                             baseLandingSpeedFactor = 0.28 + t * (1.0 - 0.28);
@@ -3129,22 +2428,7 @@
 
                         landingSpeedFactor = baseLandingSpeedFactor * spinAdjustMultiplier;
 
-                        // High-loft shot adjustment: Steep descent angles reduce friction (ball has more forward energy)
-                        // Calibrated against shots.csv data (4/4 tests passing)
-                        const descentAngle = window.ballDescentAngle || 0;
-                        let descentFrictionReduction = 1.0;
-                        if (descentAngle >= 40) {
-                            descentFrictionReduction = 0.50; // Very steep - less friction (was 0.25, caused too much roll)
-                        } else if (descentAngle >= 30) {
-                            const t = (descentAngle - 30) / (40 - 30);
-                            descentFrictionReduction = 1.0 - t * (1.0 - 0.50);
-                        }
-
-                        // Regime-specific friction multiplier (FIVE-REGIME PHYSICS v4.5.0)
-                        const currentRollSpinRPM = ballSpin.totalSpin;
-                        const regimeFrictionMultiplier = getRegimeFrictionMultiplier(physicsRegime, currentRollSpinRPM);
-
-                        const frictionDecel = currentLie.friction * spinFrictionMultiplier * landingSpeedFactor * descentFrictionReduction * regimeFrictionMultiplier;
+                        const frictionDecel = currentLie.friction * spinFrictionMultiplier * landingSpeedFactor;
                         const newSpeed = Math.max(0, horizontalSpeed - frictionDecel * deltaTime);
                         const scale = newSpeed / horizontalSpeed;
 
@@ -3192,50 +2476,34 @@
                     } else {
                         ballVelocity.x = 0;
                         ballVelocity.z = 0;
+                        ballInFlight = false;
 
-                        // Don't mark as stopped yet if we haven't run the end-of-flight logic
-                        if (ballInFlight) {
-                            ballInFlight = false;
-                            // Ball will check for gimme after delay
+                        // Always rotate camera toward pin after each shot (for convenience)
+                        // Calculate new base direction toward pin from current position
+                        const dx = PIN_POSITION.x - ballPosition.x;
+                        const dz = PIN_POSITION.z - ballPosition.z;
+                        const directionToPin = Math.atan2(dx, -dz) * 180 / Math.PI;
 
-                        // Apply empirical model distance correction (but NOT for putts - speeds < 20 mph)
-                        // Empirical model only works for full swings, not slow putts
-                        // ALSO skip if ball is on green - green has realistic physics, don't override it
-                        console.log(`   Empirical check: predicted=${empiricalPredictedDistance}, speed=${initialShotSpeedMPH}, lie=${currentLie.name}`);
-                        if (empiricalPredictedDistance !== null && empiricalPredictedDistance > 0 && initialShotSpeedMPH >= 20 && currentLie.name.toLowerCase() !== 'green') {
-                            console.log('   ✅ Applying empirical correction (not on green)');
-                            // Calculate current physics-simulated distance
-                            const physicsDistanceMeters = Math.sqrt(
-                                Math.pow(ballPosition.x - shotStartPos.x, 2) +
-                                Math.pow(ballPosition.z - shotStartPos.z, 2)
-                            );
-                            const physicsDistanceYards = physicsDistanceMeters * 1.09361;
+                        // Check if auto-aim is enabled
+                        const currentPlayer = window.golfPar3Players[window.currentPlayerIndex];
+                        const autoAimEnabled = currentPlayer && currentPlayer.autoAim !== false;
 
-                            // Calculate scaling factor (empirical / physics)
-                            const scaleFactor = empiricalPredictedDistance / physicsDistanceYards;
-
-                            // Scale the ball position from start position
-                            const deltaX = ballPosition.x - shotStartPos.x;
-                            const deltaZ = ballPosition.z - shotStartPos.z;
-
-                            ballPosition.x = shotStartPos.x + (deltaX * scaleFactor);
-                            ballPosition.z = shotStartPos.z + (deltaZ * scaleFactor);
-
-                            // Update ball visual position
-                            ball.position.copy(ballPosition);
-
-                            // Keep ball on ground at new position
-                            const groundY = getGroundHeightRaycast(ballPosition.x, ballPosition.z);
-                            ballPosition.y = groundY + BALL_RADIUS;
-                            ball.position.y = ballPosition.y;
-
-                            console.log(`   Distance correction: Physics=${physicsDistanceYards.toFixed(1)} yds → Empirical=${empiricalPredictedDistance.toFixed(1)} yds (scale=${scaleFactor.toFixed(3)})`);
-
-                            // Reset empirical prediction for next shot
-                            empiricalPredictedDistance = null;
+                        if (autoAimEnabled) {
+                            // Auto-aim ON: camera points to pin AND shot goes to pin
+                            baseDirection = directionToPin;
+                            console.log(`Ball stopped - AUTO-AIM ON: camera & shot → hole at ${baseDirection.toFixed(1)}°`);
+                        } else {
+                            // Auto-aim OFF: camera points to pin, but shot aims straight (0° adjustment)
+                            // Store the direction to pin, but player can adjust with arrow keys
+                            baseDirection = directionToPin;
+                            console.log(`Ball stopped - AUTO-AIM OFF: camera → hole at ${baseDirection.toFixed(1)}°, but shot goes straight from camera`);
                         }
 
-                        // Update total distance and rollout (camera rotation happens after 1.5s delay)
+                        // Reset aim adjustment to 0 (but keep base direction)
+                        aimAdjustment = 0;
+                        updateAimIndicator();
+
+                        // Update total distance and rollout BEFORE switching players
                         const totalDist = Math.sqrt(
                             Math.pow(ballPosition.x - shotStartPos.x, 2) +
                             Math.pow(ballPosition.z - shotStartPos.z, 2)
@@ -3252,55 +2520,29 @@
                             document.getElementById('shotRoll').textContent = totalDist.toFixed(1) + ' yds';
                         }
 
-                        // Add shot to session tracking for CSV export
-                        if (currentShotData && currentShotData.startTime) {
-                            const flightTime = (Date.now() - currentShotData.startTime) / 1000;
-                            const apexFeet = maxHeight * 3.28084; // Convert to feet
-
-                            sessionShots.push({
-                                ...currentShotData,
-                                carryDistance: isPutting ? 0 : carryDistance,
-                                totalDistance: totalDist,
-                                rollout: isPutting ? totalDist : rollDist,
-                                apexHeight: apexFeet,
-                                flightTime: flightTime
-                            });
-                            console.log(`📊 Shot added to CSV export (${sessionShots.length} total shots)`);
-                        }
-
-                        // Mark ball as stopped and schedule gimme check
-                        if (!ballStoppedTime) {
-                            ballStoppedTime = performance.now();
-                            console.log('Ball stopped - starting gimme check timer');
-                        }
-
-                        // Check for gimmie if enabled (ONLY after ball has been stopped for delay period)
-                        const timeStopped = performance.now() - ballStoppedTime;
-                        if (gimmieCirclesEnabled && timeStopped >= GIMME_DELAY_MS) {
+                        // Check for gimmie if enabled
+                        if (gimmieCirclesEnabled) {
                             const distToHole = Math.sqrt(
                                 Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
                                 Math.pow(ballPosition.z - PIN_POSITION.z, 2)
                             );
                             const ft5InMeters = 5 * 0.3048; // 1.524m
                             const ft10InMeters = 10 * 0.3048; // 3.048m
-                            console.log(`Ball at rest (${timeStopped.toFixed(0)}ms) - Distance: ${distToHole.toFixed(2)}m (${(distToHole * 3.28084).toFixed(1)}ft), Gimmie enabled: ${gimmieCirclesEnabled}`);
 
                             if (distToHole <= ft5InMeters) {
                                 // Within 5ft - automatic 1 putt
-                                console.log('GIMMIE: Ball came to rest within 5ft - automatic 1 putt added');
+                                console.log('GIMMIE: Within 5ft - automatic 1 putt added');
                                 strokes += 1;
                                 const player = window.golfPar3Players[window.currentPlayerIndex];
                                 player.strokes += 1;
-                                ballStoppedTime = null; // Reset for next shot
                                 scoreHole(); // Score the hole
                                 return;
                             } else if (distToHole <= ft10InMeters) {
                                 // Within 10ft - automatic 2 putts
-                                console.log('GIMMIE: Ball came to rest within 10ft - automatic 2 putts added');
+                                console.log('GIMMIE: Within 10ft - automatic 2 putts added');
                                 strokes += 2;
                                 const player = window.golfPar3Players[window.currentPlayerIndex];
                                 player.strokes += 2;
-                                ballStoppedTime = null; // Reset for next shot
                                 scoreHole(); // Score the hole
                                 return;
                             }
@@ -3309,42 +2551,13 @@
                         // Check if in hole
                         checkHole();
 
-                        // Wait 1.5 seconds for ball to visually settle, then save state and rotate camera
-                        setTimeout(() => {
-                            // Always rotate camera toward pin after each shot (for convenience)
-                            // Calculate new base direction toward pin from current position
-                            const dx = PIN_POSITION.x - ballPosition.x;
-                            const dz = PIN_POSITION.z - ballPosition.z;
-                            const directionToPin = Math.atan2(dx, -dz) * 180 / Math.PI;
+                        // Save player state and switch to farthest player AFTER updating stats
+                        savePlayerState();
 
-                            // Check if auto-aim is enabled
-                            const currentPlayer = window.golfPar3Players[window.currentPlayerIndex];
-                            const autoAimEnabled = currentPlayer && currentPlayer.autoAim !== false;
-
-                            if (autoAimEnabled) {
-                                // Auto-aim ON: camera points to pin AND shot goes to pin
-                                baseDirection = directionToPin;
-                                console.log(`Ball settled - AUTO-AIM ON: camera & shot → hole at ${baseDirection.toFixed(1)}°`);
-                            } else {
-                                // Auto-aim OFF: camera points to pin, but shot aims straight (0° adjustment)
-                                // Store the direction to pin, but player can adjust with arrow keys
-                                baseDirection = directionToPin;
-                                console.log(`Ball settled - AUTO-AIM OFF: camera → hole at ${baseDirection.toFixed(1)}°, but shot goes straight from camera`);
-                            }
-
-                            // Reset aim adjustment to 0 (but keep base direction)
-                            aimAdjustment = 0;
-                            updateAimIndicator();
-
-                            // Save player state AFTER ball has settled
-                            savePlayerState();
-                        }, 1500);
-
-                        // Add 3.5 second pause total before switching players (1.5s settle + 2s view)
+                        // Add 2 second pause before switching players
                         setTimeout(() => {
                             switchToFarthestPlayer();
-                        }, 3500);
-                        } // End if (ballInFlight)
+                        }, 2000);
                     }
                 }
             }
@@ -3662,12 +2875,7 @@
 
             // Island-hopping: out of bounds if not on any island (in water)
             if (hole.type === 'island-hopping') {
-                // Check if ball has gone underwater (below sea level at y = 0)
-                if (ballPosition.y < -0.5) {
-                    return true; // Ball went underwater = OB
-                }
-
-                // Check if ball is on any island (horizontally)
+                // Check if ball is on any island
                 for (let island of hole.islands) {
                     const distToIslandCenter = Math.sqrt(
                         Math.pow(x - island.center.x, 2) +
@@ -4385,138 +3593,11 @@
             console.log('Grid enabled');
         }
 
-        // OpenGolfCoach rank colors
-        const RANK_COLORS = {
-            'S+': '#23C4FF',
-            'S': '#00B3FF',
-            'A': '#00D977',
-            'B': '#7CB342',
-            'C': '#FFC107',
-            'D': '#FF7043',
-            'E': '#FF1744'
-        };
-
-        function displayShotClassification(classification) {
-            const panel = document.getElementById('shotClassification');
-            const nameDisplay = document.getElementById('shotNameDisplay');
-            const rankBadge = document.getElementById('shotRankBadge');
-            const backspinValue = document.getElementById('backspinValue');
-            const sidespinValue = document.getElementById('sidespinValue');
-            const carryValue = document.getElementById('carryValue');
-            const totalValue = document.getElementById('totalValue');
-            const peakHeightValue = document.getElementById('peakHeightValue');
-            const hangTimeValue = document.getElementById('hangTimeValue');
-            const smashFactorValue = document.getElementById('smashFactorValue');
-            const efficiencyValue = document.getElementById('efficiencyValue');
-
-            // Show panel
-            panel.style.display = 'block';
-
-            // Set shot name with color
-            const shotColor = classification.shotColor.replace('0x', '#');
-            nameDisplay.textContent = classification.shotName;
-            nameDisplay.style.color = shotColor;
-
-            // Set rank badge with color
-            const rankColor = RANK_COLORS[classification.shotRank] || '#FFFFFF';
-            rankBadge.textContent = `Rank ${classification.shotRank}`;
-            rankBadge.style.backgroundColor = rankColor;
-            rankBadge.style.color = '#000';
-
-            // Set distance values
-            carryValue.textContent = (classification.carryYards || 0).toFixed(1);
-            totalValue.textContent = (classification.totalYards || 0).toFixed(1);
-            peakHeightValue.textContent = (classification.peakHeight || 0).toFixed(1);
-            hangTimeValue.textContent = (classification.hangTime || 0).toFixed(1);
-
-            // Set spin values
-            backspinValue.textContent = Math.round(classification.backspin || 0);
-            sidespinValue.textContent = Math.round(classification.sidespin || 0);
-
-            // Set quality metrics
-            smashFactorValue.textContent = (classification.smashFactor || 0).toFixed(2);
-            efficiencyValue.textContent = Math.round(classification.efficiency || 0);
-
-            // Auto-hide after 8 seconds
-            setTimeout(() => {
-                panel.style.display = 'none';
-            }, 8000);
-
-            console.log(`🎯 ${classification.shotName} - Rank ${classification.shotRank}`);
-        }
-
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
-
-        function exportSessionCSV() {
-            if (sessionShots.length === 0) {
-                alert('No shots recorded yet! Hit some balls first.');
-                return;
-            }
-
-            // CSV headers
-            const headers = [
-                'Timestamp',
-                'Player',
-                'Hole',
-                'Ball Speed (mph)',
-                'Launch Angle (°)',
-                'Side Angle (°)',
-                'Total Spin (rpm)',
-                'Spin Axis (°)',
-                'Lie',
-                'Carry (yds)',
-                'Total (yds)',
-                'Rollout (yds)',
-                'Apex (ft)',
-                'Flight Time (s)'
-            ];
-
-            // Build CSV content
-            let csvContent = headers.join(',') + '\n';
-
-            sessionShots.forEach(shot => {
-                const row = [
-                    shot.timestamp,
-                    shot.player,
-                    shot.hole,
-                    shot.ballSpeed.toFixed(1),
-                    shot.launchAngle.toFixed(1),
-                    shot.sideAngle.toFixed(1),
-                    shot.totalSpin.toFixed(0),
-                    shot.spinAxis.toFixed(1),
-                    shot.lie,
-                    shot.carryDistance.toFixed(1),
-                    shot.totalDistance.toFixed(1),
-                    shot.rollout.toFixed(1),
-                    shot.apexHeight.toFixed(1),
-                    shot.flightTime.toFixed(1)
-                ];
-                csvContent += row.join(',') + '\n';
-            });
-
-            // Create download link
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-
-            const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `golf-par3-session-${dateStr}.csv`);
-            link.style.visibility = 'hidden';
-
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            console.log(`Exported ${sessionShots.length} shots to CSV`);
-        }
-
-        // Make exportSessionCSV globally available for button onclick
-        window.exportSessionCSV = exportSessionCSV;
     </script>
 </body>
 </html>

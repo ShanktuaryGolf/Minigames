@@ -1,15 +1,65 @@
 # Shanktuary Golf Mini Games - Project Status
 
-**Date:** November 30, 2025
-**Version:** 4.10.0
+**Date:** December 6, 2025
+**Version:** 4.12.0
 **Status:** ✅ Production Ready
 **Location:** `/home/shreen/minigames/web/`
 
 ---
 
-## 📋 Recent Updates (November 30, 2025)
+## 📋 Recent Updates (December 6, 2025)
 
-### Version 4.10.0 (Current) - BEER PONG GAME
+### Version 4.12.0 (Current) - OpenGolfCoach Integration & Bug Fixes
+**Date:** 2025-12-06
+
+#### Changes in this version:
+
+**🎯 OpenGolfCoach Shot Classification Integration**
+- Integrated OpenGolfCoach WASM module for real-time shot analysis
+- Built and compiled Rust WASM module from `/home/shreen/novastuff/open-golf-coach-main/core/`
+- Shot Analysis panel displays comprehensive ball flight metrics:
+  - Shot classification (Straight, Push Slice, Pull Draw, etc.) with color coding
+  - Shot rank (S+, S, A, B, C, D, E) with rank-specific colors
+  - Carry distance and total distance (in yards)
+  - Peak height and hang time
+  - Backspin and sidespin (calculated from total spin and spin axis)
+  - Smash factor (ball speed / club speed ratio)
+  - Distance efficiency percentage
+- Panel positioned at top-left (120px from top) to avoid overlap with player info
+- Auto-hides after 8 seconds
+- Full debug logging for troubleshooting
+
+**🐛 Bug Fixes**
+- **Gimme Circle Fix**: Gimmie circles now properly trigger only when ball comes to rest, not just when ball touches circle
+  - Added 300ms delay timer (`GIMME_DELAY_MS`) before checking gimme distance
+  - Prevents false triggers during rollout
+- **Ball Position Reset Bug**: Fixed ball resetting to landing position instead of final rollout position
+  - Root cause: Empirical distance correction was overriding green physics rollout
+  - Solution: Skip empirical correction when ball is on green (`currentLie.name.toLowerCase() !== 'green'`)
+  - Ball now correctly saves position after full rollout completes
+- **Shot Animation Smoothness**: Improved ball settling behavior
+  - Added 1.5 second delay after ball stops before camera rotation and state save
+  - Camera now smoothly transitions to aim at pin after ball visually settles
+  - Total 3.5 second pause before switching players (1.5s settle + 2s view)
+  - Eliminated jarring "jump" when shot ends
+
+**🔧 Technical Improvements**
+- Fixed case-sensitive lie type comparison (`"Green"` vs `"green"`)
+- Improved state save timing - only saves once when `ballInFlight` transitions to false
+- Enhanced debug logging for empirical distance correction
+- OpenGolfCoach metric conversion (mph to m/s: `speed * 0.44704`)
+
+**📁 Files Modified**
+- `golf-par3.html` - Main integration file
+- `opengolfcoach.js` - WASM JavaScript bindings
+- `opengolfcoach_bg.wasm` - WebAssembly binary (649KB)
+- `opengolfcoach.d.ts` - TypeScript definitions
+- `opengolfcoach_bg.wasm.d.ts` - WASM type definitions
+- `package.json` - Version bump to 4.12.0
+
+---
+
+### Version 4.10.0 - BEER PONG GAME
 **Date:** 2025-11-30
 
 #### Changes in this version:

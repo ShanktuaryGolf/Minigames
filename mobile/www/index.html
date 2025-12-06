@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shanktuary Golf Mini Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .game-card:active {
+            transform: scale(0.95);
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .game-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+        }
+
+        .game-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .game-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.connected {
+            background: #4ade80;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .note {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .note h3 {
+            margin-bottom: 10px;
+            color: #fbbf24;
+        }
+
+        .note p {
+            font-size: 0.9em;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Nova Connection Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e3c72;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 1em;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            opacity: 0.7;
+            font-size: 0.8em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.7;
+        }
+
+        .btn-connect {
+            background: #4ade80;
+            color: #1e3c72;
+        }
+
+        .btn-cancel {
+            background: #666;
+            color: white;
+        }
+
+        .btn-disconnect {
+            background: #ff4444;
+            color: white;
+        }
+
+        .connection-status {
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus" onclick="openNovaModal()">
+        <div class="status-indicator" id="statusDot"></div>
+        <span id="statusText">Not Connected</span>
+    </div>
+
+    <!-- Nova Connection Modal -->
+    <div class="modal" id="novaModal">
+        <div class="modal-content">
+            <h2>🚀 Connect to Nova</h2>
+            <div class="form-group">
+                <label for="novaIP">Nova IP Address:</label>
+                <input type="text" id="novaIP" placeholder="192.168.1.100" value="">
+                <small>Find Nova's IP in your router settings or Nova app</small>
+            </div>
+            <div class="form-group">
+                <label for="novaPort">Port:</label>
+                <input type="number" id="novaPort" placeholder="2920" value="2920">
+                <small>Default: 2920 (WebSocket API)</small>
+            </div>
+            <div class="button-group">
+                <button class="btn-connect" style="background: #3b82f6;" onclick="autoDiscoverNova()">Auto-Discover (mDNS)</button>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="autoConnect">
+                <label for="autoConnect">Auto-connect on startup</label>
+            </div>
+            <div class="button-group" id="modalButtons">
+                <button class="btn-connect" onclick="connectNova()">Connect</button>
+                <button class="btn-cancel" onclick="closeNovaModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <h1>⛳ Shanktuary Golf</h1>
+        <p>Mini Games for Launch Monitors</p>
+    </div>
+
+    <div class="games-grid">
+        <div class="game-card" onclick="loadGame('golf-par3.html')">
+            <div class="game-icon">⛳</div>
+            <div class="game-title">Par 3 Golf</div>
+            <div class="game-description">Play a full round on our 4-hole course</div>
+        </div>
+
+        <div class="game-card" onclick="loadGame('putting-green.html')">
+            <div class="game-icon">🏌️</div>
+            <div class="game-title">Putting Green</div>
+            <div class="game-description">Practice your short game with various drills</div>
+        </div>
+
+        <div class="game-card" onclick="loadGame('homerun-derby.html')">
+            <div class="game-icon">⚾</div>
+            <div class="game-title">Home Run Derby</div>
+            <div class="game-description">Hit bombs and compete for distance</div>
+        </div>
+
+        <div class="game-card" onclick="loadGame('darts-3d.html')">
+            <div class="game-icon">🎯</div>
+            <div class="game-title">Darts 3D</div>
+            <div class="game-description">Classic darts games: 301, 501, Cricket</div>
+        </div>
+
+        <div class="game-card" onclick="loadGame('bowling.html')">
+            <div class="game-icon">🎳</div>
+            <div class="game-title">Bowling</div>
+            <div class="game-description">10-pin bowling with realistic physics</div>
+        </div>
+
+        <div class="game-card" onclick="loadGame('soccer-penalty.html')">
+            <div class="game-icon">⚽</div>
+            <div class="game-title">Soccer Penalty</div>
+            <div class="game-description">Take penalty kicks against the keeper</div>
+        </div>
+    </div>
+
+    <div class="note">
+        <h3>📱 Mobile Version - Alpha</h3>
+        <p>This is an experimental Android build. Tap the connection status at the top-right to connect to your Nova launch monitor. Both devices must be on the same WiFi network.</p>
+    </div>
+
+    <script src="capacitor.js"></script>
+    <script src="nova-mobile.js"></script>
+    <script>
+        function loadGame(gameFile) {
+            window.location.href = gameFile;
+        }
+
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const novaModal = document.getElementById('novaModal');
+        const modalButtons = document.getElementById('modalButtons');
+
+        // Initialize Nova connection status listeners
+        if (window.novaMobile) {
+            window.novaMobile.onStatus((status) => {
+                console.log('Nova status:', status);
+                updateConnectionStatus(status.status, status.message);
+            });
+        }
+
+        function updateConnectionStatus(status, message) {
+            if (status === 'connected') {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Nova Connected';
+            } else if (status === 'connecting') {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Connecting...';
+            } else if (status === 'error') {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Connection Error';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Not Connected';
+            }
+        }
+
+        function openNovaModal() {
+            // Load last connection info
+            const lastConnection = window.novaMobile?.getLastConnection();
+            if (lastConnection) {
+                document.getElementById('novaIP').value = lastConnection.host;
+                document.getElementById('novaPort').value = lastConnection.port;
+            }
+
+            // Check auto-connect setting
+            const autoConnect = localStorage.getItem('nova_auto_connect') === 'true';
+            document.getElementById('autoConnect').checked = autoConnect;
+
+            // Update buttons if already connected
+            if (window.novaMobile?.connected) {
+                modalButtons.innerHTML = `
+                    <button class="btn-disconnect" onclick="disconnectNova()">Disconnect</button>
+                    <button class="btn-cancel" onclick="closeNovaModal()">Close</button>
+                `;
+            } else {
+                modalButtons.innerHTML = `
+                    <button class="btn-connect" onclick="connectNova()">Connect</button>
+                    <button class="btn-cancel" onclick="closeNovaModal()">Cancel</button>
+                `;
+            }
+
+            novaModal.classList.add('active');
+        }
+
+        function closeNovaModal() {
+            novaModal.classList.remove('active');
+        }
+
+        function connectNova() {
+            const ip = document.getElementById('novaIP').value.trim();
+            const port = parseInt(document.getElementById('novaPort').value) || 8888;
+            const autoConnect = document.getElementById('autoConnect').checked;
+
+            if (!ip) {
+                alert('Please enter Nova IP address');
+                return;
+            }
+
+            // Save auto-connect preference
+            localStorage.setItem('nova_auto_connect', autoConnect.toString());
+
+            // Connect
+            window.novaMobile.connect(ip, port);
+            closeNovaModal();
+        }
+
+        function disconnectNova() {
+            window.novaMobile.disconnect();
+            closeNovaModal();
+        }
+
+        async function autoDiscoverNova() {
+            closeNovaModal();
+            const success = await window.novaMobile.discoverAndConnect();
+            if (!success) {
+                alert('Auto-discovery not available or failed. Try manual connection.');
+            }
+        }
+
+        // Auto-connect is handled by nova-mobile.js on load
+    </script>
+</body>
+</html>
