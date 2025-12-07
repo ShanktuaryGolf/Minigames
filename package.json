@@ -1,6 +1,6 @@
 {
   "name": "shanktuary-golf-mini-games",
-  "version": "4.12.0",
+  "version": "4.12.1",
   "description": "Shanktuary Golf Mini Games",
   "main": "electron-main.js",
   "repository": {
