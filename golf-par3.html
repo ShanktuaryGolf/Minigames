@@ -814,21 +814,14 @@
                 console.log(`✅ Visual offset applied: (${visualOffsetX}, ${visualOffsetY})`);
             }
 
-            // Renderer - PERFORMANCE OPTIMIZED
+            // Renderer
             renderer = new THREE.WebGLRenderer({
                 canvas: document.getElementById('canvas'),
-                antialias: false,  // DISABLED: Antialiasing is expensive, not needed for golf
-                powerPreference: "high-performance",  // Force dedicated GPU usage
-                precision: "lowp",  // Low precision is fine for golf game
-                stencil: false,  // Not using stencil operations
-                depth: true  // Need depth buffer
+                antialias: true
             });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x for performance
-
-            // PERFORMANCE: Shadows disabled for better FPS
-            renderer.shadowMap.enabled = false;
-            // renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
             // Log GPU info for debugging
             const gl = renderer.getContext();
@@ -840,10 +833,10 @@
             console.log('🎮 WebGL Version:', gl.getParameter(gl.VERSION));
             console.log('🎮 Max Texture Size:', gl.getParameter(gl.MAX_TEXTURE_SIZE));
 
-            // Minimap renderer and camera (re-enabled, still lightweight)
+            // Minimap renderer and camera
             minimapRenderer = new THREE.WebGLRenderer({
                 canvas: document.getElementById('minimap'),
-                antialias: false,
+                antialias: true,
                 alpha: false,
                 powerPreference: "low-power"
             });
@@ -1219,17 +1212,14 @@
             const hole = HOLES[currentHoleIndex];
             let terrainSize;
             if (hole.type === 'dogleg-left') {
-                // PERFORMANCE: Reduced from 150x150 (22.5k vertices) to 50x50 (2.5k vertices)
-                terrainSize = { width: 500, length: 500, segmentsW: 50, segmentsL: 50 };
+                terrainSize = { width: 500, length: 500, segmentsW: 150, segmentsL: 150 };
             } else if (hole.type === 'dogleg-right') {
-                // PERFORMANCE: Reduced from 120x200 (24k vertices) to 40x70 (2.8k vertices)
-                terrainSize = { width: 400, length: 700, segmentsW: 40, segmentsL: 70 };
+                terrainSize = { width: 400, length: 700, segmentsW: 120, segmentsL: 200 };
             } else if (hole.type === 'island-hopping') {
-                // PERFORMANCE: Reduced from 150x350 (52.5k vertices!) to 50x100 (5k vertices)
-                terrainSize = { width: 300, length: 700, segmentsW: 50, segmentsL: 100 };
+                terrainSize = { width: 300, length: 700, segmentsW: 150, segmentsL: 350 };
             } else {
-                // Straight hole - PERFORMANCE: Reduced segments from 200x300 (60k vertices!) to 40x60 (2.4k vertices)
-                terrainSize = { width: 200, length: 300, segmentsW: 40, segmentsL: 60 };
+                // Straight hole
+                terrainSize = { width: 200, length: 300, segmentsW: 200, segmentsL: 300 };
             }
 
             // Main terrain (fairway and rough) - size adapts to hole
@@ -2106,16 +2096,15 @@
         }
 
         function createBall() {
-            // PERFORMANCE: Reduced segments from 16x16 to 8x8 (ball is tiny, doesn't need detail)
-            const geometry = new THREE.SphereGeometry(BALL_RADIUS, 8, 8);
-            // PERFORMANCE: Changed from MeshStandardMaterial (expensive PBR) to MeshLambertMaterial
-            const material = new THREE.MeshLambertMaterial({
-                color: 0xffffff
+            const geometry = new THREE.SphereGeometry(BALL_RADIUS, 16, 16);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                metalness: 0.1,
+                roughness: 0.6
             });
             ball = new THREE.Mesh(geometry, material);
-            // PERFORMANCE: Shadows disabled
-            ball.castShadow = false;
-            ball.receiveShadow = false;
+            ball.castShadow = true;
+            ball.receiveShadow = true;
             resetBallPosition();
             scene.add(ball);
 
