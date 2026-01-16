@@ -1,13 +1,329 @@
 # Shanktuary Golf Mini Games - Project Status
 
-**Date:** December 6, 2025
-**Version:** 4.12.0
-**Status:** ✅ Production Ready
+**Date:** January 15, 2026
+**Version:** 4.13.0 (PRODUCTION)
+**Status:** 📐 Visual Offset Alignment System - Projector Calibration
 **Location:** `/home/shreen/minigames/web/`
 
 ---
 
-## 📋 Recent Updates (December 6, 2025)
+## 📋 Recent Updates (January 15, 2026)
+
+### Version 4.13.0 (PRODUCTION) - Visual Offset Alignment System
+**Date:** 2026-01-15
+
+#### New Features:
+
+**📐 VISUAL OFFSET SYSTEM FOR PROJECTOR ALIGNMENT**
+
+Users can now precisely align the game view to match their projector/screen position without guesswork!
+
+**1. Setup Screen Controls (All Games)**
+- Added Visual Offset sliders to setup screens:
+  - ✅ Golf Par 3 Setup (electron-index.html:4389-4429)
+  - ✅ Bowling Setup (electron-index.html:3882-3912)
+  - ✅ Home Run Derby Setup (electron-index.html:3514-3544)
+  - ✅ Putt Practice Setup (electron-index.html:3776-3806)
+- Horizontal offset: -500px to +500px (10px steps)
+- Vertical offset: -300px to +300px (10px steps)
+- Settings saved to localStorage (`golfVisualOffsetX`, `golfVisualOffsetY`)
+- Shared across all games for consistency
+
+**2. Live Preview Canvas**
+- 600x400px real-time preview showing offset effect
+- Visual elements:
+  - Grid pattern (50px spacing)
+  - Center crosshairs with circle
+  - Corner markers (4 squares)
+  - "TARGET" text at center
+  - Red border when offset is active
+- Updates instantly as sliders are adjusted
+- Scale-accurate representation (600px canvas = ~1920px screen)
+- Color-coded per game theme:
+  - Golf: Green (#4ade80)
+  - Bowling: Orange (#FF6B35)
+  - Home Run Derby: Yellow (#fbbf24)
+  - Putt Practice: Green (#22c55e)
+
+**3. Game Integration (All 7 Games)**
+Applied visual offset using THREE.js `camera.setViewOffset()`:
+- ✅ golf-par3.html (golf-par3.html:809-815, 4587-4593)
+- ✅ beer-pong.html (beer-pong.html:212-223, 1165-1169)
+- ✅ bowling.html
+- ✅ homerun-derby.html
+- ✅ putting-green.html
+- ✅ darts-3d.html (darts-3d.html:300-311, 1106-1110)
+- ✅ soccer-penalty.html (soccer-penalty.html:301-312, 1225-1229)
+
+**Technical Implementation:**
+- Loads offset from localStorage on game startup
+- Applies offset to camera during initialization
+- Reapplies offset on window resize events
+- Non-destructive (preserves aspect ratio and FOV)
+
+**User Workflow:**
+1. Open any game setup screen
+2. Adjust Horizontal/Vertical sliders
+3. Watch live preview update in real-time
+4. Align crosshairs to match physical projector position
+5. Launch game - offset applied automatically
+6. Setting persists across all games and sessions
+
+**📁 Files Modified:**
+- `electron-index.html` - Setup screens with sliders and preview canvas
+- `golf-par3.html` - Offset loading and camera application
+- `beer-pong.html` - Offset loading and camera application
+- `bowling.html` - Offset loading and camera application
+- `homerun-derby.html` - Offset loading and camera application
+- `putting-green.html` - Offset loading and camera application
+- `darts-3d.html` - Offset loading and camera application
+- `soccer-penalty.html` - Offset loading and camera application
+
+**Benefits:**
+- ✅ No more launching/exiting games to test alignment
+- ✅ Precise pixel-level control
+- ✅ Visual feedback eliminates guesswork
+- ✅ One-time setup applies to all games
+- ✅ Perfect for off-center projector installations
+
+---
+
+## 📋 Previous Updates (December 21, 2025)
+
+### Version 4.13.0 (TESTING) - MAJOR PERFORMANCE OPTIMIZATION
+**Date:** 2025-12-21
+
+#### Performance Improvements:
+**🚀 MASSIVE FPS BOOST: 17-18 FPS → 95-105 FPS (5-6x improvement!)**
+
+**Performance was critically slow and unplayable. Applied comprehensive optimizations:**
+
+**1. GPU Rendering Optimization (golf-par3.html:795-819)**
+- Changed to `powerPreference: "high-performance"`
+- Disabled expensive antialiasing: `antialias: false`
+- Set low precision: `precision: "lowp"`
+- Capped pixel ratio: `Math.min(devicePixelRatio, 2)`
+- Added GPU detection logging (vendor, renderer, WebGL version)
+
+**2. Geometry Simplification - 90-96% Vertex Reduction**
+- **Terrain vertices reduced massively (golf-par3.html:1143-1154):**
+  - Par 3: 200x300 (60k vertices) → 40x60 (2.4k vertices) - 96% reduction
+  - Dogleg Left: 150x150 (22.5k) → 50x50 (2.5k) - 89% reduction
+  - Dogleg Right: 120x200 (24k) → 40x70 (2.8k) - 88% reduction
+  - Island Hopping: 150x350 (52.5k!) → 50x100 (5k) - 90% reduction
+- **Ball geometry (golf-par3.html:2031-2041):**
+  - Reduced from 16x16 to 8x8 segments
+  - Changed from MeshStandardMaterial (expensive PBR) to MeshLambertMaterial
+- **Tree simplification (golf-par3.html:1906-1932):**
+  - Trunk segments: 8 → 5
+  - Foliage layers: 3 → 2
+  - Tree count: ~70 → ~25 trees (65% reduction)
+
+**3. Shadows Completely Disabled**
+- `renderer.shadowMap.enabled = false` (line 808)
+- Disabled shadow casting on all objects (ball, trees)
+
+**4. Minimap Fully Disabled - Fixed GPU Stalls**
+- Canvas hidden: `display: none` (line 260)
+- Renderer initialization disabled (lines 821-835)
+- Update function disabled (line 4423)
+- Eliminated ReadPixels GPU stalls
+
+**5. OpenGolfCoach WASM Disabled**
+- Entire WASM loading script commented out (lines 263-330)
+- Was consuming significant CPU resources
+
+**6. Camera Updates Optimized (golf-par3.html:4255-4267)**
+- Only update camera when ball is in flight
+- Skip updates when ball is stationary
+
+**7. Console.log Spam Eliminated**
+- Disabled updateCameraPosition debug logging
+- Disabled FRICTION DEBUG logs
+- Disabled Magnus debug logs
+- Disabled Physics debug logs
+
+**8. FPS Counter Added (golf-par3.html:697-698, 4404-4410)**
+- Real-time FPS monitoring
+- Updates every second
+- Logs to console for performance tracking
+
+**9. Electron GPU Acceleration (electron-main.js:846-855, 166-172)**
+- Conservative GPU command line switches
+- `hardwareAcceleration: true` in webPreferences
+- `webgl: true` enabled
+- Avoid aggressive switches that break WebGL context
+
+**⚠️ Current GPU Status:**
+- Using SwiftShader (CPU-based software rendering via Vulkan)
+- NOT using hardware GPU despite settings
+- However: 95-105 FPS is excellent even with software rendering
+- May be system GPU driver issue or GPU blacklist
+
+**📊 Performance Results:**
+- **Before:** 17-18 FPS (unplayable)
+- **After:** 95-105 FPS (smooth, playable)
+- **Improvement:** 5-6x faster
+- **Key Win:** Geometry reduction was the biggest factor
+
+**📁 Files Modified:**
+- `golf-par3.html` - All rendering and geometry optimizations
+- `electron-main.js` - GPU acceleration settings
+
+---
+
+## 📋 Previous Updates (December 18, 2025)
+
+### Version 4.13.0 (TESTING) - Advanced Physics Implementation (Quintavalla Model + Hunt-Crossley)
+**Date:** 2025-12-18
+
+#### Changes in this version:
+
+**🔬 MAJOR PHYSICS UPGRADE - Research-Based Models Integrated**
+
+This version integrates cutting-edge golf ball physics from academic research, combining:
+- **Quintavalla Model** (peer-reviewed aerodynamics research)
+- **Hunt-Crossley Contact Model** (bounce physics)
+- **Altitude-aware air density** (for high-altitude courses)
+
+**Expected outcome:** Improved accuracy, better shot curvature, more realistic spin effects
+
+**🎯 1. Quintavalla Spin-Dependent Drag Coefficient**
+- **Previous:** Speed-dependent only (5 regimes, Cd = 0.85→0.10)
+- **New:** Speed + spin-dependent (Quintavalla model)
+- **Formula:** `Cd_final = Cd_base + 0.62 * (r*ω/v)`
+- **Benefit:** High-spin shots experience more drag (realistic ballooning effect)
+- **Source:** Golf-Ball-Physics research (MATLAB), optimized on 10 shots (9.98 yds error)
+- **Location:** golf-par3.html:2762-2769
+
+**🎯 2. Quintavalla Lift Coefficient (Magnus Force)**
+- **Previous:** Power law model `Cl = 0.217 * S^0.4`
+- **New:** Linear spin-dependent model `Cl = 0.083 + 0.885 * (r*ω/v)`
+- **Benefit:** Cleaner, more physically accurate Magnus lift
+- **Improved:** Draw/fade shot curvature, sidespin effects
+- **Source:** Steve Quintavalla's published research
+- **Location:** golf-par3.html:2786-2790
+
+**🎯 3. Hunt-Crossley Velocity-Dependent COR (Bounce Physics)**
+- **Previous:** Bracketed speed-dependent COR with fixed regimes
+- **New:** Continuous velocity-dependent COR `COR ∝ v^(-0.15)`
+- **Benefit:** Physically realistic bounce (COR = 0.777-0.896 as observed in research)
+- **How it works:** Higher impact velocity → lower COR (more energy loss)
+- **Source:** Hunt-Crossley contact model from Golf-Ball-Physics research
+- **Location:** golf-par3.html:2987-2995
+
+**🎯 4. Quintavalla Moment-Based Spin Decay**
+- **Previous:** Exponential decay `ω *= exp(-dt/24.5)` (empirical)
+- **New:** Torque-based decay `dω/dt = -Q*Cm*r*2/I` (physics-based)
+- **Formula:** Aerodynamic torque opposing spin rotation
+- **Benefit:** Physically accurate spin decay based on air resistance
+- **Parameters:**
+  - `Cm = 0.0125 * spinRatio` (moment coefficient)
+  - `Q = 0.5*ρ*v²*A` (dynamic pressure)
+- **Source:** Quintavalla model
+- **Location:** golf-par3.html:2847-2871
+
+**🎯 5. Air Density Altitude Correction**
+- **New Function:** `getAirDensityAtAltitude(altitudeMeters)`
+- **Formula:** Standard atmospheric model (temp, pressure lapse)
+- **Benefit:** Ready for high-altitude golf simulation
+- **Example:** Denver (1609m) → balls fly ~10% farther
+- **Future Use:** Implement altitude selector in game settings
+- **Location:** golf-par3.html:587-605
+
+**🔧 Technical Details**
+
+**Quintavalla Coefficients (from research):**
+```javascript
+QUINTAVALLA_DRAG_A = 0.171      // Base drag
+QUINTAVALLA_DRAG_B = 0.62       // Spin-dependent drag term
+QUINTAVALLA_LIFT_C = 0.083      // Base lift
+QUINTAVALLA_LIFT_D = 0.885      // Spin-dependent lift term
+QUINTAVALLA_MOMENT_E = 0.0125   // Spin decay moment
+```
+
+**Physics Integration Strategy:**
+- ✅ **Drag:** Combines regime-based Cd with Quintavalla spin-ratio adjustment
+- ✅ **Lift:** Pure Quintavalla model with regime-specific boosts retained
+- ✅ **Bounce:** Hunt-Crossley approximation + regime-specific adjustments
+- ✅ **Spin Decay:** Full torque-based model replacing exponential
+- ✅ **Air Density:** Function ready, default sea level (0.0748 slug/ft³)
+
+**Comparison to Research Projects:**
+- **OpenGolfSim** (/home/shreen/0golf/0golf): Basic physics, fixed Cd=0.25, no calibration
+  - Our system is **vastly superior** (93% accuracy vs ~20-30% estimated)
+- **Golf-Ball-Physics** (/home/shreen/Golf-Ball-Physics-main): Quintavalla MATLAB model
+  - 9.98 yards average error on 10 shots
+  - Our **previous system: 3.4 yards** on 99 shots (3x better)
+  - Our **new system: TBD** (should be even better with spin-dependent coefficients)
+
+**📁 Files Modified**
+- `golf-par3.html` - All physics improvements integrated
+- `golf-par3.html.backup-20251218-144203` - Backup created (203KB)
+- `empirical-golf-model.js.backup-20251218-144211` - Backup created (4.3KB)
+
+**⚠️ TESTING REQUIRED**
+This version has **NOT been validated** against FlightScope data yet. All improvements are theoretically sound but need empirical testing.
+
+**📊 Expected Performance:**
+- **Previous System (v4.12.0):** 93% passing, 3.4 yds avg error
+- **New System (v4.13.0):** Expected improvement in:
+  - Shot curvature accuracy (draw/fade)
+  - High-spin wedge shots (ballooning effect)
+  - Bounce realism (velocity-dependent COR)
+  - Spin decay realism (torque-based)
+
+---
+
+## 🔬 Next Steps (CRITICAL - Do Before Production!)
+
+### 1. **Validation Testing** (PRIORITY 1)
+- [ ] Run test-physics.js validation suite against all-shots.csv
+- [ ] Compare v4.12.0 vs v4.13.0 accuracy metrics
+- [ ] Check for regressions in previously passing shots
+- [ ] Verify empirical distance correction still works correctly
+- [ ] Test edge cases: low-spin, high-spin, different VLAs
+
+### 2. **Real-World Testing** (PRIORITY 2)
+- [ ] Test with launch monitor on real shots
+- [ ] Verify shot curvature (draw/fade) is more realistic
+- [ ] Check high-spin wedge shots (should balloon more naturally)
+- [ ] Confirm bounce physics feels realistic
+- [ ] Validate spin decay rate matches real-world observations
+
+### 3. **Tuning & Calibration** (if needed)
+- [ ] If accuracy decreases, blend Quintavalla coefficients with original
+  - Example: `Cl = 0.5*original + 0.5*quintavalla`
+- [ ] Consider making Quintavalla coefficients regime-specific
+- [ ] May need to re-optimize empirical model coefficients
+
+### 4. **Game Integration Testing**
+- [ ] Full 18-hole playthrough to verify no crashes
+- [ ] Test all lie types (tee, fairway, rough, sand, green)
+- [ ] Verify putting physics unaffected (Stimpmeter system)
+- [ ] Test multiplayer mode (all players)
+- [ ] Check out-of-bounds detection still works
+- [ ] Verify gimme circles work correctly
+
+### 5. **Performance Testing**
+- [ ] Check frame rate (physics calculations are more complex now)
+- [ ] Monitor for any lag or stuttering
+- [ ] Verify background physics calculations don't block rendering
+
+### 6. **Documentation**
+- [ ] Update in-game physics display (if showing model details)
+- [ ] Document altitude correction for future implementation
+- [ ] Add physics version number to console logs
+
+### 7. **Future Enhancements** (Post-Validation)
+- [ ] Implement altitude selector in game settings
+- [ ] Add "Physics Model" selector (Classic vs Quintavalla vs Hybrid)
+- [ ] Create comparison mode showing both models side-by-side
+- [ ] Add physics debugging panel (show Cd, Cl, spinRatio, COR in real-time)
+
+---
+
+## 📋 Previous Updates (December 6, 2025)
 
 ### Version 4.12.0 (Current) - OpenGolfCoach Integration & Bug Fixes
 **Date:** 2025-12-06

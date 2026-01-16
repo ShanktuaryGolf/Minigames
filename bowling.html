@@ -454,6 +454,19 @@
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             updateCameraPosition();
 
+            // Load Visual Offset from localStorage (for projector alignment)
+            let visualOffsetX = 0;
+            let visualOffsetY = 0;
+            const savedOffsetX = localStorage.getItem('golfVisualOffsetX');
+            const savedOffsetY = localStorage.getItem('golfVisualOffsetY');
+            if (savedOffsetX) visualOffsetX = parseInt(savedOffsetX);
+            if (savedOffsetY) visualOffsetY = parseInt(savedOffsetY);
+
+            // Apply visual offset to camera
+            if (visualOffsetX !== 0 || visualOffsetY !== 0) {
+                camera.setViewOffset(window.innerWidth, window.innerHeight, visualOffsetX, visualOffsetY, window.innerWidth, window.innerHeight);
+            }
+
             // Renderer
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -2152,6 +2165,11 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Reapply visual offset after resize
+            if (visualOffsetX !== 0 || visualOffsetY !== 0) {
+                camera.setViewOffset(window.innerWidth, window.innerHeight, visualOffsetX, visualOffsetY, window.innerWidth, window.innerHeight);
+            }
         }
 
         function syncPhysics() {

@@ -3511,6 +3511,46 @@
                         </div>
                     </div>
 
+                    <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">📐 Visual Offset (Projector Alignment)</h3>
+                        <!-- Live Preview Canvas -->
+                        <div style="margin-bottom: 20px; text-align: center;">
+                            <canvas id="homerunOffsetPreviewCanvas" width="600" height="400"
+                                    style="border: 2px solid #fbbf24; border-radius: 8px; background: #1a1a1a; max-width: 100%;"></canvas>
+                            <div style="font-size: 0.9em; opacity: 0.7; margin-top: 8px;">
+                                Live Preview - Adjust sliders to see offset in real-time
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Horizontal: <span id="homerunOffsetXValue" style="color: #fbbf24;">0</span> px
+                            </div>
+                            <input type="range" id="homerunOffsetXSlider" min="-500" max="500" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #fbbf24;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>← Left (-500)</span>
+                                <span>Center (0)</span>
+                                <span>Right (+500) →</span>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Vertical: <span id="homerunOffsetYValue" style="color: #fbbf24;">0</span> px
+                            </div>
+                            <input type="range" id="homerunOffsetYSlider" min="-300" max="300" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #fbbf24;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>↑ Up (-300)</span>
+                                <span>Center (0)</span>
+                                <span>Down (+300) ↓</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8; margin-top: 10px;">
+                            Adjust if your projector/screen is not centered.<br>
+                            Shifts the camera view to align with your physical setup.
+                        </div>
+                    </div>
+
                     <div id="homeRunPlayerNamesSection" style="display: none; background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
                         <h3 style="margin-bottom: 15px;">Player Names</h3>
                         <div id="homeRunPlayerNameInputs"></div>
@@ -3531,6 +3571,125 @@
                     </div>
                 </div>
             `;
+
+            // Setup Visual Offset sliders
+            setTimeout(() => {
+                const offsetXSlider = document.getElementById('homerunOffsetXSlider');
+                const offsetXValue = document.getElementById('homerunOffsetXValue');
+                const offsetYSlider = document.getElementById('homerunOffsetYSlider');
+                const offsetYValue = document.getElementById('homerunOffsetYValue');
+
+                const savedOffsetX = localStorage.getItem('golfVisualOffsetX') || '0';
+                const savedOffsetY = localStorage.getItem('golfVisualOffsetY') || '0';
+
+                const previewCanvas = document.getElementById('homerunOffsetPreviewCanvas');
+                const previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+
+                // Function to draw preview with offset
+                function drawOffsetPreview(offsetX, offsetY) {
+                    if (!previewCtx) return;
+
+                    const canvas = previewCanvas;
+                    const w = canvas.width;
+                    const h = canvas.height;
+
+                    // Clear canvas
+                    previewCtx.fillStyle = '#1a1a1a';
+                    previewCtx.fillRect(0, 0, w, h);
+
+                    // Apply offset transform (scale down for preview - 600px canvas represents ~1920px screen)
+                    const scale = w / 1920;
+                    const offsetXScaled = offsetX * scale;
+                    const offsetYScaled = offsetY * scale;
+
+                    previewCtx.save();
+                    previewCtx.translate(offsetXScaled, offsetYScaled);
+
+                    // Draw grid
+                    previewCtx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+                    previewCtx.lineWidth = 1;
+                    for (let x = 0; x <= w; x += 50) {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(x, 0);
+                        previewCtx.lineTo(x, h);
+                        previewCtx.stroke();
+                    }
+                    for (let y = 0; y <= h; y += 50) {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(0, y);
+                        previewCtx.lineTo(w, y);
+                        previewCtx.stroke();
+                    }
+
+                    // Draw center crosshairs
+                    previewCtx.strokeStyle = '#fbbf24';
+                    previewCtx.lineWidth = 2;
+                    const centerX = w / 2;
+                    const centerY = h / 2;
+                    const crossSize = 30;
+
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(centerX - crossSize, centerY);
+                    previewCtx.lineTo(centerX + crossSize, centerY);
+                    previewCtx.stroke();
+
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(centerX, centerY - crossSize);
+                    previewCtx.lineTo(centerX, centerY + crossSize);
+                    previewCtx.stroke();
+
+                    previewCtx.beginPath();
+                    previewCtx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+                    previewCtx.stroke();
+
+                    // Draw corner markers
+                    previewCtx.fillStyle = '#fbbf24';
+                    const markerSize = 5;
+                    previewCtx.fillRect(10, 10, markerSize, markerSize);
+                    previewCtx.fillRect(w - 10 - markerSize, 10, markerSize, markerSize);
+                    previewCtx.fillRect(10, h - 10 - markerSize, markerSize, markerSize);
+                    previewCtx.fillRect(w - 10 - markerSize, h - 10 - markerSize, markerSize, markerSize);
+
+                    // Draw "TARGET" text
+                    previewCtx.font = 'bold 24px Arial';
+                    previewCtx.fillStyle = '#fbbf24';
+                    previewCtx.textAlign = 'center';
+                    previewCtx.textBaseline = 'middle';
+                    previewCtx.fillText('TARGET', centerX, centerY + 50);
+
+                    previewCtx.restore();
+
+                    // Red border if offset active
+                    if (offsetX !== 0 || offsetY !== 0) {
+                        previewCtx.strokeStyle = '#ef4444';
+                        previewCtx.lineWidth = 3;
+                        previewCtx.strokeRect(2, 2, w - 4, h - 4);
+                    }
+                }
+
+                if (offsetXSlider && offsetXValue) {
+                    offsetXSlider.value = savedOffsetX;
+                    offsetXValue.textContent = savedOffsetX;
+                    offsetXSlider.addEventListener('input', (e) => {
+                        offsetXValue.textContent = e.target.value;
+                        localStorage.setItem('golfVisualOffsetX', e.target.value);
+                        drawOffsetPreview(parseInt(e.target.value), parseInt(offsetYSlider.value));
+                    });
+                }
+
+                if (offsetYSlider && offsetYValue) {
+                    offsetYSlider.value = savedOffsetY;
+                    offsetYValue.textContent = savedOffsetY;
+                    offsetYSlider.addEventListener('input', (e) => {
+                        offsetYValue.textContent = e.target.value;
+                        localStorage.setItem('golfVisualOffsetY', e.target.value);
+                        drawOffsetPreview(parseInt(offsetXSlider.value), parseInt(e.target.value));
+                    });
+                }
+
+                // Initial draw
+                drawOffsetPreview(parseInt(savedOffsetX), parseInt(savedOffsetY));
+            }, 100);
         }
 
         window.homeRunDerbyPlayers = [];
@@ -3712,6 +3871,46 @@
                         </div>
                     </div>
 
+                    <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">📐 Visual Offset (Projector Alignment)</h3>
+                        <!-- Live Preview Canvas -->
+                        <div style="margin-bottom: 20px; text-align: center;">
+                            <canvas id="puttOffsetPreviewCanvas" width="600" height="400"
+                                    style="border: 2px solid #22c55e; border-radius: 8px; background: #1a1a1a; max-width: 100%;"></canvas>
+                            <div style="font-size: 0.9em; opacity: 0.7; margin-top: 8px;">
+                                Live Preview - Adjust sliders to see offset in real-time
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Horizontal: <span id="puttOffsetXValue" style="color: #22c55e;">0</span> px
+                            </div>
+                            <input type="range" id="puttOffsetXSlider" min="-500" max="500" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #22c55e;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>← Left (-500)</span>
+                                <span>Center (0)</span>
+                                <span>Right (+500) →</span>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Vertical: <span id="puttOffsetYValue" style="color: #22c55e;">0</span> px
+                            </div>
+                            <input type="range" id="puttOffsetYSlider" min="-300" max="300" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #22c55e;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>↑ Up (-300)</span>
+                                <span>Center (0)</span>
+                                <span>Down (+300) ↓</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8; margin-top: 10px;">
+                            Adjust if your projector/screen is not centered.<br>
+                            Shifts the camera view to align with your physical setup.
+                        </div>
+                    </div>
+
                     <div id="puttingPlayerNamesSection" style="display: none; background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
                         <h3 style="margin-bottom: 15px;">Player Names</h3>
                         <div id="puttingPlayerNameInputs"></div>
@@ -3732,6 +3931,125 @@
                     </div>
                 </div>
             `;
+
+            // Setup Visual Offset sliders
+            setTimeout(() => {
+                const offsetXSlider = document.getElementById('puttOffsetXSlider');
+                const offsetXValue = document.getElementById('puttOffsetXValue');
+                const offsetYSlider = document.getElementById('puttOffsetYSlider');
+                const offsetYValue = document.getElementById('puttOffsetYValue');
+
+                const savedOffsetX = localStorage.getItem('golfVisualOffsetX') || '0';
+                const savedOffsetY = localStorage.getItem('golfVisualOffsetY') || '0';
+
+                const previewCanvas = document.getElementById('puttOffsetPreviewCanvas');
+                const previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+
+                // Function to draw preview with offset
+                function drawOffsetPreview(offsetX, offsetY) {
+                    if (!previewCtx) return;
+
+                    const canvas = previewCanvas;
+                    const w = canvas.width;
+                    const h = canvas.height;
+
+                    // Clear canvas
+                    previewCtx.fillStyle = '#1a1a1a';
+                    previewCtx.fillRect(0, 0, w, h);
+
+                    // Apply offset transform (scale down for preview - 600px canvas represents ~1920px screen)
+                    const scale = w / 1920;
+                    const offsetXScaled = offsetX * scale;
+                    const offsetYScaled = offsetY * scale;
+
+                    previewCtx.save();
+                    previewCtx.translate(offsetXScaled, offsetYScaled);
+
+                    // Draw grid
+                    previewCtx.strokeStyle = 'rgba(34, 197, 94, 0.3)';
+                    previewCtx.lineWidth = 1;
+                    for (let x = 0; x <= w; x += 50) {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(x, 0);
+                        previewCtx.lineTo(x, h);
+                        previewCtx.stroke();
+                    }
+                    for (let y = 0; y <= h; y += 50) {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(0, y);
+                        previewCtx.lineTo(w, y);
+                        previewCtx.stroke();
+                    }
+
+                    // Draw center crosshairs
+                    previewCtx.strokeStyle = '#22c55e';
+                    previewCtx.lineWidth = 2;
+                    const centerX = w / 2;
+                    const centerY = h / 2;
+                    const crossSize = 30;
+
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(centerX - crossSize, centerY);
+                    previewCtx.lineTo(centerX + crossSize, centerY);
+                    previewCtx.stroke();
+
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(centerX, centerY - crossSize);
+                    previewCtx.lineTo(centerX, centerY + crossSize);
+                    previewCtx.stroke();
+
+                    previewCtx.beginPath();
+                    previewCtx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+                    previewCtx.stroke();
+
+                    // Draw corner markers
+                    previewCtx.fillStyle = '#22c55e';
+                    const markerSize = 5;
+                    previewCtx.fillRect(10, 10, markerSize, markerSize);
+                    previewCtx.fillRect(w - 10 - markerSize, 10, markerSize, markerSize);
+                    previewCtx.fillRect(10, h - 10 - markerSize, markerSize, markerSize);
+                    previewCtx.fillRect(w - 10 - markerSize, h - 10 - markerSize, markerSize, markerSize);
+
+                    // Draw "TARGET" text
+                    previewCtx.font = 'bold 24px Arial';
+                    previewCtx.fillStyle = '#22c55e';
+                    previewCtx.textAlign = 'center';
+                    previewCtx.textBaseline = 'middle';
+                    previewCtx.fillText('TARGET', centerX, centerY + 50);
+
+                    previewCtx.restore();
+
+                    // Red border if offset active
+                    if (offsetX !== 0 || offsetY !== 0) {
+                        previewCtx.strokeStyle = '#ef4444';
+                        previewCtx.lineWidth = 3;
+                        previewCtx.strokeRect(2, 2, w - 4, h - 4);
+                    }
+                }
+
+                if (offsetXSlider && offsetXValue) {
+                    offsetXSlider.value = savedOffsetX;
+                    offsetXValue.textContent = savedOffsetX;
+                    offsetXSlider.addEventListener('input', (e) => {
+                        offsetXValue.textContent = e.target.value;
+                        localStorage.setItem('golfVisualOffsetX', e.target.value);
+                        drawOffsetPreview(parseInt(e.target.value), parseInt(offsetYSlider.value));
+                    });
+                }
+
+                if (offsetYSlider && offsetYValue) {
+                    offsetYSlider.value = savedOffsetY;
+                    offsetYValue.textContent = savedOffsetY;
+                    offsetYSlider.addEventListener('input', (e) => {
+                        offsetYValue.textContent = e.target.value;
+                        localStorage.setItem('golfVisualOffsetY', e.target.value);
+                        drawOffsetPreview(parseInt(offsetXSlider.value), parseInt(e.target.value));
+                    });
+                }
+
+                // Initial draw
+                drawOffsetPreview(parseInt(savedOffsetX), parseInt(savedOffsetY));
+            }, 100);
         }
 
         window.puttingPlayers = [];
@@ -3879,6 +4197,46 @@
                         </div>
                     </div>
 
+                    <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">📐 Visual Offset (Projector Alignment)</h3>
+                        <!-- Live Preview Canvas -->
+                        <div style="margin-bottom: 20px; text-align: center;">
+                            <canvas id="bowlingOffsetPreviewCanvas" width="600" height="400"
+                                    style="border: 2px solid #FF6B35; border-radius: 8px; background: #1a1a1a; max-width: 100%;"></canvas>
+                            <div style="font-size: 0.9em; opacity: 0.7; margin-top: 8px;">
+                                Live Preview - Adjust sliders to see offset in real-time
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Horizontal: <span id="bowlingOffsetXValue" style="color: #FF6B35;">0</span> px
+                            </div>
+                            <input type="range" id="bowlingOffsetXSlider" min="-500" max="500" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #FF6B35;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>← Left (-500)</span>
+                                <span>Center (0)</span>
+                                <span>Right (+500) →</span>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Vertical: <span id="bowlingOffsetYValue" style="color: #FF6B35;">0</span> px
+                            </div>
+                            <input type="range" id="bowlingOffsetYSlider" min="-300" max="300" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #FF6B35;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>↑ Up (-300)</span>
+                                <span>Center (0)</span>
+                                <span>Down (+300) ↓</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8; margin-top: 10px;">
+                            Adjust if your projector/screen is not centered.<br>
+                            Shifts the camera view to align with your physical setup.
+                        </div>
+                    </div>
+
                     <div id="bowlingPlayerNamesSection" style="display: none; background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
                         <h3 style="margin-bottom: 15px;">Player Names</h3>
                         <div id="bowlingPlayerNameInputs"></div>
@@ -3899,6 +4257,126 @@
                     </div>
                 </div>
             `;
+
+            // Setup Visual Offset sliders
+            setTimeout(() => {
+                const offsetXSlider = document.getElementById('bowlingOffsetXSlider');
+                const offsetXValue = document.getElementById('bowlingOffsetXValue');
+                const offsetYSlider = document.getElementById('bowlingOffsetYSlider');
+                const offsetYValue = document.getElementById('bowlingOffsetYValue');
+
+                // Load saved offset values from localStorage
+                const savedOffsetX = localStorage.getItem('golfVisualOffsetX') || '0';
+                const savedOffsetY = localStorage.getItem('golfVisualOffsetY') || '0';
+
+                const previewCanvas = document.getElementById('bowlingOffsetPreviewCanvas');
+                const previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+
+                // Function to draw preview with offset
+                function drawOffsetPreview(offsetX, offsetY) {
+                    if (!previewCtx) return;
+
+                    const canvas = previewCanvas;
+                    const w = canvas.width;
+                    const h = canvas.height;
+
+                    // Clear canvas
+                    previewCtx.fillStyle = '#1a1a1a';
+                    previewCtx.fillRect(0, 0, w, h);
+
+                    // Apply offset transform (scale down for preview - 600px canvas represents ~1920px screen)
+                    const scale = w / 1920;
+                    const offsetXScaled = offsetX * scale;
+                    const offsetYScaled = offsetY * scale;
+
+                    previewCtx.save();
+                    previewCtx.translate(offsetXScaled, offsetYScaled);
+
+                    // Draw grid
+                    previewCtx.strokeStyle = 'rgba(255, 107, 53, 0.3)';
+                    previewCtx.lineWidth = 1;
+                    for (let x = 0; x <= w; x += 50) {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(x, 0);
+                        previewCtx.lineTo(x, h);
+                        previewCtx.stroke();
+                    }
+                    for (let y = 0; y <= h; y += 50) {
+                        previewCtx.beginPath();
+                        previewCtx.moveTo(0, y);
+                        previewCtx.lineTo(w, y);
+                        previewCtx.stroke();
+                    }
+
+                    // Draw center crosshairs
+                    previewCtx.strokeStyle = '#FF6B35';
+                    previewCtx.lineWidth = 2;
+                    const centerX = w / 2;
+                    const centerY = h / 2;
+                    const crossSize = 30;
+
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(centerX - crossSize, centerY);
+                    previewCtx.lineTo(centerX + crossSize, centerY);
+                    previewCtx.stroke();
+
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(centerX, centerY - crossSize);
+                    previewCtx.lineTo(centerX, centerY + crossSize);
+                    previewCtx.stroke();
+
+                    previewCtx.beginPath();
+                    previewCtx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+                    previewCtx.stroke();
+
+                    // Draw corner markers
+                    previewCtx.fillStyle = '#FF6B35';
+                    const markerSize = 5;
+                    previewCtx.fillRect(10, 10, markerSize, markerSize);
+                    previewCtx.fillRect(w - 10 - markerSize, 10, markerSize, markerSize);
+                    previewCtx.fillRect(10, h - 10 - markerSize, markerSize, markerSize);
+                    previewCtx.fillRect(w - 10 - markerSize, h - 10 - markerSize, markerSize, markerSize);
+
+                    // Draw "TARGET" text
+                    previewCtx.font = 'bold 24px Arial';
+                    previewCtx.fillStyle = '#FF6B35';
+                    previewCtx.textAlign = 'center';
+                    previewCtx.textBaseline = 'middle';
+                    previewCtx.fillText('TARGET', centerX, centerY + 50);
+
+                    previewCtx.restore();
+
+                    // Red border if offset active
+                    if (offsetX !== 0 || offsetY !== 0) {
+                        previewCtx.strokeStyle = '#ef4444';
+                        previewCtx.lineWidth = 3;
+                        previewCtx.strokeRect(2, 2, w - 4, h - 4);
+                    }
+                }
+
+                if (offsetXSlider && offsetXValue) {
+                    offsetXSlider.value = savedOffsetX;
+                    offsetXValue.textContent = savedOffsetX;
+                    offsetXSlider.addEventListener('input', (e) => {
+                        offsetXValue.textContent = e.target.value;
+                        localStorage.setItem('golfVisualOffsetX', e.target.value);
+                        drawOffsetPreview(parseInt(e.target.value), parseInt(offsetYSlider.value));
+                    });
+                }
+
+                if (offsetYSlider && offsetYValue) {
+                    offsetYSlider.value = savedOffsetY;
+                    offsetYValue.textContent = savedOffsetY;
+                    offsetYSlider.addEventListener('input', (e) => {
+                        offsetYValue.textContent = e.target.value;
+                        localStorage.setItem('golfVisualOffsetY', e.target.value);
+                        drawOffsetPreview(parseInt(offsetXSlider.value), parseInt(e.target.value));
+                    });
+                }
+
+                // Initial draw
+                drawOffsetPreview(parseInt(savedOffsetX), parseInt(savedOffsetY));
+            }, 100);
         }
 
         window.bowlingPlayers = [];
@@ -4202,6 +4680,48 @@
                         </div>
                     </div>
 
+                    <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">📐 Visual Offset (Projector Alignment)</h3>
+
+                        <!-- Live Preview Canvas -->
+                        <div style="margin-bottom: 20px; text-align: center;">
+                            <canvas id="golfOffsetPreviewCanvas" width="600" height="400"
+                                    style="border: 2px solid #4ade80; border-radius: 8px; background: #1a1a1a; max-width: 100%;"></canvas>
+                            <div style="font-size: 0.9em; opacity: 0.7; margin-top: 8px;">
+                                Live Preview - Adjust sliders to see offset in real-time
+                            </div>
+                        </div>
+
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Horizontal: <span id="golfOffsetXValue" style="color: #4ade80;">0</span> px
+                            </div>
+                            <input type="range" id="golfOffsetXSlider" min="-500" max="500" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #4ade80;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>← Left (-500)</span>
+                                <span>Center (0)</span>
+                                <span>Right (+500) →</span>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 10px;">
+                                Vertical: <span id="golfOffsetYValue" style="color: #4ade80;">0</span> px
+                            </div>
+                            <input type="range" id="golfOffsetYSlider" min="-300" max="300" step="10" value="0"
+                                   style="width: 100%; height: 8px; cursor: pointer; accent-color: #4ade80;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85em; opacity: 0.7; margin-top: 8px;">
+                                <span>↑ Up (-300)</span>
+                                <span>Center (0)</span>
+                                <span>Down (+300) ↓</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.9em; opacity: 0.8; margin-top: 10px;">
+                            Adjust if your projector/screen is not centered.<br>
+                            Shifts the camera view to align with your physical setup.
+                        </div>
+                    </div>
+
                     <div id="golfPar3PlayerNamesSection" style="display: none; background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
                         <h3 style="margin-bottom: 15px;">Player Names</h3>
                         <div id="golfPar3PlayerNameInputs"></div>
@@ -4231,6 +4751,126 @@
                     stimpValue.textContent = parseFloat(e.target.value).toFixed(1);
                 });
             }
+
+            // Setup Visual Offset sliders and preview
+            const offsetXSlider = document.getElementById('golfOffsetXSlider');
+            const offsetXValue = document.getElementById('golfOffsetXValue');
+            const offsetYSlider = document.getElementById('golfOffsetYSlider');
+            const offsetYValue = document.getElementById('golfOffsetYValue');
+            const previewCanvas = document.getElementById('golfOffsetPreviewCanvas');
+            const previewCtx = previewCanvas ? previewCanvas.getContext('2d') : null;
+
+            // Load saved offset values from localStorage
+            const savedOffsetX = localStorage.getItem('golfVisualOffsetX') || '0';
+            const savedOffsetY = localStorage.getItem('golfVisualOffsetY') || '0';
+
+            // Function to draw preview with offset
+            function drawOffsetPreview(offsetX, offsetY) {
+                if (!previewCtx) return;
+
+                const canvas = previewCanvas;
+                const w = canvas.width;
+                const h = canvas.height;
+
+                // Clear canvas
+                previewCtx.fillStyle = '#1a1a1a';
+                previewCtx.fillRect(0, 0, w, h);
+
+                // Apply offset transform (scale down for preview - 600px canvas represents ~1920px screen)
+                const scale = w / 1920;
+                const offsetXScaled = offsetX * scale;
+                const offsetYScaled = offsetY * scale;
+
+                previewCtx.save();
+                previewCtx.translate(offsetXScaled, offsetYScaled);
+
+                // Draw grid
+                previewCtx.strokeStyle = 'rgba(74, 222, 128, 0.3)';
+                previewCtx.lineWidth = 1;
+                for (let x = 0; x <= w; x += 50) {
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(x, 0);
+                    previewCtx.lineTo(x, h);
+                    previewCtx.stroke();
+                }
+                for (let y = 0; y <= h; y += 50) {
+                    previewCtx.beginPath();
+                    previewCtx.moveTo(0, y);
+                    previewCtx.lineTo(w, y);
+                    previewCtx.stroke();
+                }
+
+                // Draw center crosshairs (bright green)
+                previewCtx.strokeStyle = '#4ade80';
+                previewCtx.lineWidth = 2;
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const crossSize = 30;
+
+                // Horizontal line
+                previewCtx.beginPath();
+                previewCtx.moveTo(centerX - crossSize, centerY);
+                previewCtx.lineTo(centerX + crossSize, centerY);
+                previewCtx.stroke();
+
+                // Vertical line
+                previewCtx.beginPath();
+                previewCtx.moveTo(centerX, centerY - crossSize);
+                previewCtx.lineTo(centerX, centerY + crossSize);
+                previewCtx.stroke();
+
+                // Draw center circle
+                previewCtx.beginPath();
+                previewCtx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+                previewCtx.stroke();
+
+                // Draw corner markers
+                previewCtx.fillStyle = '#4ade80';
+                const markerSize = 5;
+                previewCtx.fillRect(10, 10, markerSize, markerSize); // Top-left
+                previewCtx.fillRect(w - 10 - markerSize, 10, markerSize, markerSize); // Top-right
+                previewCtx.fillRect(10, h - 10 - markerSize, markerSize, markerSize); // Bottom-left
+                previewCtx.fillRect(w - 10 - markerSize, h - 10 - markerSize, markerSize, markerSize); // Bottom-right
+
+                // Draw "TARGET" text in center
+                previewCtx.font = 'bold 24px Arial';
+                previewCtx.fillStyle = '#4ade80';
+                previewCtx.textAlign = 'center';
+                previewCtx.textBaseline = 'middle';
+                previewCtx.fillText('TARGET', centerX, centerY + 50);
+
+                previewCtx.restore();
+
+                // Draw border indicating offset direction
+                if (offsetX !== 0 || offsetY !== 0) {
+                    previewCtx.strokeStyle = '#ef4444';
+                    previewCtx.lineWidth = 3;
+                    previewCtx.strokeRect(2, 2, w - 4, h - 4);
+                }
+            }
+
+            if (offsetXSlider && offsetXValue) {
+                offsetXSlider.value = savedOffsetX;
+                offsetXValue.textContent = savedOffsetX;
+                offsetXSlider.addEventListener('input', (e) => {
+                    offsetXValue.textContent = e.target.value;
+                    localStorage.setItem('golfVisualOffsetX', e.target.value);
+                    drawOffsetPreview(parseInt(e.target.value), parseInt(offsetYSlider.value));
+                });
+            }
+
+            if (offsetYSlider && offsetYValue) {
+                offsetYSlider.value = savedOffsetY;
+                offsetYValue.textContent = savedOffsetY;
+                offsetYSlider.addEventListener('input', (e) => {
+                    offsetYValue.textContent = e.target.value;
+                    localStorage.setItem('golfVisualOffsetY', e.target.value);
+                    drawOffsetPreview(parseInt(offsetXSlider.value), parseInt(e.target.value));
+                });
+            }
+
+            // Draw initial preview
+            drawOffsetPreview(parseInt(savedOffsetX), parseInt(savedOffsetY));
         }
 
         function selectGolfHoles(selection) {
@@ -4369,12 +5009,18 @@
             // Get green speed (Stimp) setting
             const greenStimp = parseFloat(document.getElementById('golfStimpSlider').value);
 
-            // Save players, hole selection, gimmie, and Stimp setting to localStorage
+            // Get visual offset settings
+            const offsetX = parseInt(document.getElementById('golfOffsetXSlider').value);
+            const offsetY = parseInt(document.getElementById('golfOffsetYSlider').value);
+
+            // Save players, hole selection, gimmie, Stimp, and visual offset settings to localStorage
             localStorage.setItem('golfPar3Players', JSON.stringify(window.golfPar3Players));
             localStorage.setItem('golfPar3CurrentPlayer', '0');
             localStorage.setItem('golfSelectedHoles', JSON.stringify(window.golfSelectedHoles));
             localStorage.setItem('golfGimmieCircles', gimmieEnabled ? 'true' : 'false');
             localStorage.setItem('golfGreenStimp', greenStimp.toString());
+            localStorage.setItem('golfVisualOffsetX', offsetX.toString());
+            localStorage.setItem('golfVisualOffsetY', offsetY.toString());
 
             // Dynamic window title based on selection
             let windowTitle = 'Shanktuary Hills Golf';
