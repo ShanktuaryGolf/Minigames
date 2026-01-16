@@ -1,13 +1,69 @@
 # Shanktuary Golf Mini Games - Project Status
 
 **Date:** January 15, 2026
-**Version:** 4.13.0 (PRODUCTION)
-**Status:** 📐 Visual Offset Alignment System - Projector Calibration
+**Version:** 4.13.1 (PRODUCTION)
+**Status:** 🎯 Performance Restoration - Fixed Visual Quality Issues
 **Location:** `/home/shreen/minigames/web/`
 
 ---
 
 ## 📋 Recent Updates (January 15, 2026)
+
+### Version 4.13.1 (PRODUCTION) - Performance Fix
+**Date:** 2026-01-15
+
+#### Critical Performance Fix:
+
+**🎯 RESTORED VISUAL QUALITY TO v4.9.0 LEVELS**
+
+Version 4.13.0 had overly aggressive performance "optimizations" that severely degraded visual quality and caused poor performance. All settings have been restored to match the well-performing v4.9.0 configuration.
+
+**Issues Fixed:**
+- ❌ Jagged edges from disabled antialiasing
+- ❌ Flat lighting from disabled shadows
+- ❌ Blocky ball appearance (8x8 segments)
+- ❌ Poor ball lighting (MeshLambertMaterial)
+- ❌ Extremely blocky terrain (90-96% segment reduction)
+- ❌ Visual artifacts from low precision
+
+**Restored Settings (golf-par3.html):**
+
+1. **Renderer Quality (lines 817-824)**
+   - ✅ `antialias: true` (was false)
+   - ✅ `shadowMap.enabled: true` (was false)
+   - ✅ Removed `precision: "lowp"`
+   - Result: Smooth edges, realistic lighting
+
+2. **Ball Quality (lines 2101-2111)**
+   - ✅ 16x16 segments (was 8x8)
+   - ✅ MeshStandardMaterial with PBR (was MeshLambertMaterial)
+   - ✅ Metalness: 0.1, Roughness: 0.6
+   - ✅ `castShadow: true` (was false)
+   - Result: Smooth, realistic ball appearance
+
+3. **Terrain Detail (lines 1211-1223)**
+   - ✅ Dogleg-left: 150x150 segments (was 50x50)
+   - ✅ Dogleg-right: 120x200 segments (was 40x70)
+   - ✅ Island-hopping: 150x350 segments (was 50x100)
+   - ✅ Standard holes: 200x300 segments (was 40x60)
+   - Result: Smooth, detailed terrain (not blocky)
+
+**Verification:**
+- Compared against v4.9.0 (commit 027a626)
+- All quality settings now match the well-performing v4.9.0 configuration
+- Games running smoothly with high visual quality
+
+**Production Controls:**
+- ✅ Disabled demo shot panel in golf-par3.html (line 209)
+- ✅ Disabled debug controls in putting-green.html (line 401)
+- ✅ Disabled test shot button in soccer-penalty.html (line 196)
+
+**Files Modified:**
+- `golf-par3.html` - Restored renderer, ball, and terrain quality settings
+- `putting-green.html` - Verified debug controls disabled
+- `soccer-penalty.html` - Verified test controls disabled
+
+---
 
 ### Version 4.13.0 (PRODUCTION) - Visual Offset Alignment System
 **Date:** 2026-01-15
