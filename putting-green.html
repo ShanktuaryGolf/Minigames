@@ -529,6 +529,15 @@
         let lastTime = performance.now();
         let puttResultProcessed = false; // Track if result was processed for ladder mode
 
+        const DEBUG_PUTTING_COLLISION = false;
+        const logCollision = DEBUG_PUTTING_COLLISION ? console.log.bind(console) : () => {};
+        const DISTANCE_UPDATE_INTERVAL_MS = 100;
+        let lastDistanceUpdateTime = 0;
+
+        const tempSpinEffect = new THREE.Vector3();
+        const tempNormal = new THREE.Vector3();
+        const tempDirToHole = new THREE.Vector3();
+
         // Players
         window.puttingPlayers = [];
         window.currentPlayerIndex = 0;
@@ -968,7 +977,7 @@
                 case 'behind':
                     // Camera positioned behind the ball, looking toward the hole
                     // Calculate direction from ball to hole
-                    const directionToHole = new THREE.Vector3(
+                    tempDirToHole.set(
                         -ball.position.x,
                         0,
                         -ball.position.z
@@ -978,48 +987,48 @@
                     const behindDistance = 1.5; // meters behind the ball
                     const behindHeight = 0.3; // height above ground
                     camera.position.set(
-                        ball.position.x - directionToHole.x * behindDistance,
+                        ball.position.x - tempDirToHole.x * behindDistance,
                         ball.position.y + behindHeight,
-                        ball.position.z - directionToHole.z * behindDistance
+                        ball.position.z - tempDirToHole.z * behindDistance
                     );
 
                     // Look at the hole (or slightly above the ball)
-                    camera.lookAt(ball.position.x + directionToHole.x * 2, ball.position.y, ball.position.z + directionToHole.z * 2);
+                    camera.lookAt(ball.position.x + tempDirToHole.x * 2, ball.position.y, ball.position.z + tempDirToHole.z * 2);
                     break;
                 case 'follow':
                     // Follow camera stays behind the ball as it moves
                     if (isMoving && ballVelocity.length() > 0.01) {
                         // Get ball's direction of travel
-                        const travelDirection = ballVelocity.clone().normalize();
+                        tempDirToHole.copy(ballVelocity).normalize();
 
                         // Position camera behind the ball's direction of travel
                         const followDistance = 1.0;
                         const followHeight = 0.4;
                         camera.position.set(
-                            ball.position.x - travelDirection.x * followDistance,
+                            ball.position.x - tempDirToHole.x * followDistance,
                             ball.position.y + followHeight,
-                            ball.position.z - travelDirection.z * followDistance
+                            ball.position.z - tempDirToHole.z * followDistance
                         );
 
                         // Look slightly ahead of the ball
                         camera.lookAt(
-                            ball.position.x + travelDirection.x * 0.5,
+                            ball.position.x + tempDirToHole.x * 0.5,
                             ball.position.y,
-                            ball.position.z + travelDirection.z * 0.5
+                            ball.position.z + tempDirToHole.z * 0.5
                         );
                     } else {
                         // If ball stopped, use same as behind view
-                        const dirToHole = new THREE.Vector3(
+                        tempDirToHole.set(
                             -ball.position.x,
                             0,
                             -ball.position.z
                         ).normalize();
                         camera.position.set(
-                            ball.position.x - dirToHole.x * 1.0,
+                            ball.position.x - tempDirToHole.x * 1.0,
                             ball.position.y + 0.4,
-                            ball.position.z - dirToHole.z * 1.0
+                            ball.position.z - tempDirToHole.z * 1.0
                         );
-                        camera.lookAt(ball.position.x + dirToHole.x, ball.position.y, ball.position.z + dirToHole.z);
+                        camera.lookAt(ball.position.x + tempDirToHole.x, ball.position.y, ball.position.z + tempDirToHole.z);
                     }
                     break;
                 case 'side':
@@ -1110,10 +1119,10 @@
 
                 // Apply spin effect (Magnus force - simplified)
                 if (ballSpin.length() > 0.1) {
-                    const spinEffect = new THREE.Vector3()
+                    tempSpinEffect
                         .crossVectors(ballSpin, ballVelocity)
                         .multiplyScalar(0.0001 * deltaTime);
-                    ballVelocity.add(spinEffect);
+                    ballVelocity.add(tempSpinEffect);
 
                     // Spin decay
                     ballSpin.multiplyScalar(1 - deltaTime * 2);
@@ -1124,7 +1133,7 @@
 
                 // Update position (only if no collision happened, since collision already positioned the ball)
                 if (!hadCollision) {
-                    ball.position.add(ballVelocity.clone().multiplyScalar(deltaTime));
+                    ball.position.addScaledVector(ballVelocity, deltaTime);
                 }
 
                 // Check gate post collisions and gate crossing (if in gate drill mode)
@@ -1137,10 +1146,10 @@
                 const distFromCenter = Math.sqrt(ball.position.x ** 2 + ball.position.z ** 2);
                 if (distFromCenter > 14.8) {
                     // Bounce off edge
-                    const normal = new THREE.Vector3(ball.position.x, 0, ball.position.z).normalize();
-                    ballVelocity.reflect(normal).multiplyScalar(restitution);
-                    ball.position.x = normal.x * 14.8;
-                    ball.position.z = normal.z * 14.8;
+                    tempNormal.set(ball.position.x, 0, ball.position.z).normalize();
+                    ballVelocity.reflect(tempNormal).multiplyScalar(restitution);
+                    ball.position.x = tempNormal.x * 14.8;
+                    ball.position.z = tempNormal.z * 14.8;
                 }
 
                 // Check for hole (post-movement for slow balls)
@@ -1212,6 +1221,12 @@
         }
 
         function updateDistanceToHole() {
+            const now = performance.now();
+            if (now - lastDistanceUpdateTime < DISTANCE_UPDATE_INTERVAL_MS) {
+                return;
+            }
+            lastDistanceUpdateTime = now;
+
             // Calculate distance from ball to hole (hole is at origin 0,0,0)
             const distanceMeters = Math.sqrt(ball.position.x ** 2 + ball.position.z ** 2);
             const distanceFeet = distanceMeters / 0.3048;
@@ -1232,11 +1247,11 @@
         function checkHoleCollisionPredictive(deltaTime) {
             const ballSpeed = ballVelocity.length();
 
-            console.log(`🔍 Predictive check - Speed: ${ballSpeed.toFixed(2)} m/s, Ball pos: (${ball.position.x.toFixed(3)}, ${ball.position.z.toFixed(3)})`);
+            logCollision(`🔍 Predictive check - Speed: ${ballSpeed.toFixed(2)} m/s, Ball pos: (${ball.position.x.toFixed(3)}, ${ball.position.z.toFixed(3)})`);
 
             // Only check fast balls predictively
             if (ballSpeed < 2.0) {
-                console.log('   ⏩ Ball too slow, skipping predictive check');
+                logCollision('   ⏩ Ball too slow, skipping predictive check');
                 return false;
             }
 
@@ -1251,84 +1266,83 @@
                 const currentDist = Math.sqrt(currentDx * currentDx + currentDz * currentDz);
 
                 // Next position after movement
-                const nextPos = ball.position.clone().add(ballVelocity.clone().multiplyScalar(deltaTime));
-                const nextDx = nextPos.x - hole.x;
-                const nextDz = nextPos.z - hole.z;
+                const nextX = ball.position.x + ballVelocity.x * deltaTime;
+                const nextZ = ball.position.z + ballVelocity.z * deltaTime;
+                const nextDx = nextX - hole.x;
+                const nextDz = nextZ - hole.z;
                 const nextDist = Math.sqrt(nextDx * nextDx + nextDz * nextDz);
 
-                console.log(`   📏 Current dist: ${currentDist.toFixed(3)}m, Next dist: ${nextDist.toFixed(3)}m, Collision radius: ${collisionRadius.toFixed(3)}m`);
+                logCollision(`   📏 Current dist: ${currentDist.toFixed(3)}m, Next dist: ${nextDist.toFixed(3)}m, Collision radius: ${collisionRadius.toFixed(3)}m`);
 
                 // Check if ball will cross into collision radius this frame
                 if (currentDist > collisionRadius && nextDist <= collisionRadius) {
-                    console.log('   🎯 COLLISION INCOMING!');
+                    logCollision('   🎯 COLLISION INCOMING!');
 
                     // Ball is about to collide - find exact collision point
-                    const direction = ballVelocity.clone().normalize();
+                    const dirX = ballVelocity.x / ballSpeed;
+                    const dirZ = ballVelocity.z / ballSpeed;
 
                     // Use quadratic equation to find collision time
                     // Circle-ray intersection
                     const ex = ball.position.x - hole.x;
                     const ez = ball.position.z - hole.z;
-                    const dx = direction.x;
-                    const dz = direction.z;
-
-                    const a = dx * dx + dz * dz;
-                    const b = 2 * (ex * dx + ez * dz);
+                    const a = dirX * dirX + dirZ * dirZ;
+                    const b = 2 * (ex * dirX + ez * dirZ);
                     const c = ex * ex + ez * ez - collisionRadius * collisionRadius;
 
                     const discriminant = b * b - 4 * a * c;
 
-                    console.log(`   🧮 Quadratic: a=${a.toFixed(4)}, b=${b.toFixed(4)}, c=${c.toFixed(4)}, disc=${discriminant.toFixed(4)}`);
+                    logCollision(`   🧮 Quadratic: a=${a.toFixed(4)}, b=${b.toFixed(4)}, c=${c.toFixed(4)}, disc=${discriminant.toFixed(4)}`);
 
                     if (discriminant >= 0) {
                         const t = (-b - Math.sqrt(discriminant)) / (2 * a);
 
-                        console.log(`   ⏱️ Collision time t=${t.toFixed(4)}, maxT=${(ballSpeed * deltaTime).toFixed(4)}`);
+                        logCollision(`   ⏱️ Collision time t=${t.toFixed(4)}, maxT=${(ballSpeed * deltaTime).toFixed(4)}`);
 
                         if (t > 0 && t <= ballSpeed * deltaTime) {
-                            console.log(`   ✅ APPLYING COLLISION - Moving ball to collision point`);
-                            console.log(`   📍 Before: (${ball.position.x.toFixed(3)}, ${ball.position.z.toFixed(3)})`);
+                            logCollision(`   ✅ APPLYING COLLISION - Moving ball to collision point`);
+                            logCollision(`   📍 Before: (${ball.position.x.toFixed(3)}, ${ball.position.z.toFixed(3)})`);
 
                             // Move ball to exact collision point
-                            ball.position.x += direction.x * t;
-                            ball.position.z += direction.z * t;
+                            ball.position.x += dirX * t;
+                            ball.position.z += dirZ * t;
 
-                            console.log(`   📍 After move: (${ball.position.x.toFixed(3)}, ${ball.position.z.toFixed(3)})`);
+                            logCollision(`   📍 After move: (${ball.position.x.toFixed(3)}, ${ball.position.z.toFixed(3)})`);
 
                             // Calculate normal at collision point (points from hole center to ball)
-                            const normal = new THREE.Vector3(
+                            tempNormal.set(
                                 ball.position.x - hole.x,
                                 0,
                                 ball.position.z - hole.z
                             ).normalize();
 
-                            console.log(`   🔄 Normal: (${normal.x.toFixed(3)}, ${normal.z.toFixed(3)})`);
-                            console.log(`   🏃 Velocity before: (${ballVelocity.x.toFixed(3)}, ${ballVelocity.y.toFixed(3)}, ${ballVelocity.z.toFixed(3)})`);
+                            logCollision(`   🔄 Normal: (${tempNormal.x.toFixed(3)}, ${tempNormal.z.toFixed(3)})`);
+                            logCollision(`   🏃 Velocity before: (${ballVelocity.x.toFixed(3)}, ${ballVelocity.y.toFixed(3)}, ${ballVelocity.z.toFixed(3)})`);
 
                             // Reflect velocity using vector reflection formula: V' = V - 2(V·N)N
-                            const dot = ballVelocity.dot(normal);
-                            console.log(`   📊 Dot product: ${dot.toFixed(3)}`);
+                            const dot = ballVelocity.dot(tempNormal);
+                            logCollision(`   📊 Dot product: ${dot.toFixed(3)}`);
 
-                            ballVelocity.x -= 2 * dot * normal.x;
-                            ballVelocity.y -= 2 * dot * normal.y;
-                            ballVelocity.z -= 2 * dot * normal.z;
+                            ballVelocity.x -= 2 * dot * tempNormal.x;
+                            ballVelocity.y -= 2 * dot * tempNormal.y;
+                            ballVelocity.z -= 2 * dot * tempNormal.z;
 
                             // Energy loss
                             ballVelocity.multiplyScalar(0.7);
 
-                            console.log(`   🏃 Velocity after: (${ballVelocity.x.toFixed(3)}, ${ballVelocity.z.toFixed(3)})`);
-                            console.log(`   💥 COLLISION HANDLED`);
+                            logCollision(`   🏃 Velocity after: (${ballVelocity.x.toFixed(3)}, ${ballVelocity.z.toFixed(3)})`);
+                            logCollision(`   💥 COLLISION HANDLED`);
 
                             collisionHappened = true;
                         } else {
-                            console.log(`   ❌ t out of range, no collision`);
+                            logCollision(`   ❌ t out of range, no collision`);
                         }
                     } else {
-                        console.log(`   ❌ Negative discriminant, no collision`);
+                        logCollision(`   ❌ Negative discriminant, no collision`);
                     }
                 } else {
                     if (currentDist <= collisionRadius) {
-                        console.log(`   ⚠️ Already inside collision radius!`);
+                        logCollision(`   ⚠️ Already inside collision radius!`);
                     }
                 }
             });
@@ -1350,16 +1364,16 @@
                     // Ball hit the flagstick/hole edge going too fast - bounce off
 
                     // Calculate contact point on hole edge
-                    const normal = new THREE.Vector3(dx, 0, dz).normalize();
+                    tempNormal.set(dx, 0, dz).normalize();
 
                     // Position ball exactly at collision point (not past it)
-                    ball.position.x = hole.x + normal.x * collisionRadius;
-                    ball.position.z = hole.z + normal.z * collisionRadius;
+                    ball.position.x = hole.x + tempNormal.x * collisionRadius;
+                    ball.position.z = hole.z + tempNormal.z * collisionRadius;
 
                     // Reflect velocity smoothly
-                    const dot = ballVelocity.dot(normal);
-                    ballVelocity.x -= 2 * dot * normal.x;
-                    ballVelocity.z -= 2 * dot * normal.z;
+                    const dot = ballVelocity.dot(tempNormal);
+                    ballVelocity.x -= 2 * dot * tempNormal.x;
+                    ballVelocity.z -= 2 * dot * tempNormal.z;
 
                     // Energy loss on impact
                     ballVelocity.multiplyScalar(0.7);

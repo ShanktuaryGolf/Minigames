@@ -134,6 +134,10 @@
             border-radius: 8px;
             backdrop-filter: blur(10px);
             font-size: 14px;
+            line-height: 1.4;
+            text-align: center;
+            white-space: pre-line;
+            min-width: 320px;
             display: none;
         }
 
@@ -662,24 +666,78 @@
         // Create Cups Function
         function createCup(x, z, team) {
             const cupHeight = 0.115; // 4.5 inches
-            const cupRadius = 0.04;  // Red Solo cup radius
+            const cupRadiusTop = 0.04;  // Red Solo cup radius (top)
+            const cupRadiusBottom = cupRadiusTop * 0.85;
+            const cupWall = 0.0025;
+            const bottomThickness = 0.004;
+            const bottomLift = 0.003;
 
-            const cupGeometry = new THREE.CylinderGeometry(cupRadius, cupRadius * 0.8, cupHeight, 16);
-            const cupMaterial = new THREE.MeshStandardMaterial({
-                color: team === 'red' ? 0xef4444 : 0x3b82f6,
-                roughness: 0.4,
-                metalness: 0.1
+            const cupGroup = new THREE.Group();
+
+            const cupColor = team === 'red' ? 0xef4444 : 0x3b82f6;
+            const outerMaterial = new THREE.MeshStandardMaterial({
+                color: cupColor,
+                roughness: 0.35,
+                metalness: 0.05
+            });
+            const innerMaterial = new THREE.MeshStandardMaterial({
+                color: team === 'red' ? 0xb91c1c : 0x1e40af,
+                roughness: 0.8,
+                metalness: 0.0,
+                side: THREE.BackSide
             });
 
-            const cup = new THREE.Mesh(cupGeometry, cupMaterial);
-            cup.position.set(x, 0.05 + cupHeight / 2, z);
-            cup.castShadow = true;
-            cup.receiveShadow = true;
-            cup.userData.team = team;
-            cup.userData.active = true;
+            const outerGeometry = new THREE.CylinderGeometry(
+                cupRadiusTop,
+                cupRadiusBottom,
+                cupHeight,
+                24,
+                1,
+                true
+            );
+            const outerCup = new THREE.Mesh(outerGeometry, outerMaterial);
+            outerCup.castShadow = true;
+            outerCup.receiveShadow = true;
+            cupGroup.add(outerCup);
 
-            scene.add(cup);
-            return cup;
+            const innerGeometry = new THREE.CylinderGeometry(
+                cupRadiusTop - cupWall,
+                cupRadiusBottom - cupWall,
+                cupHeight - bottomThickness,
+                24,
+                1,
+                true
+            );
+            const innerCup = new THREE.Mesh(innerGeometry, innerMaterial);
+            innerCup.position.y = bottomThickness / 2 + bottomLift;
+            innerCup.castShadow = false;
+            innerCup.receiveShadow = false;
+            cupGroup.add(innerCup);
+
+            const bottomGeometry = new THREE.CylinderGeometry(
+                cupRadiusBottom - cupWall,
+                cupRadiusBottom - cupWall,
+                bottomThickness,
+                24
+            );
+            const bottomDisk = new THREE.Mesh(bottomGeometry, innerMaterial);
+            bottomDisk.position.y = -cupHeight / 2 + bottomThickness / 2 + bottomLift;
+            cupGroup.add(bottomDisk);
+
+            const rimGeometry = new THREE.TorusGeometry(cupRadiusTop * 0.98, 0.0025, 8, 24);
+            const rim = new THREE.Mesh(rimGeometry, outerMaterial);
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = cupHeight / 2 - 0.001;
+            cupGroup.add(rim);
+
+            cupGroup.position.set(x, 0.05 + cupHeight / 2, z);
+            cupGroup.userData.team = team;
+            cupGroup.userData.active = true;
+            cupGroup.userData.radius = cupRadiusTop;
+            cupGroup.userData.height = cupHeight;
+
+            scene.add(cupGroup);
+            return cupGroup;
         }
 
         // Setup Cup Formations (10-cup triangle)
@@ -838,8 +896,8 @@
                 const dz = ball.position.z - cup.position.z;
                 const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
 
-                const cupRadius = 0.04;
-                const cupHeight = 0.115;
+                const cupRadius = cup.userData.radius || 0.04;
+                const cupHeight = cup.userData.height || 0.115;
                 const cupTop = cup.position.y + cupHeight/2;
                 const cupBottom = cup.position.y - cupHeight/2;
 
@@ -981,7 +1039,7 @@
             lastRemovedCup.userData.active = true;
 
             // Re-add to scene and reset position/scale
-            const cupHeight = 0.115;
+            const cupHeight = lastRemovedCup.userData.height || 0.115;
             lastRemovedCup.position.y = 0.05 + cupHeight / 2;
             lastRemovedCup.scale.set(1, 1, 1);
             scene.add(lastRemovedCup);
@@ -1123,11 +1181,43 @@
 
                 // Show shot info
                 const shotInfo = document.getElementById('shotInfo');
-                shotInfo.textContent = `Speed: ${speed_mph.toFixed(1)} mph | Launch: ${vla.toFixed(1)}° | Side: ${hla.toFixed(1)}°`;
+                const totalSpinRaw = shotData.total_spin ?? shotData.totalSpin ?? shotData.spin;
+                const spinAxisRaw = shotData.spin_axis ?? shotData.spinAxis;
+                const backSpinRaw = shotData.back_spin ?? shotData.backSpin;
+                const sideSpinRaw = shotData.side_spin ?? shotData.sideSpin;
+                let totalSpin = Number.isFinite(totalSpinRaw) ? totalSpinRaw : null;
+                let spinAxis = Number.isFinite(spinAxisRaw) ? spinAxisRaw : null;
+                let backSpin = Number.isFinite(backSpinRaw) ? backSpinRaw : null;
+                let sideSpin = Number.isFinite(sideSpinRaw) ? sideSpinRaw : null;
+                if ((backSpin === null || sideSpin === null) && totalSpin !== null && spinAxis !== null) {
+                    const spinAxisRad = spinAxis * Math.PI / 180;
+                    backSpin = totalSpin * Math.cos(spinAxisRad);
+                    sideSpin = totalSpin * Math.sin(spinAxisRad);
+                }
+                if (totalSpin === null && backSpin !== null && sideSpin !== null) {
+                    totalSpin = Math.sqrt(backSpin * backSpin + sideSpin * sideSpin);
+                }
+                if (spinAxis === null && backSpin !== null && sideSpin !== null) {
+                    spinAxis = Math.atan2(sideSpin, backSpin) * 180 / Math.PI;
+                }
+
+                const lines = [
+                    `Speed: ${speed_mph.toFixed(1)} mph | VLA: ${vla.toFixed(1)}° | HLA: ${hla.toFixed(1)}°`
+                ];
+                const totalSpinText = totalSpin !== null ? `${Math.round(totalSpin)} rpm` : '--';
+                const spinParts = [`Total Spin: ${totalSpinText}`];
+                if (spinAxis !== null) spinParts.push(`Axis: ${spinAxis.toFixed(1)}°`);
+                lines.push(spinParts.join(' | '));
+                if (backSpin !== null || sideSpin !== null) {
+                    const backSideParts = [];
+                    if (backSpin !== null) backSideParts.push(`Back: ${Math.round(backSpin)} rpm`);
+                    if (sideSpin !== null) backSideParts.push(`Side: ${Math.round(sideSpin)} rpm`);
+                    lines.push(backSideParts.join(' | '));
+                }
+
+                shotInfo.textContent = lines.join('\n');
                 shotInfo.style.display = 'block';
-                setTimeout(() => {
-                    shotInfo.style.display = 'none';
-                }, 3000);
+                // Keep shot data visible until the next shot
             });
         } else {
             console.log('Running in browser mode - launch monitor not available');

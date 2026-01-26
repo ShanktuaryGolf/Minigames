@@ -28,49 +28,49 @@
 // Region calibration data (optimized on 160 shots from all-shots.csv)
 const REGIONS = {
     WEDGE: {
-        avgSpeed: 56.2,
-        avgVLA: 25.5,
-        avgSpin: 5260,
-        avgTotal: 58.3,
-        speedCoeff: 1.5,
-        vlaCoeff: 0,
-        spinCoeff: 0
+        avgSpeed: 53.408,
+        avgVLA: 28.524,
+        avgSpin: 8091.1,
+        avgTotal: 64.37,
+        speedCoeff: 2.286,
+        vlaCoeff: 0.352,
+        spinCoeff: 0.001092
     },
     IRON: {
-        avgSpeed: 80.4,
-        avgVLA: 21.5,
-        avgSpin: 5788,
-        avgTotal: 97.1,
-        speedCoeff: 2,
-        vlaCoeff: 2,      // Positive: high VLA increases distance for irons
-        spinCoeff: -0.005
+        avgSpeed: 83.771,
+        avgVLA: 19.893,
+        avgSpin: 5568.3,
+        avgTotal: 130.64,
+        speedCoeff: 2.668,
+        vlaCoeff: 1.326,      // Positive: high VLA increases distance for irons
+        spinCoeff: 0.005048
     },
     POWER: {
-        avgSpeed: 125.2,
-        avgVLA: 19.3,
-        avgSpin: 5569,
-        avgTotal: 189.8,
-        speedCoeff: 2,
-        vlaCoeff: 1,
-        spinCoeff: -0.01
+        avgSpeed: 121.453,
+        avgVLA: 15.437,
+        avgSpin: 4568.3,
+        avgTotal: 214.59,
+        speedCoeff: 2.388,
+        vlaCoeff: 1.761,
+        spinCoeff: 0.010370
     },
     DRIVER_LOW_VLA: {
-        avgSpeed: 155.0,
-        avgVLA: 11.0,
-        avgSpin: 2786,
-        avgTotal: 265.6,
-        speedCoeff: 1.5,
-        vlaCoeff: 5,      // High VLA effect for low trajectory drivers
-        spinCoeff: -0.01
+        avgSpeed: 156.090,
+        avgVLA: 10.175,
+        avgSpin: 2784.2,
+        avgTotal: 256.84,
+        speedCoeff: 2.165,
+        vlaCoeff: 5.044,      // High VLA effect for low trajectory drivers
+        spinCoeff: 0.026762
     },
     DRIVER: {
-        avgSpeed: 153.9,
-        avgVLA: 41.8,
-        avgSpin: 2568,
-        avgTotal: 271.1,
-        speedCoeff: 1.5,
-        vlaCoeff: 0,
-        spinCoeff: -0.01
+        avgSpeed: 156.090,
+        avgVLA: 15.718,
+        avgSpin: 2784.2,
+        avgTotal: 276.13,
+        speedCoeff: 1.985,
+        vlaCoeff: 2.303,
+        spinCoeff: 0.017888
     }
 };
 

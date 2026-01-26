@@ -12,11 +12,16 @@ logs/
 # Environment
 .env
 
+# Documentation
+*.md
+
 # OS
 .DS_Store
 
 # Backups
 *.backup
+*.backup-*
+*.backup.*
 *.bak
 *_backup*
 *-backup*
@@ -41,18 +46,7 @@ gspro_websocket_bridge.py
 server.py
 calc-spin.py
 
-# Documentation (dev notes, not user-facing)
-DISCORD_*.md
-CONNECTOR_UPDATE.md
-ELECTRON_README.md
-EMPIRICAL_MODEL_README.md
-FLIGHTSCOPE_HELPER.md
-HYBRID_PHYSICS_*.md
-PATCH_NOTES_*.md
-PHYSICS_ANALYSIS_*.md
-PROJECTOR_MODE.md
-SQUAREGOLF_FIX.md
-WINDOWS_FIREWALL_HELP.md
+# Documentation (covered by *.md above)
 test-cases.*
 *.txt
 post.txt
@@ -64,6 +58,7 @@ ui.png
 wiigolfui.png
 logo.png
 shanktuaryminigames*.png
+Nova_byOpenLaunch.png
 jesus.jpeg
 soccer-ball-texture.jpg
 *.pdf

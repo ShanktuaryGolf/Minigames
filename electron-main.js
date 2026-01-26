@@ -72,6 +72,22 @@ function sendUpdateStatusToWindow(event, data = null) {
     }
 }
 
+async function logGpuDiagnostics() {
+    try {
+        const status = app.getGPUFeatureStatus();
+        console.log('GPU feature status:', status);
+    } catch (err) {
+        console.warn('Failed to read GPU feature status:', err);
+    }
+
+    try {
+        const info = await app.getGPUInfo('complete');
+        console.log('GPU info:', info);
+    } catch (err) {
+        console.warn('Failed to read GPU info:', err);
+    }
+}
+
 
 function createApplicationMenu() {
     const stimpOptions = [7, 8, 9, 10, 11, 12, 13, 14]; // Slow to fast greens
@@ -120,6 +136,21 @@ function createApplicationMenu() {
             ]
         },
         {
+            label: 'View',
+            submenu: [
+                {
+                    label: 'Toggle Fullscreen',
+                    accelerator: 'F11',
+                    click: () => {
+                        const focusedWindow = BrowserWindow.getFocusedWindow();
+                        if (focusedWindow && !focusedWindow.isDestroyed()) {
+                            focusedWindow.setFullScreen(!focusedWindow.isFullScreen());
+                        }
+                    }
+                }
+            ]
+        },
+        {
             label: 'Help',
             submenu: [
                 {
@@ -134,6 +165,27 @@ function createApplicationMenu() {
                                 focusedWindow.webContents.openDevTools();
                             }
                         }
+                    }
+                },
+                {
+                    label: 'GPU Status',
+                    click: async () => {
+                        const { dialog } = require('electron');
+                        const focusedWindow = BrowserWindow.getFocusedWindow() || mainWindow;
+                        const status = app.getGPUFeatureStatus();
+                        let info = null;
+                        try {
+                            info = await app.getGPUInfo('basic');
+                        } catch (err) {
+                            info = { error: err.message };
+                        }
+                        const detail = `GPU feature status:\n${JSON.stringify(status, null, 2)}\n\nGPU info:\n${JSON.stringify(info, null, 2)}`;
+                        dialog.showMessageBox(focusedWindow, {
+                            type: 'info',
+                            title: 'GPU Status',
+                            message: 'GPU diagnostics',
+                            detail: detail
+                        });
                     }
                 }
             ]
@@ -151,7 +203,9 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            hardwareAcceleration: true,  // Force hardware acceleration
+            webgl: true  // Enable WebGL
         },
         icon: path.join(__dirname, 'icon.png')
     });
@@ -826,14 +880,51 @@ function stopNova() {
     sendNovaStatus('stopped', 'Nova disconnected');
 }
 
-// Enable GPU acceleration (native OpenGL on Linux)
+// Enable GPU acceleration (more conservative approach)
 app.commandLine.appendSwitch('ignore-gpu-blacklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
+// Accept SwiftShader as fallback (better than crashing)
+// app.commandLine.appendSwitch('disable-software-rasterizer');  // TOO AGGRESSIVE - causes WebGL failure
+app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
+// Fix Mesa shader validation errors on AMD/Linux
+app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
+if (process.platform === 'linux') {
+    const sessionType = process.env.XDG_SESSION_TYPE;
+    const forcedGlBackend = process.env.FORCE_GL_BACKEND || process.env.ELECTRON_GL_BACKEND;
+    const glBackend = forcedGlBackend || (sessionType === 'wayland' ? 'egl' : 'desktop');
+    app.commandLine.appendSwitch('use-gl', glBackend);
+    console.log(`Using GL backend: ${glBackend} (session=${sessionType || 'unknown'})`);
+    const disableFeatures = [];
+    const disablePassthrough = process.env.DISABLE_PASSTHROUGH === '1' || process.env.DISABLE_PASSTHROUGH === 'true';
+    if (glBackend === 'egl' || disablePassthrough) {
+        disableFeatures.push('UsePassthroughCommandDecoder');
+        console.log('Disabling passthrough command decoder for EGL');
+    }
+    if (disableFeatures.length) {
+        app.commandLine.appendSwitch('disable-features', disableFeatures.join(','));
+    }
+}
+if (process.platform === 'win32') {
+    const forcedAngle = process.env.FORCE_ANGLE;
+    if (forcedAngle) {
+        app.commandLine.appendSwitch('use-angle', forcedAngle);
+        console.log(`Using ANGLE backend: ${forcedAngle}`);
+    }
+}
+app.commandLine.appendSwitch('disable-gpu-vsync');
+const forceGpu = process.env.FORCE_GPU === '1' || process.env.FORCE_GPU === 'true';
+if (forceGpu) {
+    app.commandLine.appendSwitch('disable-software-rasterizer');
+    console.log('FORCE_GPU enabled: disabling software rasterizer');
+}
 
 // App lifecycle
 app.whenReady().then(() => {
     createApplicationMenu();
     createWindow();
+    setTimeout(() => {
+        logGpuDiagnostics();
+    }, 1000);
     // Don't auto-start GSPro server - only start when user selects OpenAPI/Other
     // startGSProServer();
 
@@ -938,7 +1029,9 @@ ipcMain.handle('open-game-window', (event, { url, title, width, height, playerDa
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            webSecurity: false  // Allow loading local assets like 3D models
+            webSecurity: false,  // Allow loading local assets like 3D models
+            hardwareAcceleration: true,  // Force hardware acceleration
+            webgl: true  // Enable WebGL
         },
         title: title || 'Game',
         icon: path.join(__dirname, 'icon.png')
@@ -1004,4 +1097,3 @@ ipcMain.handle('quit-and-install', () => {
     autoUpdater.quitAndInstall();
     return true;
 });
-

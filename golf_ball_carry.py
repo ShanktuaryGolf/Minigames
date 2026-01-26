@@ -123,10 +123,12 @@ def _default_drag_coefficient(v: float) -> float:
 
     Although the drag coefficient of a golf ball varies with Reynolds
     number and spin, simulations often assume a constant value around
-    0.21–0.25【315782886486652†L169-L175】.  A wind‑tunnel study of commercial balls
-    measured an average C_d ≈ 0.275 at high Reynolds numbers【737997149505570†L128-L140】.
-    The default used here is 0.25.  Users may provide a custom function
-    returning C_d(v) to capture more complicated behaviour.
+    0.21–0.25.  A wind‑tunnel study of commercial balls
+    measured an average C_d ≈ 0.275 at high Reynolds numbers.
+    The default used here is 0.25, which produces realistic carry distances
+    for typical driver and iron shots in standard conditions.  Users may
+    provide a custom function returning C_d(v) to tune the model for their
+    own launch‑monitor or on‑course data.
 
     Parameters
     ----------
@@ -281,10 +283,15 @@ def simulate_carry(
             drag_force = -rho_half_A_over_m * Cd * speed * v  # = -(1/2 ρ A/m)*Cd*speed*v
             # Compute lift coefficient
             Cl = lift_coefficient(radius, omega, speed)
-            # Direction of lift is perpendicular to both spin axis and velocity
-            # Use cross product of spin axis unit vector and unit velocity
+            # Direction of lift is perpendicular to both spin axis and velocity.
+            # Be defensive about types/shapes here: SciPy may hand us views with
+            # unusual dtypes, so coerce to 1D float arrays before taking the
+            # cross product to avoid NumPy "cross" axis/type errors.
             v_hat = v / speed
-            lift_dir = np.cross(n, v_hat)
+            lift_dir = np.cross(
+                np.asarray(n, dtype=float),
+                np.asarray(v_hat, dtype=float),
+            )
             # Normalise lift direction to unit vector (could be near zero)
             lift_norm = np.linalg.norm(lift_dir)
             if lift_norm > 1e-8:

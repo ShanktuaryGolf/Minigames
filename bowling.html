@@ -380,6 +380,8 @@
         let ballPosition = 0; // Lateral position on lane in meters (-0.4 to +0.4)
         let aimingMode = 'position'; // 'position' or 'angle'
         let aimingArrow = null; // Visual aiming indicator
+        let lastAimingMode = null;
+        const tempUpVector = new THREE.Vector3();
 
         init();
         animate();
@@ -388,8 +390,12 @@
             // Initialize Cannon.js physics world
             world = new CANNON.World();
             world.gravity.set(0, -9.82, 0); // Earth gravity
-            world.broadphase = new CANNON.NaiveBroadphase();
-            world.solver.iterations = 10;
+            world.broadphase = new CANNON.SAPBroadphase(world);
+            world.broadphase.axisIndex = 2;
+            world.allowSleep = true;
+            world.sleepSpeedLimit = 0.15;
+            world.sleepTimeLimit = 0.5;
+            world.solver.iterations = 8;
             world.defaultContactMaterial.friction = 0.3;
             world.defaultContactMaterial.restitution = 0.4;
 
@@ -469,9 +475,12 @@
 
             // Renderer
             renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas'), antialias: true });
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.shadowMap.type = THREE.PCFShadowMap;
+            renderer.shadowMap.autoUpdate = false;
+            renderer.shadowMap.needsUpdate = true;
 
             // Lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
@@ -481,7 +490,12 @@
             for (let i = 0; i < 5; i++) {
                 const light = new THREE.PointLight(0xffffee, 0.6, 20);
                 light.position.set(0, 5, -laneLength/2 + i * laneLength/4);
-                light.castShadow = true;
+                light.castShadow = i === 2;
+                if (light.castShadow) {
+                    light.shadow.mapSize.width = 512;
+                    light.shadow.mapSize.height = 512;
+                    light.shadow.bias = -0.0005;
+                }
                 scene.add(light);
             }
 
@@ -723,6 +737,8 @@
                     const x = xOffset + (col - row / 2) * pinSpacing;
                     const z = startZ - row * pinSpacing;
                     pin.position.set(x, 0.19, z);
+                    pin.castShadow = false;
+                    pin.receiveShadow = false;
                     scene.add(pin);
                 }
             }
@@ -738,7 +754,8 @@
             });
             const ball = new THREE.Mesh(ballGeometry, ballMaterial);
             ball.position.set(xOffset, ballRadius, 0);
-            ball.castShadow = true;
+            ball.castShadow = false;
+            ball.receiveShadow = false;
             scene.add(ball);
 
             adjacentBalls.push({
@@ -833,7 +850,7 @@
             const leftLaneMaterial = new THREE.MeshLambertMaterial({ map: laneTexture });
             const leftLane = new THREE.Mesh(leftLaneGeometry, leftLaneMaterial);
             leftLane.position.set(-laneSpacing, 0, -laneLength/2);
-            leftLane.receiveShadow = true;
+            leftLane.receiveShadow = false;
             scene.add(leftLane);
 
             // Left lane gutters
@@ -842,25 +859,29 @@
 
             const leftLaneLeftGutter = new THREE.Mesh(gutterGeometry, gutterMaterial);
             leftLaneLeftGutter.position.set(-laneSpacing - laneWidth/2 - gutterWidth/2, -0.015, -laneLength/2);
+            leftLaneLeftGutter.receiveShadow = false;
             scene.add(leftLaneLeftGutter);
 
             const leftLaneRightGutter = new THREE.Mesh(gutterGeometry, gutterMaterial);
             leftLaneRightGutter.position.set(-laneSpacing + laneWidth/2 + gutterWidth/2, -0.015, -laneLength/2);
+            leftLaneRightGutter.receiveShadow = false;
             scene.add(leftLaneRightGutter);
 
             // Right adjacent lane
             const rightLane = new THREE.Mesh(leftLaneGeometry, leftLaneMaterial);
             rightLane.position.set(laneSpacing, 0, -laneLength/2);
-            rightLane.receiveShadow = true;
+            rightLane.receiveShadow = false;
             scene.add(rightLane);
 
             // Right lane gutters
             const rightLaneLeftGutter = new THREE.Mesh(gutterGeometry, gutterMaterial);
             rightLaneLeftGutter.position.set(laneSpacing - laneWidth/2 - gutterWidth/2, -0.015, -laneLength/2);
+            rightLaneLeftGutter.receiveShadow = false;
             scene.add(rightLaneLeftGutter);
 
             const rightLaneRightGutter = new THREE.Mesh(gutterGeometry, gutterMaterial);
             rightLaneRightGutter.position.set(laneSpacing + laneWidth/2 + gutterWidth/2, -0.015, -laneLength/2);
+            rightLaneRightGutter.receiveShadow = false;
             scene.add(rightLaneRightGutter);
 
             // Add pins for adjacent lanes
@@ -889,20 +910,20 @@
             const leftWallGeometry = new THREE.BoxGeometry(wallThickness, wallHeight, laneLength + 10);
             const leftWall = new THREE.Mesh(leftWallGeometry, wallMaterial);
             leftWall.position.set(-wallDistance, wallHeight/2, -laneLength/2);
-            leftWall.receiveShadow = true;
+            leftWall.receiveShadow = false;
             scene.add(leftWall);
 
             // Right wall (much farther out)
             const rightWall = new THREE.Mesh(leftWallGeometry, wallMaterial);
             rightWall.position.set(wallDistance, wallHeight/2, -laneLength/2);
-            rightWall.receiveShadow = true;
+            rightWall.receiveShadow = false;
             scene.add(rightWall);
 
             // Back wall (behind pins) - wider
             const backWallGeometry = new THREE.BoxGeometry(wallDistance * 2, wallHeight, wallThickness);
             const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
             backWall.position.set(0, wallHeight/2, -laneLength - wallThickness/2);
-            backWall.receiveShadow = true;
+            backWall.receiveShadow = false;
             scene.add(backWall);
 
             // Ceiling (acoustic tile look) - much wider
@@ -914,7 +935,7 @@
             const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
             ceiling.rotation.x = Math.PI / 2;
             ceiling.position.set(0, wallHeight, -laneLength/2);
-            ceiling.receiveShadow = true;
+            ceiling.receiveShadow = false;
             scene.add(ceiling);
 
             // Floor extending beyond lane (carpet) - wider with retro pattern
@@ -926,7 +947,7 @@
             const backFloor = new THREE.Mesh(floorGeometry, floorMaterial);
             backFloor.rotation.x = -Math.PI / 2;
             backFloor.position.set(0, -0.01, -laneLength - 3);
-            backFloor.receiveShadow = true;
+            backFloor.receiveShadow = false;
             scene.add(backFloor);
 
             // Add seats behind the lane (spectator area)
@@ -1171,8 +1192,11 @@
                 shape: ballShape,
                 position: new CANNON.Vec3(0, ballRadius, 0),
                 linearDamping: 0.01, // Very low air resistance
-                angularDamping: 0.01
+                angularDamping: 0.01,
+                allowSleep: true
             });
+            ballBody.sleepSpeedLimit = 0.15;
+            ballBody.sleepTimeLimit = 0.5;
 
             // Add ground collision material
             const ballPhysicsMaterial = new CANNON.Material('ball');
@@ -1240,20 +1264,14 @@
             aimingArrow.rotation.y = aimAngle * Math.PI / 180;
 
             // Change arrow color based on mode
-            if (aimingMode === 'position') {
-                // Yellow/orange for position mode
+            if (aimingMode !== lastAimingMode) {
+                const color = aimingMode === 'position' ? 0xffaa00 : 0xff0000;
                 aimingArrow.children.forEach(child => {
                     if (child.material) {
-                        child.material.color.set(0xffaa00);
+                        child.material.color.set(color);
                     }
                 });
-            } else {
-                // Red for angle mode
-                aimingArrow.children.forEach(child => {
-                    if (child.material) {
-                        child.material.color.set(0xff0000);
-                    }
-                });
+                lastAimingMode = aimingMode;
             }
 
             // Hide arrow when ball is moving
@@ -1341,8 +1359,11 @@
                 shape: pinShape,
                 position: new CANNON.Vec3(x, pinHeight / 2, z),
                 linearDamping: 0.3,
-                angularDamping: 0.3
+                angularDamping: 0.3,
+                allowSleep: true
             });
+            pinBody.sleepSpeedLimit = 0.15;
+            pinBody.sleepTimeLimit = 0.5;
 
             // Add pin material for collision
             const pinPhysicsMaterial = new CANNON.Material('pin');
@@ -2164,6 +2185,7 @@
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
             renderer.setSize(window.innerWidth, window.innerHeight);
 
             // Reapply visual offset after resize
@@ -2189,9 +2211,8 @@
                     const pin = pins[index];
                     if (pin.userData.standing) {
                         // Check if pin has fallen (tilted more than 45 degrees)
-                        const upVector = new THREE.Vector3(0, 1, 0);
-                        upVector.applyQuaternion(pin.quaternion);
-                        const angle = Math.acos(upVector.y) * (180 / Math.PI);
+                        tempUpVector.set(0, 1, 0).applyQuaternion(pin.quaternion);
+                        const angle = Math.acos(tempUpVector.y) * (180 / Math.PI);
 
                         if (angle > 45 || pin.position.y < 0.05) {
                             pin.userData.standing = false;
@@ -2221,6 +2242,13 @@
             // Update camera for follow view
             if (currentView === 'follow') {
                 updateCameraPosition();
+            }
+
+            if (renderer && renderer.shadowMap) {
+                const pinsAwake = pinBodies.some((body) => body && body.sleepState !== CANNON.Body.SLEEPING);
+                if (isMoving || pinsAwake) {
+                    renderer.shadowMap.needsUpdate = true;
+                }
             }
 
             renderer.render(scene, camera);

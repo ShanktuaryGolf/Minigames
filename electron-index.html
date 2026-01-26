@@ -490,7 +490,7 @@
                     ⚽ Soccer
                 </button>
                 <button class="start-button" onclick="startGolfPar3()" style="width: 100%; margin: 0; padding: 30px 20px; background: rgba(16, 185, 129, 0.3); border-color: #10b981; box-sizing: border-box; font-size: 1.1em;">
-                    ⛳ Shanktuary Hills Golf
+                    ⛳ Golf Courses
                 </button>
             </div>
 
@@ -4582,7 +4582,7 @@
         }
 
         function startGolfPar3() {
-            console.log('⛳ Starting Par 3 Golf...');
+            console.log('⛳ Starting Golf Courses...');
 
             // Hide menu, show game container with setup
             document.getElementById('menuScreen').style.display = 'none';
@@ -4593,13 +4593,44 @@
             showGolfPar3Setup();
         }
 
+        const golfCourseNames = {
+            shanktuary: 'Shanktuary Hills Golf',
+            rockwiga: 'Rockwiga Country Club'
+        };
+
+        window.golfSelectedCourse = 'shanktuary';
         window.golfSelectedHoles = 'all'; // Default to all holes
+
+        try {
+            const storedCourse = localStorage.getItem('golfSelectedCourse');
+            if (storedCourse && golfCourseNames[storedCourse]) {
+                window.golfSelectedCourse = storedCourse;
+            }
+        } catch (e) {
+            console.log('Could not load golf course selection, using default');
+        }
 
         function showGolfPar3Setup() {
             const gameContent = document.getElementById('gameContent');
             gameContent.innerHTML = `
                 <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-                    <h2 style="text-align: center; margin-bottom: 30px;">⛳ Shanktuary Hills Golf Setup</h2>
+                    <h2 style="text-align: center; margin-bottom: 30px;">⛳ Golf Courses Setup</h2>
+
+                    <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">Select Course</h3>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                            <button onclick="selectGolfCourse('shanktuary')" id="courseShanktuary"
+                                    style="padding: 20px; font-size: 1.05em; background: rgba(74, 222, 128, 0.5);
+                                           border: 3px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                                🏞️ Shanktuary Hills
+                            </button>
+                            <button onclick="selectGolfCourse('rockwiga')" id="courseRockwiga"
+                                    style="padding: 20px; font-size: 1.05em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
+                                🌲 Rockwiga Country Club
+                            </button>
+                        </div>
+                    </div>
 
                     <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
                         <h3 style="margin-bottom: 15px;">Select Holes to Play</h3>
@@ -4607,7 +4638,7 @@
                             <button onclick="selectGolfHoles('all')" id="holesAll"
                                     style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.5);
                                            border: 3px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                                🏌️ Full Round<br><span style="font-size: 0.9em; opacity: 0.8;">All 4 Holes</span>
+                                🏌️ Full Round<br><span style="font-size: 0.9em; opacity: 0.8;">All 5 Holes</span>
                             </button>
                             <button onclick="selectGolfHoles(1)" id="holes1"
                                     style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
@@ -4628,6 +4659,11 @@
                                     style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
                                            border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
                                 💧 Hole 4<br><span style="font-size: 0.9em; opacity: 0.8;">Par 4 - 395 yds Dogleg R</span>
+                            </button>
+                            <button onclick="selectGolfHoles(5)" id="holes5"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
+                                🌲 Hole 5<br><span style="font-size: 0.9em; opacity: 0.8;">Par 5 - 494 yds Pines</span>
                             </button>
                         </div>
                     </div>
@@ -4742,6 +4778,8 @@
                     </div>
                 </div>
             `;
+
+            selectGolfCourse(window.golfSelectedCourse);
 
             // Setup Golf Stimp slider (must be after innerHTML is set)
             const stimpSlider = document.getElementById('golfStimpSlider');
@@ -4873,11 +4911,71 @@
             drawOffsetPreview(parseInt(savedOffsetX), parseInt(savedOffsetY));
         }
 
+        function selectGolfCourse(courseId) {
+            if (!golfCourseNames[courseId]) {
+                return;
+            }
+
+            window.golfSelectedCourse = courseId;
+
+            const courses = ['shanktuary', 'rockwiga'];
+            courses.forEach(id => {
+                const btn = document.getElementById('course' + id.charAt(0).toUpperCase() + id.slice(1));
+                if (btn) {
+                    if (id === courseId) {
+                        btn.style.background = 'rgba(74, 222, 128, 0.5)';
+                        btn.style.border = '3px solid #4ade80';
+                        btn.style.fontWeight = 'bold';
+                    } else {
+                        btn.style.background = 'rgba(74, 222, 128, 0.3)';
+                        btn.style.border = '2px solid #4ade80';
+                        btn.style.fontWeight = 'normal';
+                    }
+                }
+            });
+
+            updateGolfHoleOptions();
+        }
+
+        function updateGolfHoleOptions() {
+            const isRockwiga = window.golfSelectedCourse === 'rockwiga';
+            const holesAll = document.getElementById('holesAll');
+            const holes1 = document.getElementById('holes1');
+            const holes2 = document.getElementById('holes2');
+            const holes3 = document.getElementById('holes3');
+            const holes4 = document.getElementById('holes4');
+            const holes5 = document.getElementById('holes5');
+
+            if (holesAll) {
+                holesAll.innerHTML = isRockwiga
+                    ? "🏌️ Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All 1 Hole</span>"
+                    : "🏌️ Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All 5 Holes</span>";
+            }
+
+            if (holes1) {
+                holes1.innerHTML = isRockwiga
+                    ? "🌲 Hole 1<br><span style=\"font-size: 0.9em; opacity: 0.8;\">Par 4 - 400 yds</span>"
+                    : "⛳ Hole 1<br><span style=\"font-size: 0.9em; opacity: 0.8;\">Par 3 - 150 yds</span>";
+            }
+
+            [holes2, holes3, holes4, holes5].forEach(btn => {
+                if (btn) {
+                    btn.style.display = isRockwiga ? 'none' : 'block';
+                }
+            });
+
+            if (isRockwiga && window.golfSelectedHoles !== 'all' && window.golfSelectedHoles !== 1) {
+                window.golfSelectedHoles = 'all';
+            }
+
+            selectGolfHoles(window.golfSelectedHoles);
+        }
+
         function selectGolfHoles(selection) {
             window.golfSelectedHoles = selection;
 
             // Update button styles
-            ['all', 1, 2, 3, 4].forEach(h => {
+            ['all', 1, 2, 3, 4, 5].forEach(h => {
                 const btn = document.getElementById('holes' + h);
                 if (btn) {
                     if (h === selection) {
@@ -5017,16 +5115,20 @@
             localStorage.setItem('golfPar3Players', JSON.stringify(window.golfPar3Players));
             localStorage.setItem('golfPar3CurrentPlayer', '0');
             localStorage.setItem('golfSelectedHoles', JSON.stringify(window.golfSelectedHoles));
+            localStorage.setItem('golfSelectedCourse', window.golfSelectedCourse);
             localStorage.setItem('golfGimmieCircles', gimmieEnabled ? 'true' : 'false');
             localStorage.setItem('golfGreenStimp', greenStimp.toString());
             localStorage.setItem('golfVisualOffsetX', offsetX.toString());
             localStorage.setItem('golfVisualOffsetY', offsetY.toString());
 
             // Dynamic window title based on selection
-            let windowTitle = 'Shanktuary Hills Golf';
-            if (window.golfSelectedHoles === 1) windowTitle += ' - Hole 1 (Par 3)';
-            else if (window.golfSelectedHoles === 2) windowTitle += ' - Hole 2 (Dogleg)';
-            else if (window.golfSelectedHoles === 3) windowTitle += ' - Hole 3 (Islands)';
+            const courseName = golfCourseNames[window.golfSelectedCourse] || 'Shanktuary Hills Golf';
+            let windowTitle = courseName;
+            if (window.golfSelectedHoles === 1) windowTitle += ' - Hole 1';
+            else if (window.golfSelectedHoles === 2) windowTitle += ' - Hole 2';
+            else if (window.golfSelectedHoles === 3) windowTitle += ' - Hole 3';
+            else if (window.golfSelectedHoles === 4) windowTitle += ' - Hole 4';
+            else if (window.golfSelectedHoles === 5) windowTitle += ' - Hole 5';
             else windowTitle += ' - Full Round';
 
             // Open in new window using Electron IPC

@@ -162,7 +162,7 @@
     </div>
 
     <div id="controls">
-        <h3 id="holeTitle">⛳ Shanktuary Hills Golf Club - Hole 1</h3>
+        <h3 id="holeTitle">⛳ Golf Course - Hole 1</h3>
 
         <div class="stat-section" id="shotDetails" style="display: none;">
             <h3 style="font-size: 14px; margin: 0 0 8px 0; color: #FFD700;">Last Shot</h3>
@@ -206,7 +206,7 @@
         <button onclick="exportSessionCSV()" style="background: rgba(34, 197, 94, 0.3); border-color: #22c55e;">📊 Export CSV</button>
 
         <!-- Demo Shot Controls (for testing) - DISABLED FOR PRODUCTION -->
-        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100; display: none;">
+        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100; display: block;">
             <h3 style="margin-top: 0;">Demo Shot (Press 'D')</h3>
             <div style="display: grid; gap: 8px;">
                 <label>Ball Speed (mph): <input type="number" id="demoSpeed" value="55" step="1" style="width: 80px;"></label>
@@ -358,50 +358,112 @@
         // Course layout (in meters, 1 yard = 0.9144 meters)
         const TEE_POSITION = new THREE.Vector3(0, 3, 0); // Elevated 3m
         // Hole configurations
-        const HOLES = [
-            {
-                number: 1,
-                par: 3,
-                distance: 150, // yards
-                teePosition: new THREE.Vector3(0, 3.146, 0),
-                pinPosition: new THREE.Vector3(0, 0, -118.872), // 130 yards = 118.872m
-                type: 'straight',
-                greenSlope: { direction: 180, percent: 2 } // Slope toward player (downhill putt)
+        const COURSES = {
+            shanktuary: {
+                name: 'Shanktuary Hills Golf Club',
+                holes: [
+                    {
+                        number: 1,
+                        par: 3,
+                        distance: 150, // yards
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 0, -118.872), // 130 yards = 118.872m
+                        type: 'straight',
+                        greenSlope: { direction: 180, percent: 2 } // Slope toward player (downhill putt)
+                    },
+                    {
+                        number: 2,
+                        par: 4,
+                        distance: 320, // yards
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(-220, 0, -220), // Dogleg left - 285 yards to fairway corner, ~320 total
+                        type: 'dogleg-left',
+                        greenSlope: { direction: 270, percent: 1.5 } // Slope to the left (side slope)
+                    },
+                    {
+                        number: 3,
+                        par: 4,
+                        distance: 250, // yards
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 0, -228.6), // Island 3 center - 250 yards = 228.6m
+                        type: 'island-hopping',
+                        islands: [
+                            { center: new THREE.Vector3(0, 0, 0), radius: 45.72 },      // Island 1 (Tee) - 100yd diameter
+                            { center: new THREE.Vector3(0, 0, -114.3), radius: 45.72 }, // Island 2 (Fairway) - 125yd from tee
+                            { center: new THREE.Vector3(0, 0, -228.6), radius: 45.72 }  // Island 3 (Green) - 250yd from tee
+                        ],
+                        greenSlope: { direction: 90, percent: 2.5 } // Slope to the right (challenging side slope)
+                    },
+                    {
+                        number: 4,
+                        par: 4,
+                        distance: 395, // yards
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(30, 0, -310), // Moved closer - 395 yards = 361m
+                        type: 'dogleg-right',
+                        greenShape: 'oval', // Oval/elliptical green
+                        greenSlope: { direction: 0, percent: 2 } // Slope away from player (uphill putt)
+                    },
+                    {
+                        number: 5,
+                        par: 5,
+                        distance: 494, // yards
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(-18, 0, -451.714), // 494 yards = 451.7m
+                        type: 'long-par5',
+                        name: 'Pine Passage',
+                        greenShape: 'oval',
+                        splitYards: 200,
+                        fairwayHalfWidth: 18,
+                        roughHalfWidth: 36,
+                        leftPathShift: -18,
+                        leftPathTurnStart: 0.1,
+                        leftPathTurnEnd: 0.6,
+                        leftPathHalfWidth: 12,
+                        rightPathShift: 45,
+                        rightPathTurnStart: 0.05,
+                        rightPathTurnEnd: 0.75,
+                        rightPathHalfWidth: 22,
+                        leftClearing: { x: -30, z: -185, radiusX: 12, radiusZ: 18 },
+                        greenSlope: { direction: 0, percent: 2 } // Uphill green
+                    }
+                ]
             },
-            {
-                number: 2,
-                par: 4,
-                distance: 320, // yards
-                teePosition: new THREE.Vector3(0, 3.146, 0),
-                pinPosition: new THREE.Vector3(-220, 0, -220), // Dogleg left - 285 yards to fairway corner, ~320 total
-                type: 'dogleg-left',
-                greenSlope: { direction: 270, percent: 1.5 } // Slope to the left (side slope)
-            },
-            {
-                number: 3,
-                par: 4,
-                distance: 250, // yards
-                teePosition: new THREE.Vector3(0, 3.146, 0),
-                pinPosition: new THREE.Vector3(0, 0, -228.6), // Island 3 center - 250 yards = 228.6m
-                type: 'island-hopping',
-                islands: [
-                    { center: new THREE.Vector3(0, 0, 0), radius: 45.72 },      // Island 1 (Tee) - 100yd diameter
-                    { center: new THREE.Vector3(0, 0, -114.3), radius: 45.72 }, // Island 2 (Fairway) - 125yd from tee
-                    { center: new THREE.Vector3(0, 0, -228.6), radius: 45.72 }  // Island 3 (Green) - 250yd from tee
-                ],
-                greenSlope: { direction: 90, percent: 2.5 } // Slope to the right (challenging side slope)
-            },
-            {
-                number: 4,
-                par: 4,
-                distance: 395, // yards
-                teePosition: new THREE.Vector3(0, 3.146, 0),
-                pinPosition: new THREE.Vector3(30, 0, -310), // Moved closer - 395 yards = 361m
-                type: 'dogleg-right',
-                greenShape: 'oval', // Oval/elliptical green
-                greenSlope: { direction: 0, percent: 2 } // Slope away from player (uphill putt)
+            rockwiga: {
+                name: 'Rockwiga Country Club',
+                holes: [
+                    {
+                        number: 1,
+                        par: 4,
+                        distance: 400, // yards
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(120, 0, -345), // ~400 yards to green
+                        type: 'rockwiga-hole1',
+                        name: 'Opening Run',
+                        fairwayHalfWidth: 22,
+                        roughHalfWidth: 42,
+                        landingZoneYards: 220,
+                        landingZoneRadius: 32, // meters
+                        landingZoneBoost: 6,
+                        treeLineOffset: 34,
+                        greenSlope: { direction: 0, percent: 1.5 }
+                    }
+                ]
             }
-        ];
+        };
+
+        let selectedCourseId = 'shanktuary';
+        try {
+            const storedCourse = localStorage.getItem('golfSelectedCourse');
+            if (storedCourse && COURSES[storedCourse]) {
+                selectedCourseId = storedCourse;
+            }
+        } catch (e) {
+            console.log('Could not load golf course selection, using default');
+        }
+
+        const currentCourse = COURSES[selectedCourseId] || COURSES.shanktuary;
+        const HOLES = currentCourse.holes;
 
         // Load hole selection from localStorage
         let selectedHoles = 'all'; // Default: play all holes
@@ -416,11 +478,10 @@
 
         // Set starting hole based on selection
         let currentHoleIndex = 0;
-        if (selectedHoles === 1) currentHoleIndex = 0;
-        else if (selectedHoles === 2) currentHoleIndex = 1;
-        else if (selectedHoles === 3) currentHoleIndex = 2;
-        else if (selectedHoles === 4) currentHoleIndex = 3;
-        // else selectedHoles === 'all', start at hole 0
+        const selectedHoleNumber = Number(selectedHoles);
+        if (selectedHoles !== 'all' && Number.isFinite(selectedHoleNumber)) {
+            currentHoleIndex = Math.max(0, Math.min(selectedHoleNumber - 1, HOLES.length - 1));
+        }
 
         let PIN_POSITION = HOLES[currentHoleIndex].pinPosition.clone();
         const BUNKER_LEFT_POSITION = new THREE.Vector3(-16, -0.3, -118.872); // Left of green, well outside 10m radius
@@ -693,6 +754,131 @@
             return inside;
         }
 
+        function getLongPar5SplitZ(hole) {
+            const splitYards = hole.splitYards || 200;
+            return -(splitYards * 0.9144);
+        }
+
+        function getLongPar5PostSplitProgress(z, hole) {
+            const splitZ = getLongPar5SplitZ(hole);
+            const postSplitDistance = Math.max(1, Math.abs(hole.pinPosition.z) - Math.abs(splitZ));
+            return Math.min(1, Math.max(0, (Math.abs(z) - Math.abs(splitZ)) / postSplitDistance));
+        }
+
+        function getLongPar5PathCenterX(z, hole, shiftX, turnStart, turnEnd) {
+            const splitZ = getLongPar5SplitZ(hole);
+            if (z > splitZ) {
+                return 0;
+            }
+
+            const progress = getLongPar5PostSplitProgress(z, hole);
+            const start = turnStart ?? 0;
+            const end = turnEnd ?? 1;
+
+            if (progress <= start) {
+                return 0;
+            }
+
+            if (progress >= end) {
+                return shiftX;
+            }
+
+            const turnProgress = (progress - start) / Math.max(0.001, end - start);
+            const eased = turnProgress * turnProgress * (3 - 2 * turnProgress);
+            return eased * shiftX;
+        }
+
+        function getLongPar5LeftCenterX(z, hole) {
+            const shiftX = hole.leftPathShift || 0;
+            return getLongPar5PathCenterX(z, hole, shiftX, hole.leftPathTurnStart, hole.leftPathTurnEnd);
+        }
+
+        function getLongPar5RightCenterX(z, hole) {
+            const shiftX = hole.rightPathShift || 0;
+            return getLongPar5PathCenterX(z, hole, shiftX, hole.rightPathTurnStart, hole.rightPathTurnEnd);
+        }
+
+        function getLongPar5PathBands(z, hole) {
+            const splitZ = getLongPar5SplitZ(hole);
+            if (z > splitZ) {
+                return [{
+                    centerX: 0,
+                    fairwayHalfWidth: hole.fairwayHalfWidth || 18,
+                    roughHalfWidth: hole.roughHalfWidth || 34
+                }];
+            }
+
+            return [
+                {
+                    centerX: getLongPar5LeftCenterX(z, hole),
+                    fairwayHalfWidth: hole.leftPathHalfWidth || 12,
+                    roughHalfWidth: hole.leftRoughHalfWidth || hole.roughHalfWidth || 34
+                },
+                {
+                    centerX: getLongPar5RightCenterX(z, hole),
+                    fairwayHalfWidth: hole.rightPathHalfWidth || 22,
+                    roughHalfWidth: hole.rightRoughHalfWidth || hole.roughHalfWidth || 34
+                }
+            ];
+        }
+
+        function getLongPar5NearestBand(x, z, hole) {
+            const bands = getLongPar5PathBands(z, hole);
+            let bestBand = bands[0];
+            let bestDist = Math.abs(x - bestBand.centerX);
+
+            for (let i = 1; i < bands.length; i++) {
+                const band = bands[i];
+                const dist = Math.abs(x - band.centerX);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    bestBand = band;
+                }
+            }
+
+            return { band: bestBand, dist: bestDist };
+        }
+
+        function isInLongPar5Clearing(x, z, hole) {
+            if (!hole.leftClearing) {
+                return false;
+            }
+
+            const dx = (x - hole.leftClearing.x) / hole.leftClearing.radiusX;
+            const dz = (z - hole.leftClearing.z) / hole.leftClearing.radiusZ;
+            return (dx * dx + dz * dz) <= 1;
+        }
+
+        function getTeeToPinProjection(x, z, hole) {
+            const tee = hole.teePosition || TEE_POSITION;
+            const pin = hole.pinPosition;
+            const dx = pin.x - tee.x;
+            const dz = pin.z - tee.z;
+            const lengthSq = dx * dx + dz * dz;
+
+            if (lengthSq < 0.001) {
+                return {
+                    dist: Math.sqrt(Math.pow(x - tee.x, 2) + Math.pow(z - tee.z, 2)),
+                    t: 0,
+                    projX: tee.x,
+                    projZ: tee.z,
+                    length: 0
+                };
+            }
+
+            const t = ((x - tee.x) * dx + (z - tee.z) * dz) / lengthSq;
+            const clampedT = Math.max(0, Math.min(1, t));
+            const projX = tee.x + clampedT * dx;
+            const projZ = tee.z + clampedT * dz;
+            return {
+                dist: Math.sqrt(Math.pow(x - projX, 2) + Math.pow(z - projZ, 2)),
+                t: clampedT,
+                projX,
+                projZ,
+                length: Math.sqrt(lengthSq)
+            };
+        }
+
         // Tree collision data
         let trees = [];
 
@@ -707,6 +893,13 @@
         let physicsRegime = 'WEDGE'; // Physics regime: WEDGE, LOW_TRAJECTORY, MID_IRON, HIGH_IRON, or POWER_SHOT (FIVE-REGIME PHYSICS v4.5.0)
         let lastTime = performance.now();
 
+        const DEBUG_FPS_LOG = false;
+        const DEBUG_GROUND_RAYCAST = false;
+        const YARDAGE_UPDATE_INTERVAL_MS = 100;
+        const MINIMAP_UPDATE_INTERVAL_MS = 100;
+        const MINIMAP_IDLE_INTERVAL_MS = 500;
+        const GROUND_RAYCAST_BUFFER = 10;
+
         // FPS tracking
         let frameCount = 0;
         let lastFpsUpdateTime = 0;
@@ -719,11 +912,26 @@
 
         // Ball tracer
         let tracer = null;
-        let tracerPositions = [];
         const MAX_TRACER_POINTS = 200;
+        let tracerPositions = new Array(MAX_TRACER_POINTS);
+        let tracerCount = 0;
+        let tracerWriteIndex = 0;
 
         // Raycaster for terrain collision
         let raycaster = new THREE.Raycaster();
+        const rayOrigin = new THREE.Vector3();
+        const rayDirection = new THREE.Vector3(0, -1, 0);
+        let groundObjectsCache = [];
+
+        const pinScreenPos = new THREE.Vector3();
+        let lastYardageUpdateTime = 0;
+        let lastYardageValue = null;
+        let lastYardageLabel = '';
+        let lastYardageX = null;
+        let lastYardageY = null;
+        let lastYardageVisible = null;
+
+        let lastMinimapUpdateTime = 0;
 
         // Grid visualization
         let gridLines = null;
@@ -744,6 +952,7 @@
         let teeMarkers = [];
         let treeMeshes = []; // For visual tree objects
         let islandMeshes = []; // For island-hopping hole circular islands
+        let stadiumMeshes = []; // For stadium stands around the green
 
         function setupHole(holeIndex) {
             const hole = HOLES[holeIndex];
@@ -752,7 +961,9 @@
             // Update hole title in UI
             const holeTitle = document.getElementById('holeTitle');
             if (holeTitle) {
-                holeTitle.textContent = `⛳ Shanktuary Hills Golf Club - Hole ${hole.number}`;
+                const holeName = hole.name ? ` - ${hole.name}` : '';
+                const courseName = currentCourse && currentCourse.name ? currentCourse.name : 'Golf Course';
+                holeTitle.textContent = `⛳ ${courseName} - Hole ${hole.number}${holeName}`;
             }
 
             // Update PIN_POSITION
@@ -769,11 +980,13 @@
             teeMarkers.forEach(t => scene.remove(t));
             treeMeshes.forEach(t => scene.remove(t));
             islandMeshes.forEach(i => scene.remove(i));
+            stadiumMeshes.forEach(s => scene.remove(s));
             bunkers = [];
             teeMarkers = [];
             trees = [];
             treeMeshes = [];
             islandMeshes = [];
+            stadiumMeshes = [];
 
             // Recreate course for this hole
             createCourse();
@@ -920,23 +1133,19 @@
 
             sandTexture = textureLoader.load('textures/sand.png', (texture) => {
                 console.log('✅ Sand texture loaded successfully!');
+                console.log('Texture image dimensions:', texture.image.width, 'x', texture.image.height);
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
                 texture.repeat.set(10, 10);
+                texture.needsUpdate = true; // Force texture update
 
-                // Update all bunker materials with the loaded texture
-                bunkers.forEach(bunker => {
-                    if (bunker.material) {
-                        bunker.material.map = texture;
-                        bunker.material.color.setHex(0xffffff); // White to show texture naturally
-                        bunker.material.needsUpdate = true;
-                    }
-                });
-                console.log(`✅ Applied sand texture to ${bunkers.length} bunkers`);
+                // Note: Bunkers will be created later in createCourse() and will use this texture
+                console.log('Sand texture ready for bunkers, texture object:', texture);
 
                 onTextureLoad();
             }, undefined, (err) => {
                 console.error('❌ Failed to load sand texture:', err);
+                sandTexture = null; // Ensure it's null on error
                 onTextureLoad(); // Count as loaded to not block
             });
 
@@ -1210,6 +1419,56 @@
         function createCourse() {
             // Determine terrain size based on hole
             const hole = HOLES[currentHoleIndex];
+            const isStadium = hole.type === 'stadium';
+            const stadiumGreenRadius = 11.5;
+            const stadiumCollarOuter = 15.5;
+            const stadiumFairwayRadius = 34;
+            const stadiumDesertRadius = 52;
+            const stadiumBermRadius = 68;
+            if (hole.type === 'long-par5') {
+                // Pines hole - dogleg right with water hazards
+                window.hole5WaterPolygons = [
+                    // First water hazard - right side of landing area (around 180-250 yards)
+                    [
+                        {x: 40, z: -165},  // ~180 yards from tee
+                        {x: 70, z: -168},
+                        {x: 85, z: -185},
+                        {x: 88, z: -220},  // ~240 yards from tee
+                        {x: 75, z: -238},
+                        {x: 50, z: -235},
+                        {x: 35, z: -210},
+                        {x: 36, z: -180}
+                    ],
+                    // Second water hazard - right side near green (around 420-470 yards)
+                    [
+                        {x: 55, z: -385},  // ~420 yards from tee
+                        {x: 85, z: -388},
+                        {x: 95, z: -410},
+                        {x: 90, z: -435},  // ~475 yards from tee
+                        {x: 70, z: -440},
+                        {x: 45, z: -430},
+                        {x: 40, z: -405},
+                        {x: 48, z: -390}
+                    ]
+                ];
+            } else {
+                window.hole5WaterPolygons = null;
+            }
+            if (hole.type === 'rockwiga-hole1') {
+                window.rockwigaHole1WaterPolygons = [
+                    [
+                        {x: 28, z: -40},
+                        {x: 52, z: -46},
+                        {x: 72, z: -70},
+                        {x: 68, z: -102},
+                        {x: 48, z: -118},
+                        {x: 30, z: -96},
+                        {x: 26, z: -68}
+                    ]
+                ];
+            } else {
+                window.rockwigaHole1WaterPolygons = null;
+            }
             let terrainSize;
             if (hole.type === 'dogleg-left') {
                 terrainSize = { width: 500, length: 500, segmentsW: 150, segmentsL: 150 };
@@ -1217,6 +1476,12 @@
                 terrainSize = { width: 400, length: 700, segmentsW: 120, segmentsL: 200 };
             } else if (hole.type === 'island-hopping') {
                 terrainSize = { width: 300, length: 700, segmentsW: 150, segmentsL: 350 };
+            } else if (hole.type === 'long-par5') {
+                terrainSize = { width: 260, length: 1000, segmentsW: 180, segmentsL: 400 };
+            } else if (hole.type === 'rockwiga-hole1') {
+                terrainSize = { width: 360, length: 720, segmentsW: 180, segmentsL: 260 };
+            } else if (hole.type === 'stadium') {
+                terrainSize = { width: 260, length: 320, segmentsW: 160, segmentsL: 200 };
             } else {
                 // Straight hole
                 terrainSize = { width: 200, length: 300, segmentsW: 200, segmentsL: 300 };
@@ -1271,73 +1536,215 @@
                             }
                         }
                     }
+                } else if (hole.type === 'stadium') {
+                    const dx = x - PIN_POSITION.x;
+                    const dz = z - PIN_POSITION.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+
+                    if (dist < stadiumGreenRadius) {
+                        height = -0.2 + Math.sin(x * 0.4) * 0.03 + Math.cos(z * 0.35) * 0.03;
+                    } else if (dist < stadiumCollarOuter) {
+                        height = -0.22 + Math.sin(x * 0.2 + z * 0.15) * 0.02;
+                    } else if (dist < stadiumFairwayRadius) {
+                        height = -0.24 + Math.sin(x * 0.12 + z * 0.1) * 0.02;
+                    } else if (dist < stadiumDesertRadius) {
+                        height = -0.27 + Math.sin(x * 0.08 + z * 0.06) * 0.03;
+                    } else if (dist < stadiumBermRadius) {
+                        const t = (dist - stadiumDesertRadius) / (stadiumBermRadius - stadiumDesertRadius);
+                        height = -0.27 + t * 1.6;
+                    } else {
+                        height = 1.2;
+                    }
+
+                    if (z > -6 && z < 6 && Math.abs(x) < 4) {
+                        height = 3;
+                    }
                 } else {
                     // Standard terrain generation for straight/dogleg holes
-                    // Tee area (elevated)
-                    if (z > -10 && z < 10) {
-                        height = 3 - Math.abs(z) * 0.3;
-                    }
-                    // Slope from tee to fairway
-                    else if (z >= -30 && z <= -10) {
-                        height = 3 - (Math.abs(z) - 10) * 0.1;
-                    }
-                    // Fairway (slight downslope with natural undulations)
-                    else if (z > -110 && z <= -30) {
-                        height = 1 - ((Math.abs(z) - 30) / 80) * 1.5;
+                    if (hole.type === 'long-par5') {
+                        const approachStartZ = PIN_POSITION.z + 40;
+                        const approachEndZ = PIN_POSITION.z + 20;
+                        const fairwayEndZ = approachStartZ;
 
-                        // Multiple layers of natural undulations for organic look
-                        height += Math.sin(x * 0.3 + z * 0.15) * 0.5;
-                        height += Math.cos(x * 0.5 - z * 0.2) * 0.4;
-                        height += Math.sin(x * 0.15 + z * 0.25) * 0.3;
+                        // Tee area (elevated)
+                        if (z > -10 && z < 10) {
+                            height = 3 - Math.abs(z) * 0.3;
+                        }
+                        // Slope from tee to fairway
+                        else if (z >= -30 && z <= -10) {
+                            height = 3 - (Math.abs(z) - 10) * 0.1;
+                        }
+                        // Fairway (extended with gentle downslope and undulations)
+                        else if (z > fairwayEndZ && z <= -30) {
+                            const fairwayLength = Math.max(1, Math.abs(fairwayEndZ) - 30);
+                            const fairwayProgress = Math.min(1, (Math.abs(z) - 30) / fairwayLength);
+                            height = 1 - fairwayProgress * 1.6;
 
-                        // Random-looking hills using multiple frequencies
-                        height += Math.sin(x * 0.7) * Math.cos(z * 0.1) * 0.35;
-                        height += Math.cos(x * 0.12 + z * 0.18) * 0.25;
+                            // Natural undulations
+                            height += Math.sin(x * 0.3 + z * 0.15) * 0.5;
+                            height += Math.cos(x * 0.5 - z * 0.2) * 0.4;
+                            height += Math.sin(x * 0.15 + z * 0.25) * 0.3;
 
-                        // Irregular mounds on the sides (rough areas)
-                        if (Math.abs(x) > 12) {
-                            const distFromFairway = Math.abs(x) - 12;
-                            // Create irregular mounding
-                            height += Math.sin(z * 0.4 + x * 0.2) * distFromFairway * 0.15;
-                            height += Math.cos(x * 0.6 - z * 0.15) * (distFromFairway * 0.1);
-                            height += Math.sin(x * 0.9 + z * 0.3) * 0.6;
+                            // Add mounding in rough areas
+                            const nearestBand = getLongPar5NearestBand(x, z, hole);
+                            const distFromFairwayCenter = nearestBand.dist;
+                            const bandHalfWidth = nearestBand.band.fairwayHalfWidth;
+                            if (distFromFairwayCenter > bandHalfWidth) {
+                                const roughOffset = distFromFairwayCenter - bandHalfWidth;
+                                height += Math.sin(z * 0.4 + x * 0.2) * roughOffset * 0.15;
+                                height += Math.cos(x * 0.6 - z * 0.15) * (roughOffset * 0.1);
+                                height += Math.sin(x * 0.9 + z * 0.3) * 0.6;
 
-                            // Add some dramatic mounds in rough
-                            const moundNoise = Math.sin(x * 1.2) * Math.cos(z * 0.35);
-                            if (moundNoise > 0.3) {
-                                height += moundNoise * 0.8;
+                                const moundNoise = Math.sin(x * 1.2) * Math.cos(z * 0.35);
+                                if (moundNoise > 0.3) {
+                                    height += moundNoise * 0.8;
+                                }
                             }
                         }
-                    }
-                    // Approach to green with protective mounding
-                    else if (z > -125 && z <= -110) {
-                        height = -0.2;
-
-                        // Greenside mounds (irregular and natural)
-                        const distToGreen = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
-                        if (distToGreen > 10 && distToGreen < 16) {
-                            // Create raised mounding around green with irregular pattern
-                            const angle = Math.atan2(x, z + 118.872);
-                            const moundIntensity = Math.sin(angle * 3.5) * 0.5 + 0.5; // Vary by position
-                            height += Math.sin((distToGreen - 10) * 1.2) * 1.2 * moundIntensity;
-                            height += Math.cos(angle * 2.3 + distToGreen) * 0.6;
-                            height += Math.sin(x * 1.1) * Math.cos((z + 118.872) * 0.9) * 0.5;
-                        }
-
-                        // Natural undulations around green
-                        height += Math.sin(x * 0.5 + z * 0.3) * 0.3;
-                        height += Math.cos(x * 0.8 - z * 0.4) * 0.25;
-                    }
-                    // Green area (subtle undulation, not completely flat)
-                    else {
-                        const distToPin = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
-
-                        if (distToPin < 10) {
-                            // Green itself with very subtle breaks (same as backup)
-                            height = -0.2 + Math.sin(x * 0.5) * 0.05 + Math.cos((z - PIN_POSITION.z) * 0.4) * 0.05;
-                        } else {
-                            // Beyond green
+                        // Approach to green with protective mounding
+                        else if (z > approachEndZ && z <= approachStartZ) {
                             height = -0.2;
+
+                            const distToGreen = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
+                            if (distToGreen > 10 && distToGreen < 18) {
+                                const angle = Math.atan2(x - PIN_POSITION.x, z - PIN_POSITION.z);
+                                const moundIntensity = Math.sin(angle * 3.5) * 0.5 + 0.5;
+                                height += Math.sin((distToGreen - 10) * 1.2) * 1.2 * moundIntensity;
+                                height += Math.cos(angle * 2.3 + distToGreen) * 0.6;
+                            }
+
+                            height += Math.sin(x * 0.5 + z * 0.3) * 0.3;
+                            height += Math.cos(x * 0.8 - z * 0.4) * 0.25;
+                        }
+                        // Green area
+                        else {
+                            const distToPin = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
+                            if (distToPin < 10) {
+                                height = -0.2 + Math.sin(x * 0.5) * 0.05 + Math.cos((z - PIN_POSITION.z) * 0.4) * 0.05;
+                            } else {
+                                height = -0.2;
+                            }
+                        }
+                    } else if (hole.type === 'rockwiga-hole1') {
+                        const approachStartZ = PIN_POSITION.z + 40;
+                        const approachEndZ = PIN_POSITION.z + 20;
+                        const fairwayEndZ = approachStartZ;
+
+                        if (z > -10 && z < 10) {
+                            height = 3 - Math.abs(z) * 0.3;
+                        } else if (z >= -30 && z <= -10) {
+                            height = 3 - (Math.abs(z) - 10) * 0.1;
+                        } else if (z > fairwayEndZ && z <= -30) {
+                            const fairwayLength = Math.max(1, Math.abs(fairwayEndZ) - 30);
+                            const fairwayProgress = Math.min(1, (Math.abs(z) - 30) / fairwayLength);
+                            height = 1 - fairwayProgress * 1.6;
+
+                            height += Math.sin(x * 0.3 + z * 0.15) * 0.5;
+                            height += Math.cos(x * 0.5 - z * 0.2) * 0.4;
+                            height += Math.sin(x * 0.15 + z * 0.25) * 0.3;
+
+                            const projection = getTeeToPinProjection(x, z, hole);
+                            const distFromFairway = projection.dist;
+                            const fairwayHalfWidth = hole.fairwayHalfWidth || 22;
+                            if (distFromFairway > fairwayHalfWidth) {
+                                const roughOffset = distFromFairway - fairwayHalfWidth;
+                                height += Math.sin(z * 0.4 + x * 0.2) * roughOffset * 0.15;
+                                height += Math.cos(x * 0.6 - z * 0.15) * (roughOffset * 0.1);
+                                height += Math.sin(x * 0.9 + z * 0.3) * 0.6;
+
+                                const moundNoise = Math.sin(x * 1.2) * Math.cos(z * 0.35);
+                                if (moundNoise > 0.3) {
+                                    height += moundNoise * 0.8;
+                                }
+                            }
+                        } else if (z > approachEndZ && z <= approachStartZ) {
+                            height = -0.2;
+
+                            const distToGreen = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
+                            if (distToGreen > 10 && distToGreen < 18) {
+                                const angle = Math.atan2(x - PIN_POSITION.x, z - PIN_POSITION.z);
+                                const moundIntensity = Math.sin(angle * 3.5) * 0.5 + 0.5;
+                                height += Math.sin((distToGreen - 10) * 1.2) * 1.2 * moundIntensity;
+                                height += Math.cos(angle * 2.3 + distToGreen) * 0.6;
+                            }
+
+                            height += Math.sin(x * 0.5 + z * 0.3) * 0.3;
+                            height += Math.cos(x * 0.8 - z * 0.4) * 0.25;
+                        } else {
+                            const distToPin = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
+                            if (distToPin < 10) {
+                                height = -0.2 + Math.sin(x * 0.5) * 0.05 + Math.cos((z - PIN_POSITION.z) * 0.4) * 0.05;
+                            } else {
+                                height = -0.2;
+                            }
+                        }
+                    } else {
+                        // Tee area (elevated)
+                        if (z > -10 && z < 10) {
+                            height = 3 - Math.abs(z) * 0.3;
+                        }
+                        // Slope from tee to fairway
+                        else if (z >= -30 && z <= -10) {
+                            height = 3 - (Math.abs(z) - 10) * 0.1;
+                        }
+                        // Fairway (slight downslope with natural undulations)
+                        else if (z > -110 && z <= -30) {
+                            height = 1 - ((Math.abs(z) - 30) / 80) * 1.5;
+
+                            // Multiple layers of natural undulations for organic look
+                            height += Math.sin(x * 0.3 + z * 0.15) * 0.5;
+                            height += Math.cos(x * 0.5 - z * 0.2) * 0.4;
+                            height += Math.sin(x * 0.15 + z * 0.25) * 0.3;
+
+                            // Random-looking hills using multiple frequencies
+                            height += Math.sin(x * 0.7) * Math.cos(z * 0.1) * 0.35;
+                            height += Math.cos(x * 0.12 + z * 0.18) * 0.25;
+
+                            // Irregular mounds on the sides (rough areas)
+                            if (Math.abs(x) > 12) {
+                                const distFromFairway = Math.abs(x) - 12;
+                                // Create irregular mounding
+                                height += Math.sin(z * 0.4 + x * 0.2) * distFromFairway * 0.15;
+                                height += Math.cos(x * 0.6 - z * 0.15) * (distFromFairway * 0.1);
+                                height += Math.sin(x * 0.9 + z * 0.3) * 0.6;
+
+                                // Add some dramatic mounds in rough
+                                const moundNoise = Math.sin(x * 1.2) * Math.cos(z * 0.35);
+                                if (moundNoise > 0.3) {
+                                    height += moundNoise * 0.8;
+                                }
+                            }
+                        }
+                        // Approach to green with protective mounding
+                        else if (z > -125 && z <= -110) {
+                            height = -0.2;
+
+                            // Greenside mounds (irregular and natural)
+                            const distToGreen = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
+                            if (distToGreen > 10 && distToGreen < 16) {
+                                // Create raised mounding around green with irregular pattern
+                                const angle = Math.atan2(x, z + 118.872);
+                                const moundIntensity = Math.sin(angle * 3.5) * 0.5 + 0.5; // Vary by position
+                                height += Math.sin((distToGreen - 10) * 1.2) * 1.2 * moundIntensity;
+                                height += Math.cos(angle * 2.3 + distToGreen) * 0.6;
+                                height += Math.sin(x * 1.1) * Math.cos((z + 118.872) * 0.9) * 0.5;
+                            }
+
+                            // Natural undulations around green
+                            height += Math.sin(x * 0.5 + z * 0.3) * 0.3;
+                            height += Math.cos(x * 0.8 - z * 0.4) * 0.25;
+                        }
+                        // Green area (subtle undulation, not completely flat)
+                        else {
+                            const distToPin = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
+
+                            if (distToPin < 10) {
+                                // Green itself with very subtle breaks (same as backup)
+                                height = -0.2 + Math.sin(x * 0.5) * 0.05 + Math.cos((z - PIN_POSITION.z) * 0.4) * 0.05;
+                            } else {
+                                // Beyond green
+                                height = -0.2;
+                            }
                         }
                     }
                 }
@@ -1435,6 +1842,25 @@
                             }
                         }
                     }
+                } else if (hole.type === 'stadium') {
+                    const dx = x - PIN_POSITION.x;
+                    const dz = z - PIN_POSITION.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+
+                    if (dist < stadiumGreenRadius) {
+                        color.setHex(0x5cb574);
+                    } else if (dist < stadiumCollarOuter) {
+                        color.setHex(0x4a9d5f);
+                    } else if (dist < stadiumFairwayRadius) {
+                        color.setHex(0x3f8f55);
+                    } else if (dist < stadiumDesertRadius) {
+                        const variation = (Math.sin(x * 0.2 + z * 0.15) * 0.5 + 0.5) * 0.08;
+                        color.setHex(0xd6c39a);
+                        color.r += variation;
+                        color.g += variation * 0.6;
+                    } else {
+                        color.setHex(0x3a7d44);
+                    }
                 } else {
                     // Standard fairway/rough coloring for straight/dogleg holes
                     // Add complex noise to edge boundaries for very organic look
@@ -1447,80 +1873,153 @@
                     let roughEdge = 20 + totalNoise * 0.7;
                     let distFromFairwayCenter;
 
-                    // Calculate distance from fairway centerline based on hole type
-                    if (hole.type === 'dogleg-left') {
-                        // Dogleg left: smooth curve from tee to green at (-220, -220)
-                        // Start curving gently from the tee
-                        const totalDistance = 220; // Distance to green in Z
-                        const progress = Math.min(1, Math.abs(z) / totalDistance);
-
-                        // Smooth S-curve using easing function
-                        const easeProgress = progress * progress * (3 - 2 * progress);
-                        const fairwayCenterX = -easeProgress * 220; // Gradually curve left
-
-                        distFromFairwayCenter = Math.abs(x - fairwayCenterX);
-                        fairwayEdge = 22 + totalNoise; // Wider fairway for par 4
-                        roughEdge = 38 + totalNoise * 0.7;
-                    } else if (hole.type === 'dogleg-right') {
-                        // Hole 4: Mitten-shaped fairway - bulges LEFT in middle, then comes back
-                        const totalDistance = 330;
-                        const progress = Math.min(1, Math.abs(z) / totalDistance);
-
-                        // Create the mitten bulge: Goes left in middle section, returns to center at green
-                        // Use sin wave to bulge out left in middle
-                        let fairwayCenterX = 0;
-                        if (progress < 0.6) {
-                            // First 60% - bulge out to the left (mitten thumb)
-                            const bulgeProgress = progress / 0.6; // 0 to 1 for first 60%
-                            fairwayCenterX = -Math.sin(bulgeProgress * Math.PI) * 60; // Peak at -60 yards left
-                        } else {
-                            // Last 40% - curve back right to green at x=30
-                            const returnProgress = (progress - 0.6) / 0.4; // 0 to 1 for last 40%
-                            const currentBulge = -Math.sin(Math.PI) * 60; // Nearly 0
-                            fairwayCenterX = currentBulge + returnProgress * 30; // Return to x=30
-                        }
-
-                        distFromFairwayCenter = Math.abs(x - fairwayCenterX);
-                        fairwayEdge = 50 + totalNoise; // Wide fairway (100 yards)
-                        roughEdge = 65 + totalNoise * 0.7;
-                    } else {
-                        // Straight hole - simple center corridor
-                        distFromFairwayCenter = Math.abs(x);
-                    }
-
-                    // Check if point is in water (for Hole 4)
+                    // Check if point is in water (for Hole 4 / Hole 5)
                     let isInWater = false;
                     if (hole.type === 'dogleg-right' && window.hole4WaterPolygon) {
                         isInWater = isPointInPolygon(x, z, window.hole4WaterPolygon);
+                    } else if (hole.type === 'long-par5' && window.hole5WaterPolygons) {
+                        isInWater = window.hole5WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon));
+                    } else if (hole.type === 'rockwiga-hole1' && window.rockwigaHole1WaterPolygons) {
+                        isInWater = window.rockwigaHole1WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon));
                     }
 
-                    // Water coloring
-                    if (isInWater) {
-                        color.setHex(0x4A90E2); // Blue water
-                    }
-                    // Fairway - center corridor with natural edges
-                    else if (distFromFairwayCenter < fairwayEdge) {
-                        // Slight color variation in fairway
-                        const variation = (Math.sin(x * 0.2 + z * 0.1) * 0.5 + 0.5) * 0.05;
-                        color.setHex(0x4a9d5f);
-                        color.r += variation;
-                        color.g += variation;
-                    }
-                    // Light rough (with natural transition)
-                    else if (distFromFairwayCenter >= fairwayEdge && distFromFairwayCenter < roughEdge) {
-                        // Blend between fairway and light rough
-                        const blend = (distFromFairwayCenter - fairwayEdge) / (roughEdge - fairwayEdge);
-                        const fairwayColor = new THREE.Color(0x4a9d5f);
-                        const lightRoughColor = new THREE.Color(0x3a7d44);
-                        color.lerpColors(fairwayColor, lightRoughColor, blend);
-                    }
-                    // Heavy rough (beyond edges)
-                    else {
-                        // Transition to heavy rough
-                        const distIntoRough = Math.min((distFromFairwayCenter - roughEdge) / 10, 1);
-                        const lightRoughColor = new THREE.Color(0x3a7d44);
-                        const heavyRoughColor = new THREE.Color(0x2d5a28);
-                        color.lerpColors(lightRoughColor, heavyRoughColor, distIntoRough);
+                    if (hole.type === 'long-par5') {
+                        const inClearing = isInLongPar5Clearing(x, z, hole);
+                        let inFairway = inClearing;
+                        let inLightRough = false;
+
+                        if (!inClearing) {
+                            const bands = getLongPar5PathBands(z, hole);
+                            for (const band of bands) {
+                                const dist = Math.abs(x - band.centerX);
+                                const bandFairwayEdge = band.fairwayHalfWidth + totalNoise;
+                                const bandRoughEdge = band.roughHalfWidth + totalNoise * 0.7;
+
+                                if (dist < bandFairwayEdge) {
+                                    inFairway = true;
+                                    break;
+                                }
+
+                                if (dist < bandRoughEdge) {
+                                    inLightRough = true;
+                                }
+                            }
+                        }
+
+                        if (isInWater) {
+                            color.setHex(0x4A90E2); // Blue water
+                        } else if (inFairway) {
+                            const variation = (Math.sin(x * 0.2 + z * 0.1) * 0.5 + 0.5) * 0.05;
+                            color.setHex(0x4a9d5f);
+                            color.r += variation;
+                            color.g += variation;
+                        } else if (inLightRough) {
+                            const fairwayColor = new THREE.Color(0x4a9d5f);
+                            const lightRoughColor = new THREE.Color(0x3a7d44);
+                            color.lerpColors(fairwayColor, lightRoughColor, 0.6);
+                        } else {
+                            color.setHex(0x2d5a28);
+                        }
+                    } else if (hole.type === 'rockwiga-hole1') {
+                        const projection = getTeeToPinProjection(x, z, hole);
+                        let fairwayEdge = (hole.fairwayHalfWidth || 22) + totalNoise;
+                        let roughEdge = (hole.roughHalfWidth || 42) + totalNoise * 0.7;
+
+                        if (hole.landingZoneYards) {
+                            const landingMeters = hole.landingZoneYards * 0.9144;
+                            const distAlong = projection.t * projection.length;
+                            if (Math.abs(distAlong - landingMeters) < (hole.landingZoneRadius || 30)) {
+                                const boost = hole.landingZoneBoost || 6;
+                                fairwayEdge += boost;
+                                roughEdge += boost * 0.6;
+                            }
+                        }
+
+                        if (isInWater) {
+                            color.setHex(0x4A90E2); // Blue water
+                        } else if (projection.dist < fairwayEdge) {
+                            const variation = (Math.sin(x * 0.2 + z * 0.1) * 0.5 + 0.5) * 0.05;
+                            color.setHex(0x4a9d5f);
+                            color.r += variation;
+                            color.g += variation;
+                        } else if (projection.dist < roughEdge) {
+                            const fairwayColor = new THREE.Color(0x4a9d5f);
+                            const lightRoughColor = new THREE.Color(0x3a7d44);
+                            const blend = (projection.dist - fairwayEdge) / (roughEdge - fairwayEdge);
+                            color.lerpColors(fairwayColor, lightRoughColor, blend);
+                        } else {
+                            color.setHex(0x2d5a28);
+                        }
+                    } else {
+                        // Calculate distance from fairway centerline based on hole type
+                        if (hole.type === 'dogleg-left') {
+                            // Dogleg left: smooth curve from tee to green at (-220, -220)
+                            // Start curving gently from the tee
+                            const totalDistance = 220; // Distance to green in Z
+                            const progress = Math.min(1, Math.abs(z) / totalDistance);
+
+                            // Smooth S-curve using easing function
+                            const easeProgress = progress * progress * (3 - 2 * progress);
+                            const fairwayCenterX = -easeProgress * 220; // Gradually curve left
+
+                            distFromFairwayCenter = Math.abs(x - fairwayCenterX);
+                            fairwayEdge = 22 + totalNoise; // Wider fairway for par 4
+                            roughEdge = 38 + totalNoise * 0.7;
+                        } else if (hole.type === 'dogleg-right') {
+                            // Hole 4: Mitten-shaped fairway - bulges LEFT in middle, then comes back
+                            const totalDistance = 330;
+                            const progress = Math.min(1, Math.abs(z) / totalDistance);
+
+                            // Create the mitten bulge: Goes left in middle section, returns to center at green
+                            // Use sin wave to bulge out left in middle
+                            let fairwayCenterX = 0;
+                            if (progress < 0.6) {
+                                // First 60% - bulge out to the left (mitten thumb)
+                                const bulgeProgress = progress / 0.6; // 0 to 1 for first 60%
+                                fairwayCenterX = -Math.sin(bulgeProgress * Math.PI) * 60; // Peak at -60 yards left
+                            } else {
+                                // Last 40% - curve back right to green at x=30
+                                const returnProgress = (progress - 0.6) / 0.4; // 0 to 1 for last 40%
+                                const currentBulge = -Math.sin(Math.PI) * 60; // Nearly 0
+                                fairwayCenterX = currentBulge + returnProgress * 30; // Return to x=30
+                            }
+
+                            distFromFairwayCenter = Math.abs(x - fairwayCenterX);
+                            fairwayEdge = 50 + totalNoise; // Wide fairway (100 yards)
+                            roughEdge = 65 + totalNoise * 0.7;
+                        } else {
+                            // Straight hole - simple center corridor
+                            distFromFairwayCenter = Math.abs(x);
+                        }
+
+                        // Water coloring
+                        if (isInWater) {
+                            color.setHex(0x4A90E2); // Blue water
+                        }
+                        // Fairway - center corridor with natural edges
+                        else if (distFromFairwayCenter < fairwayEdge) {
+                            // Slight color variation in fairway
+                            const variation = (Math.sin(x * 0.2 + z * 0.1) * 0.5 + 0.5) * 0.05;
+                            color.setHex(0x4a9d5f);
+                            color.r += variation;
+                            color.g += variation;
+                        }
+                        // Light rough (with natural transition)
+                        else if (distFromFairwayCenter >= fairwayEdge && distFromFairwayCenter < roughEdge) {
+                            // Blend between fairway and light rough
+                            const blend = (distFromFairwayCenter - fairwayEdge) / (roughEdge - fairwayEdge);
+                            const fairwayColor = new THREE.Color(0x4a9d5f);
+                            const lightRoughColor = new THREE.Color(0x3a7d44);
+                            color.lerpColors(fairwayColor, lightRoughColor, blend);
+                        }
+                        // Heavy rough (beyond edges)
+                        else {
+                            // Transition to heavy rough
+                            const distIntoRough = Math.min((distFromFairwayCenter - roughEdge) / 10, 1);
+                            const lightRoughColor = new THREE.Color(0x3a7d44);
+                            const heavyRoughColor = new THREE.Color(0x2d5a28);
+                            color.lerpColors(lightRoughColor, heavyRoughColor, distIntoRough);
+                        }
                     }
                 }
 
@@ -1538,8 +2037,9 @@
             terrainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
             const terrainMaterial = new THREE.MeshLambertMaterial({
-                map: fairwayTexture, // Use fairway texture as base
-                vertexColors: true,  // Keep vertex colors for variation/blending
+                map: isStadium ? sandTexture : fairwayTexture,
+                color: isStadium ? 0xd6c39a : 0xffffff,
+                vertexColors: true,
                 side: THREE.DoubleSide
             });
             terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
@@ -1559,8 +2059,11 @@
             scene.add(teebox);
 
             // Green (simple visible circle mesh like the backup)
-            const greenRadius = 10;
+            const greenRadius = isStadium ? stadiumGreenRadius : 10;
             const greenGeometry = new THREE.CircleGeometry(greenRadius, 64);
+            if (isStadium) {
+                greenGeometry.scale(1.35, 0.85, 1);
+            }
             const greenMaterial = new THREE.MeshLambertMaterial({
                 color: 0x5cb574, // Brighter green
                 side: THREE.DoubleSide
@@ -1576,6 +2079,10 @@
             console.log('=== GREEN MESH ===');
             console.log('Green radius:', greenRadius, 'm');
             console.log('Green position:', PIN_POSITION.x, 0, PIN_POSITION.z);
+
+            if (isStadium) {
+                createStadiumInfield(stadiumGreenRadius, stadiumCollarOuter, stadiumFairwayRadius);
+            }
 
             // For island-hopping holes, create explicit island mesh objects
             if (hole.type === 'island-hopping') {
@@ -1619,6 +2126,10 @@
                 });
             }
 
+            if (hole.type === 'stadium') {
+                createStadiumStands();
+            }
+
             // Create bunkers based on hole type
             console.log('Creating bunkers for hole type:', hole.type, 'Hole number:', hole.number);
             if (hole.type === 'dogleg-left') {
@@ -1660,6 +2171,23 @@
 
                 // Greenside bunkers
                 createGreenBunker(PIN_POSITION.x + 15, PIN_POSITION.z - 10);   // Right of green
+            } else if (hole.type === 'long-par5') {
+                if (window.hole5WaterPolygons) {
+                    window.hole5WaterPolygons.forEach(points => createWaterHazard(points));
+                }
+
+                // Greenside bunker on the left
+                createGreenBunker(PIN_POSITION.x - 12, PIN_POSITION.z + 6);
+            } else if (hole.type === 'rockwiga-hole1') {
+                if (window.rockwigaHole1WaterPolygons) {
+                    window.rockwigaHole1WaterPolygons.forEach(points => createWaterHazard(points));
+                }
+            } else if (hole.type === 'stadium') {
+                // Coliseum-style par 3: larger sweeping bunkers
+                createGreenBunker(PIN_POSITION.x - 9, PIN_POSITION.z + 10);
+                createGreenBunker(PIN_POSITION.x + 9, PIN_POSITION.z + 10);
+                createGreenBunker(PIN_POSITION.x - 14, PIN_POSITION.z - 6);
+                createGreenBunker(PIN_POSITION.x + 14, PIN_POSITION.z - 6);
             } else {
                 // Par 3: Greenside bunkers only
                 createGreenBunker(BUNKER_LEFT_POSITION.x, BUNKER_LEFT_POSITION.z);
@@ -1732,16 +2260,126 @@
             // Tee markers
             createTeeMarker(-1, 3.15, 3, 0xff0000);
             createTeeMarker(1, 3.15, 3, 0xff0000);
+
+            // Cache ground objects for raycasts (avoids per-frame array rebuilds)
+            refreshGroundObjectsCache();
+        }
+
+        function createStadiumStands() {
+            const standGroup = new THREE.Group();
+            const centerX = PIN_POSITION.x;
+            const centerZ = PIN_POSITION.z;
+            const baseY = -0.2;
+            const standMaterial = new THREE.MeshLambertMaterial({ color: 0xf3f1ea });
+            const roofMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+            const segments = 28;
+
+            const tiers = [
+                { radius: 70, height: 5.5, depth: 8, yOffset: 0 },
+                { radius: 84, height: 5, depth: 9, yOffset: 5.5 }
+            ];
+
+            tiers.forEach((tier) => {
+                const arcLength = (2 * Math.PI * tier.radius) / segments;
+                const segmentWidth = arcLength * 0.92;
+                const geometry = new THREE.BoxGeometry(segmentWidth, tier.height, tier.depth);
+
+                for (let i = 0; i < segments; i++) {
+                    const angle = (i / segments) * Math.PI * 2;
+                    const x = centerX + Math.cos(angle) * (tier.radius + tier.depth / 2);
+                    const z = centerZ + Math.sin(angle) * (tier.radius + tier.depth / 2);
+                    const y = baseY + tier.height / 2 + tier.yOffset;
+
+                    const stand = new THREE.Mesh(geometry, standMaterial);
+                    stand.position.set(x, y, z);
+                    stand.rotation.y = -angle;
+                    stand.castShadow = false;
+                    stand.receiveShadow = true;
+                    standGroup.add(stand);
+                }
+            });
+
+            const roofTier = tiers[1];
+            const roofArc = (2 * Math.PI * roofTier.radius) / segments;
+            const roofWidth = roofArc * 0.9;
+            const roofGeometry = new THREE.BoxGeometry(roofWidth, 0.6, roofTier.depth * 0.6);
+
+            for (let i = 0; i < segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const x = centerX + Math.cos(angle) * (roofTier.radius + roofTier.depth / 2 + 1.5);
+                const z = centerZ + Math.sin(angle) * (roofTier.radius + roofTier.depth / 2 + 1.5);
+                const y = baseY + roofTier.yOffset + roofTier.height + 0.3;
+
+                const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                roof.position.set(x, y, z);
+                roof.rotation.y = -angle;
+                roof.castShadow = false;
+                roof.receiveShadow = true;
+                standGroup.add(roof);
+            }
+
+            scene.add(standGroup);
+            stadiumMeshes.push(standGroup);
+        }
+
+        function createStadiumInfield(greenRadius, collarOuter, fairwayRadius) {
+            const centerX = PIN_POSITION.x;
+            const centerZ = PIN_POSITION.z;
+
+            const fairwayGeometry = new THREE.CircleGeometry(fairwayRadius, 96);
+            fairwayGeometry.scale(1.3, 0.95, 1);
+            const fairwayMaterial = new THREE.MeshLambertMaterial({
+                map: fairwayTexture || null,
+                color: 0x4a9d5f,
+                side: THREE.DoubleSide
+            });
+            const fairwayMesh = new THREE.Mesh(fairwayGeometry, fairwayMaterial);
+            fairwayMesh.rotation.x = -Math.PI / 2;
+            fairwayMesh.position.set(centerX, -0.2, centerZ + 6);
+            fairwayMesh.receiveShadow = true;
+            scene.add(fairwayMesh);
+            stadiumMeshes.push(fairwayMesh);
+
+            const collarGeometry = new THREE.RingGeometry(greenRadius * 1.02, collarOuter, 64);
+            const collarMaterial = new THREE.MeshLambertMaterial({
+                map: fairwayTexture || null,
+                color: 0x4a9d5f,
+                side: THREE.DoubleSide
+            });
+            const collarMesh = new THREE.Mesh(collarGeometry, collarMaterial);
+            collarMesh.rotation.x = -Math.PI / 2;
+            collarMesh.position.set(centerX, -0.19, centerZ);
+            collarMesh.receiveShadow = true;
+            scene.add(collarMesh);
+            stadiumMeshes.push(collarMesh);
         }
 
         function createFairwayBunker(x, z) {
             // Larger fairway bunker - use CircleGeometry for proper UV mapping
             const bunkerRadius = 12;
             const bunkerGeometry = new THREE.CircleGeometry(bunkerRadius, 32);
+
+            console.log('Creating fairway bunker, sandTexture available:', !!sandTexture);
+
+            // Due to software rendering issues, always use color-based sand
+            // Add vertex colors for visual variation
+            const colors = [];
+            const positions = bunkerGeometry.attributes.position.array;
+
+            for (let i = 0; i < positions.length; i += 3) {
+                // Create subtle color variation to simulate sand texture
+                const variation = 0.05 + Math.random() * 0.1;
+                colors.push(0.867 - variation, 0.788 - variation, 0.596 - variation); // Sandy color with variation
+            }
+
+            bunkerGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
             const bunkerMaterial = new THREE.MeshLambertMaterial({
-                map: sandTexture || null,
-                color: sandTexture ? 0xffffff : 0xddc998  // White if texture exists, tan fallback
+                color: 0xddc998,  // Sandy tan color
+                vertexColors: true,  // Use vertex colors for variation
+                side: THREE.DoubleSide
             });
+
             const bunker = new THREE.Mesh(bunkerGeometry, bunkerMaterial);
             bunker.rotation.x = -Math.PI / 2;
             bunker.position.set(x, 0.05, z);
@@ -1754,10 +2392,28 @@
             // Greenside bunker - use ellipse for proper UV mapping
             const bunkerGeometry = new THREE.CircleGeometry(3.5, 32);
             bunkerGeometry.scale(1.2, 0.8, 1); // Make it elliptical
+
+            console.log('Creating green bunker, sandTexture available:', !!sandTexture);
+
+            // Due to software rendering issues, always use color-based sand
+            // Add vertex colors for visual variation
+            const colors = [];
+            const positions = bunkerGeometry.attributes.position.array;
+
+            for (let i = 0; i < positions.length; i += 3) {
+                // Create subtle color variation to simulate sand texture
+                const variation = 0.05 + Math.random() * 0.1;
+                colors.push(0.867 - variation, 0.788 - variation, 0.596 - variation); // Sandy color with variation
+            }
+
+            bunkerGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
             const bunkerMaterial = new THREE.MeshLambertMaterial({
-                map: sandTexture || null,
-                color: sandTexture ? 0xffffff : 0xddc998  // White if texture exists, tan fallback
+                color: 0xddc998,  // Sandy tan color
+                vertexColors: true,  // Use vertex colors for variation
+                side: THREE.DoubleSide
             });
+
             const bunker = new THREE.Mesh(bunkerGeometry, bunkerMaterial);
             bunker.rotation.x = -Math.PI / 2;
             bunker.rotation.z = -Math.PI / 2; // Orient along green
@@ -1917,6 +2573,110 @@
                     treeCount++;
                 }
 
+            } else if (hole.type === 'long-par5') {
+                const endZ = PIN_POSITION.z - 18;
+                const splitZ = getLongPar5SplitZ(hole);
+
+                for (let z = -15; z > endZ; z -= 18) {
+                    const groundY = 0;
+
+                    if (z > splitZ) {
+                        const band = getLongPar5PathBands(z, hole)[0];
+                        const leftX = band.centerX - (band.fairwayHalfWidth + 22 + Math.random() * 10);
+                        const rightX = band.centerX + (band.fairwayHalfWidth + 22 + Math.random() * 10);
+                        const heightLeft = 9 + Math.random() * 6;
+                        const heightRight = 9 + Math.random() * 6;
+
+                        createTree(leftX, groundY, z, heightLeft);
+                        treeCount++;
+                        createTree(rightX, groundY, z, heightRight);
+                        treeCount++;
+                    } else {
+                        const leftCenterX = getLongPar5LeftCenterX(z, hole);
+                        const rightCenterX = getLongPar5RightCenterX(z, hole);
+                        const leftBandWidth = hole.leftPathHalfWidth || 12;
+                        const rightBandWidth = hole.rightPathHalfWidth || 22;
+
+                        const leftOuterX = leftCenterX - (leftBandWidth + 22 + Math.random() * 10);
+                        const rightOuterX = rightCenterX + (rightBandWidth + 22 + Math.random() * 10);
+                        const heightLeft = 9 + Math.random() * 6;
+                        const heightRight = 9 + Math.random() * 6;
+
+                        createTree(leftOuterX, groundY, z, heightLeft);
+                        treeCount++;
+                        createTree(rightOuterX, groundY, z, heightRight);
+                        treeCount++;
+
+                        // Tree line between split fairways to keep paths distinct
+                        const innerLeftX = leftCenterX + leftBandWidth + 10 + Math.random() * 6;
+                        const innerRightX = rightCenterX - rightBandWidth - 10 - Math.random() * 6;
+                        const innerGap = innerRightX - innerLeftX;
+
+                        if (innerGap > 6 && Math.random() > 0.3) {
+                            const midX = innerLeftX + innerGap * (0.4 + Math.random() * 0.2);
+                            const heightMid = 9 + Math.random() * 6;
+                            createTree(midX, groundY, z, heightMid);
+                            treeCount++;
+                        }
+                    }
+
+                    if (hole.leftClearing && Math.abs(z - hole.leftClearing.z) < hole.leftClearing.radiusZ * 0.9) {
+                        const leftEdgeX = hole.leftClearing.x - hole.leftClearing.radiusX - 6 - Math.random() * 4;
+                        const rightEdgeX = hole.leftClearing.x + hole.leftClearing.radiusX + 6 + Math.random() * 4;
+                        const heightEdge = 9 + Math.random() * 6;
+                        createTree(leftEdgeX, groundY, z, heightEdge);
+                        treeCount++;
+                        createTree(rightEdgeX, groundY, z, heightEdge);
+                        treeCount++;
+                    }
+                }
+
+                // Behind green trees
+                for (let i = 0; i < 12; i++) {
+                    const x = PIN_POSITION.x - 30 + i * 3 + (Math.random() - 0.5) * 6;
+                    const z = PIN_POSITION.z - 22 - Math.random() * 26;
+                    const height = 10 + Math.random() * 5;
+                    const groundY = 0;
+                    createTree(x, groundY, z, height);
+                    treeCount++;
+                }
+
+            } else if (hole.type === 'rockwiga-hole1') {
+                const tee = hole.teePosition;
+                const pin = hole.pinPosition;
+                const dx = pin.x - tee.x;
+                const dz = pin.z - tee.z;
+                const length = Math.max(1, Math.sqrt(dx * dx + dz * dz));
+                const nx = -dz / length;
+                const nz = dx / length;
+                const baseOffset = hole.treeLineOffset || 34;
+                const stepCount = 18;
+
+                for (let i = 0; i < stepCount; i++) {
+                    const t = 0.08 + (i / (stepCount - 1)) * 0.84;
+                    const centerX = tee.x + dx * t;
+                    const centerZ = tee.z + dz * t;
+                    const spread = baseOffset + Math.random() * 10;
+                    const heightLeft = 9 + Math.random() * 6;
+                    const heightRight = 9 + Math.random() * 6;
+                    const groundY = 0;
+
+                    createTree(centerX + nx * spread, groundY, centerZ + nz * spread, heightLeft);
+                    treeCount++;
+                    createTree(centerX - nx * spread, groundY, centerZ - nz * spread, heightRight);
+                    treeCount++;
+                }
+
+                // Behind green trees
+                for (let i = 0; i < 10; i++) {
+                    const x = PIN_POSITION.x - 24 + i * 2.6 + (Math.random() - 0.5) * 6;
+                    const z = PIN_POSITION.z - 18 - Math.random() * 20;
+                    const height = 10 + Math.random() * 5;
+                    const groundY = 0;
+                    createTree(x, groundY, z, height);
+                    treeCount++;
+                }
+
             } else if (hole.type === 'island-hopping') {
                 // Island-hopping - palm trees on each island (REDUCED FOR PERFORMANCE: 5 -> 3 per island)
                 for (let island of hole.islands) {
@@ -1940,6 +2700,9 @@
                         treeCount++;
                     }
                 }
+
+            } else if (hole.type === 'stadium') {
+                // Stadium par 3: keep sightlines open, no trees inside the coliseum
 
             } else {
                 // Par 3 - original straight tree layout
@@ -2164,38 +2927,35 @@
 
         function updateTracer() {
             if (!ballInFlight) {
-                // Clear tracer when ball is not in flight
-                tracerPositions = [];
                 if (tracer && tracer.geometry) {
-                    const positions = tracer.geometry.attributes.position.array;
-                    for (let i = 0; i < positions.length; i++) {
-                        positions[i] = 0;
-                    }
-                    tracer.geometry.attributes.position.needsUpdate = true;
                     tracer.geometry.setDrawRange(0, 0);
                 }
+                tracerCount = 0;
+                tracerWriteIndex = 0;
                 return;
             }
 
             // Add current ball position to tracer
-            tracerPositions.push(ballPosition.clone());
-
-            // Keep only last MAX_TRACER_POINTS positions
-            if (tracerPositions.length > MAX_TRACER_POINTS) {
-                tracerPositions.shift();
+            if (!tracerPositions[tracerWriteIndex]) {
+                tracerPositions[tracerWriteIndex] = new THREE.Vector3();
             }
+            tracerPositions[tracerWriteIndex].copy(ballPosition);
+            tracerWriteIndex = (tracerWriteIndex + 1) % MAX_TRACER_POINTS;
+            tracerCount = Math.min(tracerCount + 1, MAX_TRACER_POINTS);
 
             // Update line geometry
             if (tracer && tracer.geometry) {
                 const positions = tracer.geometry.attributes.position.array;
-                for (let i = 0; i < tracerPositions.length; i++) {
-                    positions[i * 3] = tracerPositions[i].x;
-                    positions[i * 3 + 1] = tracerPositions[i].y;
-                    positions[i * 3 + 2] = tracerPositions[i].z;
+                for (let i = 0; i < tracerCount; i++) {
+                    const index = (tracerWriteIndex - tracerCount + i + MAX_TRACER_POINTS) % MAX_TRACER_POINTS;
+                    const point = tracerPositions[index];
+                    positions[i * 3] = point.x;
+                    positions[i * 3 + 1] = point.y;
+                    positions[i * 3 + 2] = point.z;
                 }
 
                 tracer.geometry.attributes.position.needsUpdate = true;
-                tracer.geometry.setDrawRange(0, tracerPositions.length);
+                tracer.geometry.setDrawRange(0, tracerCount);
             }
         }
 
@@ -2545,7 +3305,10 @@
                     console.log('Ball stopped - starting gimme check timer');
                 }
 
-                // Save player state and switch to farthest player with 2 second delay
+                // Snap aim to pin after putts, then save state
+                const currentPlayer = window.golfPar3Players[window.currentPlayerIndex];
+                const autoAimEnabled = currentPlayer && currentPlayer.autoAim !== false;
+                snapAimToPin(autoAimEnabled);
                 savePlayerState();
                 setTimeout(() => {
                     switchToFarthestPlayer();
@@ -2553,8 +3316,7 @@
             }
 
             // Update position
-            const movement = ballVelocity.clone().multiplyScalar(deltaTime);
-            ballPosition.add(movement);
+            ballPosition.addScaledVector(ballVelocity, deltaTime);
 
             // Keep ball on ground during putt
             const groundY = getGroundHeightRaycast(ballPosition.x, ballPosition.z);
@@ -2576,11 +3338,12 @@
                 const dz = ballPosition.z - PIN_POSITION.z;
 
                 // Calculate normal (direction from pin to ball)
-                const normal = new THREE.Vector2(dx, dz).normalize();
+                const invDist = 1 / distanceToHole;
+                const normalX = dx * invDist;
+                const normalZ = dz * invDist;
 
                 // Check if ball is moving toward the flagstick
-                const velocityDir = new THREE.Vector2(ballVelocity.x, ballVelocity.z);
-                const dot = velocityDir.dot(normal);
+                const dot = ballVelocity.x * normalX + ballVelocity.z * normalZ;
 
                 if (dot < 0) { // Moving toward flagstick
                     // If moving slow enough, ball can drop in the hole
@@ -2595,14 +3358,14 @@
                     } else {
                         // Bounce off flagstick
                         // Reflect velocity off the flagstick
-                        const reflectDot = ballVelocity.x * normal.x + ballVelocity.z * normal.y;
-                        ballVelocity.x = (ballVelocity.x - 2 * reflectDot * normal.x) * 0.6; // 40% energy loss
-                        ballVelocity.z = (ballVelocity.z - 2 * reflectDot * normal.y) * 0.6;
+                        const reflectDot = ballVelocity.x * normalX + ballVelocity.z * normalZ;
+                        ballVelocity.x = (ballVelocity.x - 2 * reflectDot * normalX) * 0.6; // 40% energy loss
+                        ballVelocity.z = (ballVelocity.z - 2 * reflectDot * normalZ) * 0.6;
 
                         // Push ball outside collision radius
                         const pushDist = collisionRadius - distanceToHole + 0.001;
-                        ballPosition.x += normal.x * pushDist;
-                        ballPosition.z += normal.y * pushDist;
+                        ballPosition.x += normalX * pushDist;
+                        ballPosition.z += normalZ * pushDist;
 
                         console.log('Ball bounced off flagstick!');
                     }
@@ -2909,8 +3672,7 @@
             ballSpin.totalSpin *= Math.exp(-deltaTime / 24.5);
 
             // Update position
-            const movement = ballVelocity.clone().multiplyScalar(deltaTime);
-            ballPosition.add(movement);
+            ballPosition.addScaledVector(ballVelocity, deltaTime);
 
             // Track max height
             if (ballPosition.y > maxHeight) {
@@ -2951,23 +3713,24 @@
             if (distanceToHole < collisionRadius && ballPosition.y < 2.1) {
                 const dx = ballPosition.x - PIN_POSITION.x;
                 const dz = ballPosition.z - PIN_POSITION.z;
-                const normal = new THREE.Vector2(dx, dz).normalize();
+                const invDist = 1 / distanceToHole;
+                const normalX = dx * invDist;
+                const normalZ = dz * invDist;
 
                 // Check if ball is moving toward the flagstick
-                const velocityDir = new THREE.Vector2(ballVelocity.x, ballVelocity.z);
-                const dot = velocityDir.dot(normal);
+                const dot = ballVelocity.x * normalX + ballVelocity.z * normalZ;
 
                 if (dot < 0) { // Moving toward flagstick
                     // Bounce off flagstick with energy loss
-                    const reflectDot = ballVelocity.x * normal.x + ballVelocity.z * normal.y;
-                    ballVelocity.x = (ballVelocity.x - 2 * reflectDot * normal.x) * 0.5; // 50% energy loss
-                    ballVelocity.z = (ballVelocity.z - 2 * reflectDot * normal.y) * 0.5;
+                    const reflectDot = ballVelocity.x * normalX + ballVelocity.z * normalZ;
+                    ballVelocity.x = (ballVelocity.x - 2 * reflectDot * normalX) * 0.5; // 50% energy loss
+                    ballVelocity.z = (ballVelocity.z - 2 * reflectDot * normalZ) * 0.5;
                     ballVelocity.y *= 0.7; // Reduce vertical velocity
 
                     // Push ball outside collision radius
                     const pushDist = collisionRadius - distanceToHole + 0.001;
-                    ballPosition.x += normal.x * pushDist;
-                    ballPosition.z += normal.y * pushDist;
+                    ballPosition.x += normalX * pushDist;
+                    ballPosition.z += normalZ * pushDist;
 
                     console.log('Ball hit flagstick in flight!');
                 }
@@ -3361,31 +4124,9 @@
 
                         // Wait 1.5 seconds for ball to visually settle, then save state and rotate camera
                         setTimeout(() => {
-                            // Always rotate camera toward pin after each shot (for convenience)
-                            // Calculate new base direction toward pin from current position
-                            const dx = PIN_POSITION.x - ballPosition.x;
-                            const dz = PIN_POSITION.z - ballPosition.z;
-                            const directionToPin = Math.atan2(dx, -dz) * 180 / Math.PI;
-
-                            // Check if auto-aim is enabled
                             const currentPlayer = window.golfPar3Players[window.currentPlayerIndex];
                             const autoAimEnabled = currentPlayer && currentPlayer.autoAim !== false;
-
-                            if (autoAimEnabled) {
-                                // Auto-aim ON: camera points to pin AND shot goes to pin
-                                baseDirection = directionToPin;
-                                console.log(`Ball settled - AUTO-AIM ON: camera & shot → hole at ${baseDirection.toFixed(1)}°`);
-                            } else {
-                                // Auto-aim OFF: camera points to pin, but shot aims straight (0° adjustment)
-                                // Store the direction to pin, but player can adjust with arrow keys
-                                baseDirection = directionToPin;
-                                console.log(`Ball settled - AUTO-AIM OFF: camera → hole at ${baseDirection.toFixed(1)}°, but shot goes straight from camera`);
-                            }
-
-                            // Reset aim adjustment to 0 (but keep base direction)
-                            aimAdjustment = 0;
-                            updateAimIndicator();
-
+                            snapAimToPin(autoAimEnabled);
                             // Save player state AFTER ball has settled
                             savePlayerState();
                         }, 1500);
@@ -3403,19 +4144,40 @@
             updateUI();
         }
 
-        function getGroundHeightRaycast(x, z) {
-            // Cast a ray downward from high above the ball position
-            const rayOrigin = new THREE.Vector3(x, 100, z);
-            const rayDirection = new THREE.Vector3(0, -1, 0);
+        function snapAimToPin(autoAimEnabled) {
+            const dx = PIN_POSITION.x - ballPosition.x;
+            const dz = PIN_POSITION.z - ballPosition.z;
+            const directionToPin = Math.atan2(dx, -dz) * 180 / Math.PI;
 
+            baseDirection = directionToPin;
+            if (autoAimEnabled) {
+                console.log(`Ball settled - AUTO-AIM ON: camera & shot → hole at ${baseDirection.toFixed(1)}°`);
+            } else {
+                console.log(`Ball settled - AUTO-AIM OFF: camera → hole at ${baseDirection.toFixed(1)}°, but shot goes straight from camera`);
+            }
+
+            aimAdjustment = 0;
+            updateAimIndicator();
+        }
+
+        function refreshGroundObjectsCache() {
+            groundObjectsCache = [terrain, greenMesh, teebox, ...bunkers, ...islandMeshes].filter(obj => obj);
+        }
+
+        function getGroundHeightRaycast(x, z) {
+            const estimatedHeight = getGroundHeight(x, z);
+            if (ballPosition && (ballPosition.y - BALL_RADIUS) > estimatedHeight + GROUND_RAYCAST_BUFFER) {
+                return estimatedHeight;
+            }
+
+            // Cast a ray downward from high above the ball position
+            rayOrigin.set(x, 100, z);
             raycaster.set(rayOrigin, rayDirection);
 
-            // Check terrain, green, teebox, bunkers, and island meshes (filter out null/undefined)
-            const objectsToCheck = [terrain, greenMesh, teebox, ...bunkers, ...islandMeshes].filter(obj => obj !== null && obj !== undefined);
-            if (objectsToCheck.length === 0) {
-                return getGroundHeight(x, z);
+            if (!groundObjectsCache.length) {
+                return estimatedHeight;
             }
-            const intersects = raycaster.intersectObjects(objectsToCheck, false);
+            const intersects = raycaster.intersectObjects(groundObjectsCache, false);
 
             if (intersects.length > 0) {
                 const groundY = intersects[0].point.y;
@@ -3423,7 +4185,7 @@
                 // Debug: Log when on green
                 const distToPinXZ = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
                 if (distToPinXZ < 10) { // Within green radius
-                    if (!window.lastGreenDebug || Date.now() - window.lastGreenDebug > 1000) {
+                    if (DEBUG_GROUND_RAYCAST && (!window.lastGreenDebug || Date.now() - window.lastGreenDebug > 1000)) {
                         console.log('BALL ON GREEN DEBUG:');
                         console.log('  Ball XZ:', x.toFixed(2), z.toFixed(2));
                         console.log('  Ground Y from raycast:', groundY.toFixed(3));
@@ -3438,7 +4200,7 @@
 
             // Fallback to calculated height if no intersection
             // This happens when position is outside terrain bounds
-            return getGroundHeight(x, z);
+            return estimatedHeight;
         }
 
         function getGroundHeight(x, z) {
@@ -3585,6 +4347,26 @@
                 return LIE_TYPES.HEAVY_ROUGH;
             }
 
+            if (hole.type === 'stadium') {
+                const dx = x - PIN_POSITION.x;
+                const dz = z - PIN_POSITION.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                if (z > -4 && z < 4 && Math.abs(x) < 3) {
+                    return LIE_TYPES.TEE;
+                }
+
+                if (dist < 11.5) {
+                    return LIE_TYPES.GREEN;
+                }
+
+                if (dist < 34) {
+                    return LIE_TYPES.FAIRWAY;
+                }
+
+                return LIE_TYPES.HEAVY_ROUGH;
+            }
+
             // Standard lie detection for non-island holes
             // Check tee
             if (z > -4 && z < 4 && Math.abs(x) < 3) {
@@ -3643,6 +4425,59 @@
                 } else {
                     return LIE_TYPES.HEAVY_ROUGH;
                 }
+            }
+
+            if (hole.type === 'long-par5') {
+                if (window.hole5WaterPolygons && window.hole5WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
+                    return LIE_TYPES.HEAVY_ROUGH;
+                }
+
+                if (isInLongPar5Clearing(x, z, hole)) {
+                    return LIE_TYPES.FAIRWAY;
+                }
+
+                const bands = getLongPar5PathBands(z, hole);
+                let inLightRough = false;
+
+                for (const band of bands) {
+                    const distFromCenter = Math.abs(x - band.centerX);
+                    if (distFromCenter < band.fairwayHalfWidth) {
+                        return LIE_TYPES.FAIRWAY;
+                    }
+                    if (distFromCenter < band.roughHalfWidth) {
+                        inLightRough = true;
+                    }
+                }
+
+                return inLightRough ? LIE_TYPES.LIGHT_ROUGH : LIE_TYPES.HEAVY_ROUGH;
+            }
+
+            if (hole.type === 'rockwiga-hole1') {
+                if (window.rockwigaHole1WaterPolygons && window.rockwigaHole1WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
+                    return LIE_TYPES.HEAVY_ROUGH;
+                }
+
+                const projection = getTeeToPinProjection(x, z, hole);
+                let fairwayEdge = hole.fairwayHalfWidth || 22;
+                let roughEdge = hole.roughHalfWidth || 42;
+
+                if (hole.landingZoneYards) {
+                    const landingMeters = hole.landingZoneYards * 0.9144;
+                    const distAlong = projection.t * projection.length;
+                    if (Math.abs(distAlong - landingMeters) < (hole.landingZoneRadius || 30)) {
+                        const boost = hole.landingZoneBoost || 6;
+                        fairwayEdge += boost;
+                        roughEdge += boost * 0.6;
+                    }
+                }
+
+                if (projection.dist < fairwayEdge) {
+                    return LIE_TYPES.FAIRWAY;
+                } else if (projection.dist < roughEdge) {
+                    return LIE_TYPES.LIGHT_ROUGH;
+                }
+
+                return LIE_TYPES.HEAVY_ROUGH;
             }
 
             // Dogleg-left - curved fairway logic
@@ -3732,10 +4567,39 @@
                 return true; // Not on any island = in water = OB
             }
 
+            if (hole.type === 'stadium') {
+                const dx = x - PIN_POSITION.x;
+                const dz = z - PIN_POSITION.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                return dist > 90;
+            }
+
+            if (hole.type === 'rockwiga-hole1') {
+                if (window.rockwigaHole1WaterPolygons && window.rockwigaHole1WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
+                    return true;
+                }
+            }
+
             // Check if ball is in water (outside terrain bounds)
             // Par 3: terrain is 200x300m, Par 4 dogleg-left: 500x500m, Par 4 dogleg-right: wider for mitten
-            const terrainBoundX = hole.type === 'dogleg-left' ? 250 : (hole.type === 'dogleg-right' ? 200 : 100);
-            const terrainBoundZ = hole.type === 'dogleg-left' ? 250 : (hole.type === 'dogleg-right' ? 350 : 150);
+            const terrainBoundX = hole.type === 'dogleg-left'
+                ? 250
+                : (hole.type === 'dogleg-right'
+                    ? 200
+                    : (hole.type === 'long-par5'
+                        ? 130
+                        : (hole.type === 'rockwiga-hole1'
+                            ? 180
+                            : (hole.type === 'stadium' ? 130 : 100))));
+            const terrainBoundZ = hole.type === 'dogleg-left'
+                ? 250
+                : (hole.type === 'dogleg-right'
+                    ? 350
+                    : (hole.type === 'long-par5'
+                        ? 500
+                        : (hole.type === 'rockwiga-hole1'
+                            ? 360
+                            : (hole.type === 'stadium' ? 160 : 150))));
             if (Math.abs(x) > terrainBoundX || Math.abs(z) > terrainBoundZ) {
                 return true;
             }
@@ -3776,6 +4640,20 @@
                 const OB_DISTANCE = 70 + 4.572;
 
                 if (distFromCenter > OB_DISTANCE) {
+                    return true;
+                }
+            } else if (hole.type === 'long-par5') {
+                const nearestBand = getLongPar5NearestBand(x, z, hole);
+                const OB_DISTANCE = 60 + 4.572; // OB beyond rough
+
+                if (nearestBand.dist > OB_DISTANCE) {
+                    return true;
+                }
+            } else if (hole.type === 'rockwiga-hole1') {
+                const projection = getTeeToPinProjection(x, z, hole);
+                const OB_DISTANCE = 70;
+
+                if (projection.dist > OB_DISTANCE) {
                     return true;
                 }
             } else {
@@ -3936,11 +4814,12 @@
 
         function resetAllPlayers() {
             // Reset back to starting hole based on selectedHoles
-            if (selectedHoles === 1) currentHoleIndex = 0;
-            else if (selectedHoles === 2) currentHoleIndex = 1;
-            else if (selectedHoles === 3) currentHoleIndex = 2;
-            else if (selectedHoles === 4) currentHoleIndex = 3;
-            else currentHoleIndex = 0; // Full round starts at hole 1
+            const selectedHoleNumber = Number(selectedHoles);
+            if (selectedHoles !== 'all' && Number.isFinite(selectedHoleNumber)) {
+                currentHoleIndex = Math.max(0, Math.min(selectedHoleNumber - 1, HOLES.length - 1));
+            } else {
+                currentHoleIndex = 0; // Full round starts at hole 1
+            }
 
             setupHole(currentHoleIndex);
 
@@ -4281,6 +5160,12 @@
         }
 
         function updateYardageMarker() {
+            const now = performance.now();
+            if (now - lastYardageUpdateTime < YARDAGE_UPDATE_INTERVAL_MS) {
+                return;
+            }
+            lastYardageUpdateTime = now;
+
             // Calculate distance to pin for dynamic height
             const distToPinM = Math.sqrt(
                 Math.pow(ballPosition.x - PIN_POSITION.x, 2) +
@@ -4298,25 +5183,36 @@
             const markerHeight = minHeight + (maxHeight - minHeight) * heightRatio;
 
             // Project pin position to screen coordinates
-            const pinScreenPos = PIN_POSITION.clone();
+            pinScreenPos.copy(PIN_POSITION);
             pinScreenPos.y += markerHeight; // Float above the pin with dynamic height
             pinScreenPos.project(camera);
 
             // Convert to screen coordinates
-            const x = (pinScreenPos.x * 0.5 + 0.5) * window.innerWidth;
-            const y = (-pinScreenPos.y * 0.5 + 0.5) * window.innerHeight;
+            const x = Math.round((pinScreenPos.x * 0.5 + 0.5) * window.innerWidth);
+            const y = Math.round((-pinScreenPos.y * 0.5 + 0.5) * window.innerHeight);
 
             // Update marker position
             const marker = document.getElementById('yardageMarker');
             if (marker) {
                 // Only show if pin is in front of camera
-                if (pinScreenPos.z < 1) {
-                    marker.style.display = 'block';
+                const isVisible = pinScreenPos.z < 1;
+                if (isVisible !== lastYardageVisible) {
+                    marker.style.display = isVisible ? 'block' : 'none';
+                    if (isVisible) {
+                        marker.style.transform = 'translate(-50%, -100%)';
+                    }
+                    lastYardageVisible = isVisible;
+                }
+                if (!isVisible) {
+                    return;
+                }
+                if (x !== lastYardageX) {
                     marker.style.left = x + 'px';
+                    lastYardageX = x;
+                }
+                if (y !== lastYardageY) {
                     marker.style.top = y + 'px';
-                    marker.style.transform = 'translate(-50%, -100%)';
-                } else {
-                    marker.style.display = 'none';
+                    lastYardageY = y;
                 }
 
                 // Update distance value - show in feet when on green, yards otherwise
@@ -4327,18 +5223,38 @@
                 if (distToPinM < 10 && currentLie.name === 'Green') {
                     // Show in feet
                     const distToPinFeet = Math.round(distToPinM * 3.28084);
-                    distanceDisplay.textContent = distToPinFeet;
-                    if (labelDisplay) labelDisplay.textContent = 'FEET';
+                    if (distanceDisplay && distToPinFeet !== lastYardageValue) {
+                        distanceDisplay.textContent = distToPinFeet;
+                        lastYardageValue = distToPinFeet;
+                    }
+                    if (labelDisplay && lastYardageLabel !== 'FEET') {
+                        labelDisplay.textContent = 'FEET';
+                        lastYardageLabel = 'FEET';
+                    }
                 } else {
                     // Show in yards
-                    distanceDisplay.textContent = Math.round(distToPinYards);
-                    if (labelDisplay) labelDisplay.textContent = 'YARDS';
+                    const distToPinYardsRounded = Math.round(distToPinYards);
+                    if (distanceDisplay && distToPinYardsRounded !== lastYardageValue) {
+                        distanceDisplay.textContent = distToPinYardsRounded;
+                        lastYardageValue = distToPinYardsRounded;
+                    }
+                    if (labelDisplay && lastYardageLabel !== 'YARDS') {
+                        labelDisplay.textContent = 'YARDS';
+                        lastYardageLabel = 'YARDS';
+                    }
                 }
             }
         }
 
         function updateMinimap() {
             if (!minimapCamera || !minimapRenderer) return;
+
+            const now = performance.now();
+            const interval = ballInFlight ? MINIMAP_UPDATE_INTERVAL_MS : MINIMAP_IDLE_INTERVAL_MS;
+            if (now - lastMinimapUpdateTime < interval) {
+                return;
+            }
+            lastMinimapUpdateTime = now;
 
             const hole = HOLES[currentHoleIndex];
             const pinPos = hole.pinPosition;
@@ -4434,13 +5350,15 @@
             requestAnimationFrame(animate);
 
             // --- START: FPS Calculation ---
-            frameCount++;
-            const currentTimeFPS = performance.now();
-            if (currentTimeFPS - lastFpsUpdateTime > 1000) { // Update every second
-                const fps = frameCount / ((currentTimeFPS - lastFpsUpdateTime) / 1000);
-                console.log(`FPS: ${fps.toFixed(1)}`);
-                frameCount = 0; // Reset frameCount for the next second
-                lastFpsUpdateTime = currentTimeFPS;
+            if (DEBUG_FPS_LOG) {
+                frameCount++;
+                const currentTimeFPS = performance.now();
+                if (currentTimeFPS - lastFpsUpdateTime > 1000) { // Update every second
+                    const fps = frameCount / ((currentTimeFPS - lastFpsUpdateTime) / 1000);
+                    console.log(`FPS: ${fps.toFixed(1)}`);
+                    frameCount = 0; // Reset frameCount for the next second
+                    lastFpsUpdateTime = currentTimeFPS;
+                }
             }
             // --- END: FPS Calculation ---
 
