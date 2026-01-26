@@ -106,6 +106,7 @@ putting-green-option1.html
 
 # Directories
 __pycache__/
+.beads/
 .claude/
 physics/
 pics/
