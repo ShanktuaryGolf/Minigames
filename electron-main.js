@@ -211,7 +211,7 @@ function createWindow() {
     });
 
     // Load the index.html
-    mainWindow.loadFile('electron-index.html');
+    mainWindow.loadFile('electron-index-radial.html');
 
     // F12 to toggle DevTools
     mainWindow.webContents.on('before-input-event', (event, input) => {

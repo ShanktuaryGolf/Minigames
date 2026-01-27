@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quick Cal — Dartboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        canvas { display: block; }
+        #status {
+            position: absolute;
+            bottom: 20px;
+            text-align: center;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #22c55e;
+            text-shadow: 0 0 10px rgba(34,197,94,0.5);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.15); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="board"></canvas>
+    <div id="status">Waiting for calibration...</div>
+
+    <script>
+        const SEGMENT_ORDER = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+
+        const GUIDED_TARGETS = [
+            { name: 'Bullseye',    x: 0,    y: 0    },
+            { name: '20 Segment',  x: 0,    y: -0.7 },
+            { name: '6 Segment',   x: 0.7,  y: 0    },
+            { name: '3 Segment',   x: 0,    y: 0.7  },
+            { name: '11 Segment',  x: -0.7, y: 0    }
+        ];
+
+        let currentTarget = 0;
+        let completedTargets = [];
+        let done = false;
+
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+
+        function resize() {
+            const size = Math.min(innerWidth, innerHeight);
+            canvas.width = size;
+            canvas.height = size;
+            draw();
+        }
+
+        function drawSegment(cx, cy, outerR, innerR, a1, a2, color) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerR, a1, a2);
+            ctx.arc(cx, cy, innerR, a2, a1, true);
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        function draw() {
+            const W = canvas.width;
+            const H = canvas.height;
+            const cx = W / 2;
+            const cy = H / 2;
+            const R = Math.min(W, H) * 0.42;
+
+            // Proportional radii (matching main app ratios)
+            const BULLSEYE_R  = R * (8.5 / 115);
+            const BULL_R      = R * (23 / 115);
+            const TRIPLE_IN   = R * (58 / 115);
+            const TRIPLE_OUT  = R * (63 / 115);
+            const DOUBLE_IN   = R * (104 / 115);
+            const DOUBLE_OUT  = R;
+            const NUM_R       = R * (129 / 115);
+
+            ctx.clearRect(0, 0, W, H);
+
+            // Draw segments
+            for (let i = 0; i < 20; i++) {
+                const a1 = (i * 18 - 9) * Math.PI / 180;
+                const a2 = ((i + 1) * 18 - 9) * Math.PI / 180;
+                const isBlack = i % 2 === 0;
+                const c1 = isBlack ? '#000000' : '#f5f5f5';
+                const c2 = isBlack ? '#16a34a' : '#dc2626';
+
+                drawSegment(cx, cy, DOUBLE_OUT, DOUBLE_IN, a1, a2, c2);
+                drawSegment(cx, cy, TRIPLE_OUT, TRIPLE_IN, a1, a2, c2);
+                drawSegment(cx, cy, DOUBLE_IN, TRIPLE_OUT, a1, a2, c1);
+                drawSegment(cx, cy, TRIPLE_IN, BULL_R, a1, a2, c1);
+
+                // Segment numbers
+                const na = i * 18 * Math.PI / 180;
+                ctx.fillStyle = 'white';
+                ctx.font = `bold ${Math.round(R * 0.1)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(SEGMENT_ORDER[i], cx + Math.sin(na) * NUM_R, cy - Math.cos(na) * NUM_R);
+            }
+
+            // Bull ring
+            ctx.beginPath();
+            ctx.arc(cx, cy, BULL_R, 0, 2 * Math.PI);
+            ctx.fillStyle = '#16a34a';
+            ctx.fill();
+
+            // Bullseye
+            ctx.beginPath();
+            ctx.arc(cx, cy, BULLSEYE_R, 0, 2 * Math.PI);
+            ctx.fillStyle = '#dc2626';
+            ctx.fill();
+
+            // Draw completed checkmarks
+            completedTargets.forEach(idx => {
+                if (idx >= GUIDED_TARGETS.length) return;
+                const t = GUIDED_TARGETS[idx];
+                const tx = cx + t.x * R;
+                const ty = cy + t.y * R;
+                const markR = R * 0.07;
+
+                ctx.beginPath();
+                ctx.arc(tx, ty, markR, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.6)';
+                ctx.fill();
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Checkmark
+                ctx.beginPath();
+                ctx.moveTo(tx - markR * 0.4, ty);
+                ctx.lineTo(tx - markR * 0.05, ty + markR * 0.35);
+                ctx.lineTo(tx + markR * 0.45, ty - markR * 0.35);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = Math.max(2, R * 0.02);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+            });
+
+            // Draw pulsing target indicator for current target
+            if (!done && currentTarget < GUIDED_TARGETS.length) {
+                const t = GUIDED_TARGETS[currentTarget];
+                const tx = cx + t.x * R;
+                const ty = cy + t.y * R;
+                const targetR = R * 0.09;
+
+                // Pulsing ring (animated via requestAnimationFrame)
+                const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 300);
+                const outerR = targetR * (1 + pulse * 0.4);
+
+                ctx.beginPath();
+                ctx.arc(tx, ty, outerR, 0, 2 * Math.PI);
+                ctx.strokeStyle = `rgba(34, 197, 94, ${0.3 + pulse * 0.4})`;
+                ctx.lineWidth = Math.max(3, R * 0.025);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(tx, ty, targetR * 0.3, 0, 2 * Math.PI);
+                ctx.fillStyle = `rgba(34, 197, 94, ${0.6 + pulse * 0.4})`;
+                ctx.fill();
+            }
+
+            // Update status text
+            if (done) {
+                statusEl.textContent = 'Calibration complete!';
+                statusEl.style.color = '#22c55e';
+            } else if (currentTarget < GUIDED_TARGETS.length) {
+                const t = GUIDED_TARGETS[currentTarget];
+                statusEl.textContent = `Aim at: ${t.name}  (Shot ${currentTarget + 1} of ${GUIDED_TARGETS.length})`;
+                statusEl.style.color = '#22c55e';
+            }
+        }
+
+        // Animation loop for pulsing
+        function animate() {
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        // BroadcastChannel communication
+        const channel = new BroadcastChannel('quick_cal_dartboard');
+
+        channel.onmessage = (e) => {
+            const msg = e.data;
+            if (msg.type === 'update') {
+                currentTarget = msg.currentTarget;
+                completedTargets = msg.completedTargets || [];
+                done = !!msg.done;
+                draw();
+            } else if (msg.type === 'close') {
+                window.close();
+            }
+        };
+
+        // Notify main window we're ready
+        channel.postMessage({ type: 'popout_ready' });
+
+        window.addEventListener('beforeunload', () => {
+            channel.postMessage({ type: 'popout_closing' });
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>
