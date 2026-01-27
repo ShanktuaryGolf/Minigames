@@ -491,6 +491,11 @@
             background: linear-gradient(90deg, rgba(34, 197, 94, 0.4), transparent);
             transform-origin: 0 50%;
             pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .radial-container.connected .radial-line {
+            opacity: 1;
         }
 
         /* Center hub */
@@ -545,7 +550,24 @@
             color: white;
             z-index: 3;
             opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Only animate in when connected */
+        .radial-container.connected .radial-btn {
             animation: radialFadeIn 0.5s ease forwards;
+            pointer-events: auto;
+        }
+
+        /* Fade out when disconnected after having been connected */
+        .radial-container.disconnected .radial-btn {
+            animation: radialFadeOut 0.4s ease forwards;
+            pointer-events: none;
+        }
+
+        @keyframes radialFadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.5); }
         }
 
         .radial-btn:hover {
@@ -597,14 +619,14 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        .radial-btn:nth-child(1) { animation-delay: 0.05s; }
-        .radial-btn:nth-child(2) { animation-delay: 0.1s; }
-        .radial-btn:nth-child(3) { animation-delay: 0.15s; }
-        .radial-btn:nth-child(4) { animation-delay: 0.2s; }
-        .radial-btn:nth-child(5) { animation-delay: 0.25s; }
-        .radial-btn:nth-child(6) { animation-delay: 0.3s; }
-        .radial-btn:nth-child(7) { animation-delay: 0.35s; }
-        .radial-btn:nth-child(8) { animation-delay: 0.4s; }
+        .radial-container.connected .radial-btn:nth-child(1) { animation-delay: 0.05s; }
+        .radial-container.connected .radial-btn:nth-child(2) { animation-delay: 0.1s; }
+        .radial-container.connected .radial-btn:nth-child(3) { animation-delay: 0.15s; }
+        .radial-container.connected .radial-btn:nth-child(4) { animation-delay: 0.2s; }
+        .radial-container.connected .radial-btn:nth-child(5) { animation-delay: 0.25s; }
+        .radial-container.connected .radial-btn:nth-child(6) { animation-delay: 0.3s; }
+        .radial-container.connected .radial-btn:nth-child(7) { animation-delay: 0.35s; }
+        .radial-container.connected .radial-btn:nth-child(8) { animation-delay: 0.4s; }
 
         /* Position 8 buttons in a circle, radius ~250px from center */
         .radial-btn:nth-of-type(1) { top: calc(50% - 250px - 65px); left: calc(50% - 65px); }           /* 0deg = top */
@@ -4317,6 +4339,7 @@
             const indicator = statusEl.querySelector('.status-indicator');
             const text = statusEl.querySelector('span');
             const tabBtn = document.getElementById('settingsTabBtn');
+            const radialContainer = document.querySelector('.radial-container');
 
             if (connected && receivingData) {
                 // Actually receiving data from launch monitor
@@ -4324,18 +4347,29 @@
                 indicator.className = 'status-indicator connected';
                 text.textContent = '✓ Connected to Launch Monitor (Receiving Data)';
                 if (tabBtn) { tabBtn.classList.add('connected'); tabBtn.classList.remove('disconnected'); }
+                if (radialContainer) { radialContainer.classList.add('connected'); radialContainer.classList.remove('disconnected'); }
             } else if (connected && !receivingData) {
                 // Listening but no data yet
                 statusEl.className = 'connection-status disconnected';
                 indicator.className = 'status-indicator disconnected';
                 text.textContent = '⏳ Listening on port 921 (No data yet - check firewall)';
                 if (tabBtn) { tabBtn.classList.add('disconnected'); tabBtn.classList.remove('connected'); }
+                // Only play fadeOut if games were previously shown
+                if (radialContainer && radialContainer.classList.contains('connected')) {
+                    radialContainer.classList.add('disconnected');
+                }
+                if (radialContainer) { radialContainer.classList.remove('connected'); }
             } else {
                 // Not connected at all
                 statusEl.className = 'connection-status disconnected';
                 indicator.className = 'status-indicator disconnected';
                 text.textContent = '⚠ Starting up...';
                 if (tabBtn) { tabBtn.classList.add('disconnected'); tabBtn.classList.remove('connected'); }
+                // Only play fadeOut if games were previously shown
+                if (radialContainer && radialContainer.classList.contains('connected')) {
+                    radialContainer.classList.add('disconnected');
+                }
+                if (radialContainer) { radialContainer.classList.remove('connected'); }
             }
         }
 
