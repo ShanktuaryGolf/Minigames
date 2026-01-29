@@ -1758,6 +1758,18 @@
             document.getElementById('settingsOverlay').classList.toggle('open');
         }
 
+        // Debug: Press backtick (`) to force-show games without LM connection
+        document.addEventListener('keydown', function(e) {
+            if (e.key === '`') {
+                const rc = document.querySelector('.radial-container');
+                if (rc) {
+                    rc.classList.remove('disconnected');
+                    rc.classList.add('connected');
+                    console.log('Debug: force-showing games');
+                }
+            }
+        });
+
         // Toggle debug panel
         function toggleDebugPanel() {
             const panel = document.getElementById('debugPanel');
@@ -5549,6 +5561,7 @@
 
         window.golfSelectedCourse = 'shanktuary';
         window.golfSelectedHoles = 'all'; // Default to all holes
+        window.golfGameMode = 'standard'; // 'standard' | 'draft-solo' | 'draft-multi'
 
         try {
             const storedCourse = localStorage.getItem('golfSelectedCourse');
@@ -5557,6 +5570,45 @@
             }
         } catch (e) {
             console.log('Could not load golf course selection, using default');
+        }
+
+        function selectGolfGameMode(mode) {
+            window.golfGameMode = mode;
+
+            // Update button styles
+            const modes = ['standard', 'draft-solo', 'draft-multi'];
+            const modeIds = ['gameModeStandard', 'gameModeDraftSolo', 'gameModeDraftMulti'];
+
+            modeIds.forEach((id, i) => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (modes[i] === mode) {
+                        btn.style.background = 'rgba(74, 222, 128, 0.5)';
+                        btn.style.border = '3px solid #4ade80';
+                        btn.style.fontWeight = 'bold';
+                    } else {
+                        btn.style.background = 'rgba(74, 222, 128, 0.3)';
+                        btn.style.border = '2px solid #4ade80';
+                        btn.style.fontWeight = 'normal';
+                    }
+                }
+            });
+
+            // Show/hide draft description
+            const draftDesc = document.getElementById('draftGolfDescription');
+            if (draftDesc) {
+                draftDesc.style.display = mode.startsWith('draft') ? 'block' : 'none';
+            }
+
+            // For draft modes, auto-set player count based on mode
+            if (mode === 'draft-solo') {
+                // Solo mode: 1 human + 3 AI (handled in game)
+                // Hide player count section as it's fixed for draft
+            } else if (mode === 'draft-multi') {
+                // Multi mode: 4 humans (handled in game)
+            }
+
+            console.log('Selected game mode:', mode);
         }
 
         function showGolfPar3Setup() {
@@ -5614,6 +5666,26 @@
                                            border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
                                 🌲 Hole 5<br><span style="font-size: 0.9em; opacity: 0.8;">Par 5 - 494 yds Pines</span>
                             </button>
+                            <button onclick="selectGolfHoles(6)" id="holes6"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                🌳 Hole 6<br><span style="font-size: 0.9em; opacity: 0.8;">Par 4 - 326 yds</span>
+                            </button>
+                            <button onclick="selectGolfHoles(7)" id="holes7"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                🏌️ Hole 7<br><span style="font-size: 0.9em; opacity: 0.8;">Par 5 - 434 yds</span>
+                            </button>
+                            <button onclick="selectGolfHoles(8)" id="holes8"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                ⛰️ Hole 8<br><span style="font-size: 0.9em; opacity: 0.8;">Par 3 - 148 yds</span>
+                            </button>
+                            <button onclick="selectGolfHoles(9)" id="holes9"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                🔄 Hole 9<br><span style="font-size: 0.9em; opacity: 0.8;">Par 4 - 398 yds</span>
+                            </button>
                         </div>
                     </div>
 
@@ -5628,6 +5700,40 @@
                                     ${n} Player${n > 1 ? 's' : ''}
                                 </button>
                             `).join('')}
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">Game Mode</h3>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <button onclick="selectGolfGameMode('standard')" id="gameModeStandard"
+                                    style="padding: 20px; font-size: 1em; background: rgba(74, 222, 128, 0.5);
+                                           border: 3px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                                <div style="font-size: 1.3em; margin-bottom: 5px;">🏌️</div>
+                                Standard<br><span style="font-size: 0.8em; opacity: 0.8;">Classic golf</span>
+                            </button>
+                            <button onclick="selectGolfGameMode('draft-solo')" id="gameModeDraftSolo"
+                                    style="padding: 20px; font-size: 1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
+                                <div style="font-size: 1.3em; margin-bottom: 5px;">🎯</div>
+                                Draft Golf<br><span style="font-size: 0.8em; opacity: 0.8;">Solo vs 3 AI</span>
+                            </button>
+                            <button onclick="selectGolfGameMode('draft-multi')" id="gameModeDraftMulti"
+                                    style="padding: 20px; font-size: 1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
+                                <div style="font-size: 1.3em; margin-bottom: 5px;">👥</div>
+                                Draft Golf<br><span style="font-size: 0.8em; opacity: 0.8;">4 Players</span>
+                            </button>
+                        </div>
+                        <div id="draftGolfDescription" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.9em;">
+                            <strong style="color: #4ade80;">Draft Golf Rules:</strong><br>
+                            All 4 players hit their shots, then take turns drafting which ball position to play from next.
+                            <div style="margin-top: 10px;">
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" id="draftAdvancedMode" style="width: 18px; height: 18px;">
+                                    <span>Advanced: Randomize draft order each round</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -5889,31 +5995,49 @@
         function updateGolfHoleOptions() {
             const isRockwiga = window.golfSelectedCourse === 'rockwiga';
             const holesAll = document.getElementById('holesAll');
-            const holes1 = document.getElementById('holes1');
-            const holes2 = document.getElementById('holes2');
-            const holes3 = document.getElementById('holes3');
-            const holes4 = document.getElementById('holes4');
-            const holes5 = document.getElementById('holes5');
+
+            const rockwigaHoles = [
+                { num: 1, emoji: '\u{1F332}', desc: 'Par 4 - 400 yds' },
+                { num: 2, emoji: '\u26F3', desc: 'Par 3 - 160 yds' },
+                { num: 3, emoji: '\u{1F3CC}\uFE0F', desc: 'Par 5 - 484 yds' },
+                { num: 4, emoji: '\u{1F332}', desc: 'Par 4 - 334 yds' },
+                { num: 5, emoji: '\u2199\uFE0F', desc: 'Par 4 - 317 yds' },
+                { num: 6, emoji: '\u{1F333}', desc: 'Par 4 - 326 yds' },
+                { num: 7, emoji: '\u2197\uFE0F', desc: 'Par 5 - 434 yds' },
+                { num: 8, emoji: '\u26F0\uFE0F', desc: 'Par 3 - 148 yds' },
+                { num: 9, emoji: '\u{1F504}', desc: 'Par 4 - 398 yds' }
+            ];
+            var shanktuaryHoles = [
+                { num: 1, emoji: '\u26F3', desc: 'Par 3 - 150 yds' },
+                { num: 2, emoji: '\u{1F333}', desc: 'Par 4 - 320 yds Dogleg L' },
+                { num: 3, emoji: '\u{1F3DD}\uFE0F', desc: 'Par 4 - 250 yds Islands' },
+                { num: 4, emoji: '\u{1F4A7}', desc: 'Par 4 - 395 yds Dogleg R' },
+                { num: 5, emoji: '\u{1F332}', desc: 'Par 5 - 494 yds Pines' }
+            ];
+
+            var courseHoles = isRockwiga ? rockwigaHoles : shanktuaryHoles;
 
             if (holesAll) {
-                holesAll.innerHTML = isRockwiga
-                    ? "🏌️ Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All 1 Hole</span>"
-                    : "🏌️ Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All 5 Holes</span>";
+                holesAll.innerHTML = "\u{1F3CC}\uFE0F Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All " + courseHoles.length + " Holes</span>";
             }
 
-            if (holes1) {
-                holes1.innerHTML = isRockwiga
-                    ? "🌲 Hole 1<br><span style=\"font-size: 0.9em; opacity: 0.8;\">Par 4 - 400 yds</span>"
-                    : "⛳ Hole 1<br><span style=\"font-size: 0.9em; opacity: 0.8;\">Par 3 - 150 yds</span>";
-            }
-
-            [holes2, holes3, holes4, holes5].forEach(btn => {
-                if (btn) {
-                    btn.style.display = isRockwiga ? 'none' : 'block';
+            for (var i = 1; i <= 9; i++) {
+                var btn = document.getElementById('holes' + i);
+                if (!btn) continue;
+                var holeData = null;
+                for (var j = 0; j < courseHoles.length; j++) {
+                    if (courseHoles[j].num === i) { holeData = courseHoles[j]; break; }
                 }
-            });
+                if (holeData) {
+                    btn.innerHTML = holeData.emoji + " Hole " + i + "<br><span style=\"font-size: 0.9em; opacity: 0.8;\">" + holeData.desc + "</span>";
+                    btn.style.display = 'block';
+                } else {
+                    btn.style.display = 'none';
+                }
+            }
 
-            if (isRockwiga && window.golfSelectedHoles !== 'all' && window.golfSelectedHoles !== 1) {
+            var maxHole = courseHoles.length;
+            if (window.golfSelectedHoles !== 'all' && window.golfSelectedHoles > maxHole) {
                 window.golfSelectedHoles = 'all';
             }
 
@@ -5924,7 +6048,7 @@
             window.golfSelectedHoles = selection;
 
             // Update button styles
-            ['all', 1, 2, 3, 4, 5].forEach(h => {
+            ['all', 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(h => {
                 const btn = document.getElementById('holes' + h);
                 if (btn) {
                     if (h === selection) {
@@ -6060,7 +6184,11 @@
             const offsetX = parseInt(document.getElementById('golfOffsetXSlider').value);
             const offsetY = parseInt(document.getElementById('golfOffsetYSlider').value);
 
-            // Save players, hole selection, gimmie, Stimp, and visual offset settings to localStorage
+            // Get draft golf advanced mode setting
+            const draftAdvancedCheckbox = document.getElementById('draftAdvancedMode');
+            const draftAdvanced = draftAdvancedCheckbox ? draftAdvancedCheckbox.checked : false;
+
+            // Save players, hole selection, gimmie, Stimp, game mode, and visual offset settings to localStorage
             localStorage.setItem('golfPar3Players', JSON.stringify(window.golfPar3Players));
             localStorage.setItem('golfPar3CurrentPlayer', '0');
             localStorage.setItem('golfSelectedHoles', JSON.stringify(window.golfSelectedHoles));
@@ -6069,6 +6197,8 @@
             localStorage.setItem('golfGreenStimp', greenStimp.toString());
             localStorage.setItem('golfVisualOffsetX', offsetX.toString());
             localStorage.setItem('golfVisualOffsetY', offsetY.toString());
+            localStorage.setItem('golfGameMode', window.golfGameMode);
+            localStorage.setItem('golfDraftAdvanced', draftAdvanced ? 'true' : 'false');
 
             // Dynamic window title based on selection
             const courseName = golfCourseNames[window.golfSelectedCourse] || 'Shanktuary Hills Golf';

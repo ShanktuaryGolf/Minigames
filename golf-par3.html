@@ -203,10 +203,10 @@
         <button id="viewBtn">Change View</button>
         <button id="gridBtn">Toggle Grid</button>
         <button id="resetBtn">Reset Hole</button>
-        <button onclick="exportSessionCSV()" style="background: rgba(34, 197, 94, 0.3); border-color: #22c55e;">📊 Export CSV</button>
+        <button onclick="exportSessionCSV()" style="background: rgba(34, 197, 94, 0.3); border-color: #22c55e;">Export CSV</button>
 
-        <!-- Demo Shot Controls (for testing) - DISABLED FOR PRODUCTION -->
-        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100; display: none;">
+        <!-- Demo Shot Controls (for testing) -->
+        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100;">
             <h3 style="margin-top: 0;">Demo Shot (Press 'D')</h3>
             <div style="display: grid; gap: 8px;">
                 <label>Ball Speed (mph): <input type="number" id="demoSpeed" value="55" step="1" style="width: 80px;"></label>
@@ -258,6 +258,23 @@
 
     <!-- Minimap (re-enabled) -->
     <canvas id="minimap" width="200" height="200" style="position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.7); border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; z-index: 1000;"></canvas>
+
+    <!-- Draft Golf Overlay -->
+    <div id="draftGolfOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000;">
+      <div id="draftPanel" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+           background:#1a1a2e; border:3px solid #4ade80; border-radius:16px; padding:24px; min-width:700px;">
+        <h2 id="draftTitle" style="color:#4ade80; text-align:center; margin-bottom:16px;">DRAFT PHASE</h2>
+        <div id="draftCurrentPicker" style="text-align:center; font-size:18px; margin-bottom:20px; color:white;"></div>
+        <div id="draftBallCards" style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;"></div>
+        <div id="draftOrder" style="text-align:center; margin-top:16px; color:#888; font-size:14px;"></div>
+      </div>
+    </div>
+
+    <!-- Draft Golf Status Bar -->
+    <div id="draftGolfStatus" style="display:none; position:fixed; top:10px; left:50%; transform:translateX(-50%);
+         background:rgba(0,0,0,0.8); border:2px solid #4ade80; border-radius:8px; padding:8px 16px; z-index:1500; color:white;">
+      <span id="draftStatusText">Draft Golf: Waiting for shots...</span>
+    </div>
 
     <script src="./three.min.js"></script>
     <script type="module">
@@ -438,7 +455,7 @@
                         distance: 400, // yards
                         teePosition: new THREE.Vector3(0, 3.146, 0),
                         pinPosition: new THREE.Vector3(120, 0, -345), // ~400 yards to green
-                        type: 'rockwiga-hole1',
+                        type: 'rockwiga',
                         name: 'Opening Run',
                         fairwayHalfWidth: 22,
                         roughHalfWidth: 42,
@@ -446,7 +463,230 @@
                         landingZoneRadius: 32, // meters
                         landingZoneBoost: 6,
                         treeLineOffset: 34,
+                        treePairCount: 18,
+                        behindGreenTreeCount: 10,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 360, length: 720, segmentsW: 180, segmentsL: 260 },
+                        obDistance: 70,
+                        waterPolygons: [
+                            [
+                                {x: 28, z: -40},
+                                {x: 52, z: -46},
+                                {x: 72, z: -70},
+                                {x: 68, z: -102},
+                                {x: 48, z: -118},
+                                {x: 30, z: -96},
+                                {x: 26, z: -68}
+                            ]
+                        ],
+                        bunkers: [],
                         greenSlope: { direction: 0, percent: 1.5 }
+                    },
+                    {
+                        number: 2,
+                        par: 3,
+                        distance: 160,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 0, -146),
+                        type: 'rockwiga',
+                        name: 'Sand Trap Alley',
+                        fairwayHalfWidth: 18,
+                        roughHalfWidth: 35,
+                        treeLineOffset: 30,
+                        treePairCount: 10,
+                        behindGreenTreeCount: 8,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 200, length: 400, segmentsW: 100, segmentsL: 200 },
+                        obDistance: 55,
+                        waterPolygons: [],
+                        bunkers: [
+                            { type: 'green', x: -10, z: -140 },
+                            { type: 'green', x: 10, z: -140 }
+                        ],
+                        greenSlope: { direction: 90, percent: 2 }
+                    },
+                    {
+                        number: 3,
+                        par: 5,
+                        distance: 484,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 0, -443),
+                        type: 'rockwiga',
+                        name: 'The Long Corridor',
+                        fairwayHalfWidth: 24,
+                        roughHalfWidth: 44,
+                        landingZoneYards: 240,
+                        landingZoneRadius: 34,
+                        landingZoneBoost: 6,
+                        treeLineOffset: 36,
+                        treePairCount: 24,
+                        behindGreenTreeCount: 10,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 300, length: 1000, segmentsW: 150, segmentsL: 360 },
+                        obDistance: 75,
+                        waterPolygons: [],
+                        bunkers: [
+                            { type: 'green', x: -12, z: -437 },
+                            { type: 'green', x: 12, z: -437 }
+                        ],
+                        greenSlope: { direction: 180, percent: 1.5 }
+                    },
+                    {
+                        number: 4,
+                        par: 4,
+                        distance: 334,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 0, -305),
+                        type: 'rockwiga',
+                        name: 'Tight Squeeze',
+                        fairwayHalfWidth: 18,
+                        roughHalfWidth: 34,
+                        landingZoneYards: 210,
+                        landingZoneRadius: 28,
+                        landingZoneBoost: 5,
+                        treeLineOffset: 26,
+                        treePairCount: 18,
+                        behindGreenTreeCount: 10,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 280, length: 680, segmentsW: 140, segmentsL: 260 },
+                        obDistance: 60,
+                        waterPolygons: [],
+                        bunkers: [],
+                        greenSlope: { direction: 270, percent: 1 }
+                    },
+                    {
+                        number: 5,
+                        par: 4,
+                        distance: 317,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(-30, 0, -287),
+                        type: 'rockwiga',
+                        name: 'Left Angle',
+                        fairwayHalfWidth: 22,
+                        roughHalfWidth: 40,
+                        landingZoneYards: 200,
+                        landingZoneRadius: 30,
+                        landingZoneBoost: 6,
+                        treeLineOffset: 32,
+                        treePairCount: 16,
+                        behindGreenTreeCount: 10,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 320, length: 660, segmentsW: 160, segmentsL: 260 },
+                        obDistance: 65,
+                        waterPolygons: [],
+                        bunkers: [
+                            { type: 'green', x: -40, z: -281 },
+                            { type: 'green', x: -20, z: -281 },
+                            { type: 'fairway', x: -40, z: -150 }
+                        ],
+                        greenSlope: { direction: 45, percent: 1.5 }
+                    },
+                    {
+                        number: 6,
+                        par: 4,
+                        distance: 326,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 0, -298),
+                        type: 'rockwiga',
+                        name: 'Open Right',
+                        fairwayHalfWidth: 22,
+                        roughHalfWidth: 42,
+                        landingZoneYards: 210,
+                        landingZoneRadius: 30,
+                        landingZoneBoost: 6,
+                        treeLineOffset: 34,
+                        treePairCount: 18,
+                        behindGreenTreeCount: 8,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 320, length: 680, segmentsW: 160, segmentsL: 260 },
+                        obDistance: 65,
+                        waterPolygons: [],
+                        bunkers: [
+                            { type: 'green', x: 12, z: -292 }
+                        ],
+                        greenSlope: { direction: 135, percent: 2 }
+                    },
+                    {
+                        number: 7,
+                        par: 5,
+                        distance: 434,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(20, 0, -397),
+                        type: 'rockwiga',
+                        name: 'Gentle Bend',
+                        fairwayHalfWidth: 24,
+                        roughHalfWidth: 44,
+                        landingZoneYards: 230,
+                        landingZoneRadius: 34,
+                        landingZoneBoost: 6,
+                        treeLineOffset: 36,
+                        treePairCount: 22,
+                        behindGreenTreeCount: 10,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 340, length: 900, segmentsW: 170, segmentsL: 340 },
+                        obDistance: 75,
+                        waterPolygons: [],
+                        bunkers: [
+                            { type: 'green', x: 8, z: -391 },
+                            { type: 'green', x: 32, z: -391 }
+                        ],
+                        greenSlope: { direction: 0, percent: 1 }
+                    },
+                    {
+                        number: 8,
+                        par: 3,
+                        distance: 148,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(0, 2, -135),
+                        type: 'rockwiga',
+                        name: 'Uphill Battle',
+                        fairwayHalfWidth: 18,
+                        roughHalfWidth: 35,
+                        treeLineOffset: 28,
+                        treePairCount: 12,
+                        behindGreenTreeCount: 10,
+                        treeDensity: 'surround',
+                        teeHeight: 3,
+                        greenHeight: 2,
+                        terrainSize: { width: 180, length: 360, segmentsW: 90, segmentsL: 180 },
+                        obDistance: 50,
+                        waterPolygons: [],
+                        bunkers: [],
+                        greenSlope: { direction: 180, percent: 3 }
+                    },
+                    {
+                        number: 9,
+                        par: 4,
+                        distance: 398,
+                        teePosition: new THREE.Vector3(0, 3.146, 0),
+                        pinPosition: new THREE.Vector3(40, 0, -361),
+                        type: 'rockwiga',
+                        name: 'Dogleg Finish',
+                        fairwayHalfWidth: 22,
+                        roughHalfWidth: 42,
+                        landingZoneYards: 220,
+                        landingZoneRadius: 32,
+                        landingZoneBoost: 6,
+                        treeLineOffset: 34,
+                        treePairCount: 20,
+                        behindGreenTreeCount: 10,
+                        teeHeight: 3,
+                        greenHeight: -0.2,
+                        terrainSize: { width: 360, length: 800, segmentsW: 180, segmentsL: 300 },
+                        obDistance: 70,
+                        waterPolygons: [],
+                        bunkers: [
+                            { type: 'green', x: 40, z: -349 },
+                            { type: 'green', x: 52, z: -355 }
+                        ],
+                        greenSlope: { direction: 90, percent: 1.5 }
                     }
                 ]
             }
@@ -632,7 +872,43 @@
         // Synced with putting-green.html physics
         let currentStimp = 10; // Default green speed (10 feet)
         let puttingFriction = 0.15; // Will be calculated from Stimp
+        let currentPuttDeceleration = 0; // Per-putt deceleration from GSPro model
         const GRAVITY_MS2 = 9.81; // m/s² for putting physics
+
+        // ========== DRAFT GOLF MODE ==========
+        let draftGolfEnabled = false;
+        let draftGolfType = 'solo';        // 'solo' | 'multiplayer'
+        let draftGolfVariant = 'basic';    // 'basic' | 'advanced'
+        let draftGolfPhase = 'IDLE';       // IDLE | WAITING_FOR_SHOTS | DRAFT_PHASE
+
+        const DRAFT_GOLF_CONFIG = {
+            TEAM_SIZE: 4,
+            AI_HANDICAPS: [10, 15, 20]  // 3 AI opponents for solo mode
+        };
+
+        let draftGolfState = {
+            shotRound: 0,
+            shotResults: [],        // [{playerIndex, position, lieQuality, distanceToHole}]
+            draftOrder: [],         // Randomized player indices
+            currentDrafter: 0,      // Index into draftOrder
+            picks: {}               // {playerIndex: ballIndex}
+        };
+
+        const AI_SKILL_PROFILES = {
+            5:  { driving: 85, irons: 82, short_game: 78, putting: 80, consistency: 0.85 },
+            10: { driving: 75, irons: 72, short_game: 68, putting: 72, consistency: 0.75 },
+            15: { driving: 65, irons: 62, short_game: 58, putting: 65, consistency: 0.65 },
+            20: { driving: 55, irons: 50, short_game: 48, putting: 58, consistency: 0.55 }
+        };
+
+        const DRAFT_LIE_QUALITY = {
+            PERFECT:   { name: 'Perfect',   factor: 1.0,  color: '#4ade80' },
+            GOOD:      { name: 'Good',      factor: 0.9,  color: '#a3e635' },
+            MODERATE:  { name: 'Moderate',  factor: 0.75, color: '#fbbf24' },
+            DIFFICULT: { name: 'Difficult', factor: 0.6,  color: '#fb923c' },
+            TERRIBLE:  { name: 'Terrible',  factor: 0.4,  color: '#ef4444' }
+        };
+        // ========== END DRAFT GOLF STATE ==========
 
         // Calculate putting friction from Stimpmeter
         // SYNCED WITH PUTTING-GREEN.HTML (lines 1072-1095)
@@ -649,6 +925,60 @@
             puttingFriction = rhoG * (5/7);
 
             console.log(`Stimp ${currentStimp} → ρ_g: ${rhoG.toFixed(4)}, Friction: ${puttingFriction.toFixed(4)}`);
+        }
+
+        // GSPro putting distance coefficients: distance(ft) = a*v² + b*v + c (v in mph)
+        // Derived from GSPro putting chart — matches every row to <0.1 ft
+        const GSPRO_PUTT_COEFFS = {
+            7:  { a: 0.1296, b: 2.200, c: -4.366 },
+            8:  { a: 0.1208, b: 2.715, c: -5.132 },
+            9:  { a: 0.112,  b: 3.23,  c: -5.898 },
+            10: { a: 0.111,  b: 3.500, c: -6.0   },
+            11: { a: 0.1011, b: 3.957, c: -6.481 },
+            12: { a: 0.0962, b: 4.263, c: -6.755 },
+            13: { a: 0.0979, b: 4.613, c: -7.22  },
+            14: { a: 0.0996, b: 4.963, c: -7.685 }
+        };
+
+        function getGSProPuttDistance(speedMPH, stimp) {
+            // Interpolate coefficients for the given stimp
+            const stimpClamped = Math.max(7, Math.min(14, stimp));
+            const stimpLow = Math.floor(stimpClamped);
+            const stimpHigh = Math.ceil(stimpClamped);
+
+            let a, b, c;
+            if (stimpLow === stimpHigh) {
+                const coeff = GSPRO_PUTT_COEFFS[stimpLow];
+                a = coeff.a; b = coeff.b; c = coeff.c;
+            } else {
+                const frac = stimpClamped - stimpLow;
+                const lo = GSPRO_PUTT_COEFFS[stimpLow];
+                const hi = GSPRO_PUTT_COEFFS[stimpHigh];
+                a = lo.a + frac * (hi.a - lo.a);
+                b = lo.b + frac * (hi.b - lo.b);
+                c = lo.c + frac * (hi.c - lo.c);
+            }
+
+            // Low speed fallback: linear from 0 to chart value at 2 mph
+            if (speedMPH < 2) {
+                const distAt2 = a * 4 + b * 2 + c;
+                const safeDist = Math.max(distAt2, 0.1);
+                return Math.max(0.1, (safeDist / 2) * speedMPH);
+            }
+
+            // Quadratic formula: d = a*v² + b*v + c
+            const dist = a * speedMPH * speedMPH + b * speedMPH + c;
+            return Math.max(0.1, dist);
+        }
+
+        function computePuttDeceleration(speedMPH, stimp) {
+            const distFt = getGSProPuttDistance(speedMPH, stimp);
+            const distM = distFt * 0.3048;
+            const speedMS = speedMPH * 0.44704;
+            // v² = 2*a*d → a = v² / (2*d)
+            const decel = (speedMS * speedMS) / (2 * distM);
+            console.log(`GSPro putt: speed=${speedMPH.toFixed(1)} mph, stimp=${stimp}, target=${distFt.toFixed(1)} ft, decel=${decel.toFixed(3)} m/s²`);
+            return decel;
         }
 
         // Load Stimp from localStorage (set from player setup screen)
@@ -1114,6 +1444,36 @@
                     setTimeout(() => {
                         createTreeLine();
                     }, 100);
+
+                    // Check for Draft Golf mode from localStorage
+                    setTimeout(() => {
+                        checkAndStartDraftGolf();
+                    }, 500);
+                }
+            }
+
+            function checkAndStartDraftGolf() {
+                try {
+                    const gameMode = localStorage.getItem('golfGameMode');
+                    const draftAdvanced = localStorage.getItem('golfDraftAdvanced') === 'true';
+                    const variant = draftAdvanced ? 'advanced' : 'basic';
+
+                    console.log(`🎯 checkAndStartDraftGolf: gameMode=${gameMode}, draftAdvanced=${draftAdvanced}`);
+
+                    if (gameMode === 'draft-solo') {
+                        console.log('🎯 Auto-starting Draft Golf Solo mode...');
+                        initDraftGolf('solo', variant);
+                    } else if (gameMode === 'draft-multi') {
+                        console.log('🎯 Auto-starting Draft Golf Multiplayer mode...');
+                        initDraftGolf('multiplayer', variant);
+                    } else {
+                        console.log('🎯 Standard mode selected, Draft Golf not started');
+                    }
+                    // Clear the game mode so it doesn't auto-start next time
+                    localStorage.removeItem('golfGameMode');
+                    localStorage.removeItem('golfDraftAdvanced');
+                } catch (e) {
+                    console.log('Could not check for Draft Golf mode:', e);
                 }
             }
 
@@ -1456,20 +1816,12 @@
             } else {
                 window.hole5WaterPolygons = null;
             }
-            if (hole.type === 'rockwiga-hole1') {
-                window.rockwigaHole1WaterPolygons = [
-                    [
-                        {x: 28, z: -40},
-                        {x: 52, z: -46},
-                        {x: 72, z: -70},
-                        {x: 68, z: -102},
-                        {x: 48, z: -118},
-                        {x: 30, z: -96},
-                        {x: 26, z: -68}
-                    ]
-                ];
+            if (hole.type === 'rockwiga' && hole.waterPolygons && hole.waterPolygons.length > 0) {
+                window.rockwigaWaterPolygons = hole.waterPolygons;
+            } else if (hole.type === 'rockwiga') {
+                window.rockwigaWaterPolygons = null;
             } else {
-                window.rockwigaHole1WaterPolygons = null;
+                window.rockwigaWaterPolygons = null;
             }
             let terrainSize;
             if (hole.type === 'dogleg-left') {
@@ -1480,8 +1832,8 @@
                 terrainSize = { width: 300, length: 700, segmentsW: 150, segmentsL: 350 };
             } else if (hole.type === 'long-par5') {
                 terrainSize = { width: 260, length: 1000, segmentsW: 180, segmentsL: 400 };
-            } else if (hole.type === 'rockwiga-hole1') {
-                terrainSize = { width: 360, length: 720, segmentsW: 180, segmentsL: 260 };
+            } else if (hole.type === 'rockwiga') {
+                terrainSize = hole.terrainSize || { width: 360, length: 720, segmentsW: 180, segmentsL: 260 };
             } else if (hole.type === 'stadium') {
                 terrainSize = { width: 260, length: 320, segmentsW: 160, segmentsL: 200 };
             } else {
@@ -1627,19 +1979,23 @@
                                 height = -0.2;
                             }
                         }
-                    } else if (hole.type === 'rockwiga-hole1') {
+                    } else if (hole.type === 'rockwiga') {
+                        const teeHeight = hole.teeHeight || 3;
+                        const greenHeight = hole.greenHeight !== undefined ? hole.greenHeight : -0.2;
                         const approachStartZ = PIN_POSITION.z + 40;
                         const approachEndZ = PIN_POSITION.z + 20;
                         const fairwayEndZ = approachStartZ;
 
                         if (z > -10 && z < 10) {
-                            height = 3 - Math.abs(z) * 0.3;
+                            height = teeHeight - Math.abs(z) * 0.3;
                         } else if (z >= -30 && z <= -10) {
-                            height = 3 - (Math.abs(z) - 10) * 0.1;
+                            height = teeHeight - (Math.abs(z) - 10) * 0.1;
                         } else if (z > fairwayEndZ && z <= -30) {
                             const fairwayLength = Math.max(1, Math.abs(fairwayEndZ) - 30);
                             const fairwayProgress = Math.min(1, (Math.abs(z) - 30) / fairwayLength);
-                            height = 1 - fairwayProgress * 1.6;
+                            const fairwayStartHeight = teeHeight - 2;
+                            const fairwayDrop = fairwayStartHeight - greenHeight + 0.4;
+                            height = fairwayStartHeight - fairwayProgress * fairwayDrop;
 
                             height += Math.sin(x * 0.3 + z * 0.15) * 0.5;
                             height += Math.cos(x * 0.5 - z * 0.2) * 0.4;
@@ -1659,8 +2015,19 @@
                                     height += moundNoise * 0.8;
                                 }
                             }
+
+                            // Bunker terrain depressions
+                            if (hole.bunkers) {
+                                for (const bk of hole.bunkers) {
+                                    const bkr = bk.type === 'fairway' ? 12 : 4.2;
+                                    const dBk = Math.sqrt(Math.pow(x - bk.x, 2) + Math.pow(z - bk.z, 2));
+                                    if (dBk < bkr) {
+                                        height -= 0.3 * (1 - dBk / bkr);
+                                    }
+                                }
+                            }
                         } else if (z > approachEndZ && z <= approachStartZ) {
-                            height = -0.2;
+                            height = greenHeight;
 
                             const distToGreen = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
                             if (distToGreen > 10 && distToGreen < 18) {
@@ -1672,12 +2039,23 @@
 
                             height += Math.sin(x * 0.5 + z * 0.3) * 0.3;
                             height += Math.cos(x * 0.8 - z * 0.4) * 0.25;
+
+                            // Bunker terrain depressions near green
+                            if (hole.bunkers) {
+                                for (const bk of hole.bunkers) {
+                                    const bkr = bk.type === 'fairway' ? 12 : 4.2;
+                                    const dBk = Math.sqrt(Math.pow(x - bk.x, 2) + Math.pow(z - bk.z, 2));
+                                    if (dBk < bkr) {
+                                        height -= 0.3 * (1 - dBk / bkr);
+                                    }
+                                }
+                            }
                         } else {
                             const distToPin = Math.sqrt(Math.pow(x - PIN_POSITION.x, 2) + Math.pow(z - PIN_POSITION.z, 2));
                             if (distToPin < 10) {
-                                height = -0.2 + Math.sin(x * 0.5) * 0.05 + Math.cos((z - PIN_POSITION.z) * 0.4) * 0.05;
+                                height = greenHeight + Math.sin(x * 0.5) * 0.05 + Math.cos((z - PIN_POSITION.z) * 0.4) * 0.05;
                             } else {
-                                height = -0.2;
+                                height = greenHeight;
                             }
                         }
                     } else {
@@ -1881,8 +2259,8 @@
                         isInWater = isPointInPolygon(x, z, window.hole4WaterPolygon);
                     } else if (hole.type === 'long-par5' && window.hole5WaterPolygons) {
                         isInWater = window.hole5WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon));
-                    } else if (hole.type === 'rockwiga-hole1' && window.rockwigaHole1WaterPolygons) {
-                        isInWater = window.rockwigaHole1WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon));
+                    } else if (hole.type === 'rockwiga' && window.rockwigaWaterPolygons) {
+                        isInWater = window.rockwigaWaterPolygons.some(polygon => isPointInPolygon(x, z, polygon));
                     }
 
                     if (hole.type === 'long-par5') {
@@ -1922,7 +2300,7 @@
                         } else {
                             color.setHex(0x2d5a28);
                         }
-                    } else if (hole.type === 'rockwiga-hole1') {
+                    } else if (hole.type === 'rockwiga') {
                         const projection = getTeeToPinProjection(x, z, hole);
                         let fairwayEdge = (hole.fairwayHalfWidth || 22) + totalNoise;
                         let roughEdge = (hole.roughHalfWidth || 42) + totalNoise * 0.7;
@@ -1937,8 +2315,24 @@
                             }
                         }
 
+                        // Check if point is in a bunker area
+                        let isInBunker = false;
+                        if (hole.bunkers) {
+                            for (const bk of hole.bunkers) {
+                                const bkr = bk.type === 'fairway' ? 12 : 4.2;
+                                const dBk = Math.sqrt(Math.pow(x - bk.x, 2) + Math.pow(z - bk.z, 2));
+                                if (dBk < bkr) {
+                                    isInBunker = true;
+                                    break;
+                                }
+                            }
+                        }
+
                         if (isInWater) {
                             color.setHex(0x4A90E2); // Blue water
+                        } else if (isInBunker) {
+                            const variation = 0.05 + Math.random() * 0.1;
+                            color.setRGB(0.867 - variation, 0.788 - variation, 0.596 - variation);
                         } else if (projection.dist < fairwayEdge) {
                             const variation = (Math.sin(x * 0.2 + z * 0.1) * 0.5 + 0.5) * 0.05;
                             color.setHex(0x4a9d5f);
@@ -2180,9 +2574,18 @@
 
                 // Greenside bunker on the left
                 createGreenBunker(PIN_POSITION.x - 12, PIN_POSITION.z + 6);
-            } else if (hole.type === 'rockwiga-hole1') {
-                if (window.rockwigaHole1WaterPolygons) {
-                    window.rockwigaHole1WaterPolygons.forEach(points => createWaterHazard(points));
+            } else if (hole.type === 'rockwiga') {
+                if (window.rockwigaWaterPolygons) {
+                    window.rockwigaWaterPolygons.forEach(points => createWaterHazard(points));
+                }
+                if (hole.bunkers) {
+                    for (const bk of hole.bunkers) {
+                        if (bk.type === 'fairway') {
+                            createFairwayBunker(bk.x, bk.z);
+                        } else {
+                            createGreenBunker(bk.x, bk.z);
+                        }
+                    }
                 }
             } else if (hole.type === 'stadium') {
                 // Coliseum-style par 3: larger sweeping bunkers
@@ -2201,7 +2604,8 @@
             const cupMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
             cup = new THREE.Mesh(cupGeometry, cupMaterial);
             // Position cup based on hole type - slightly below green surface so rim is flush
-            const cupY = hole.type === 'island-hopping' ? -0.049 : -0.249; // Islands at 0, regular at -0.2
+            const rockwigaGreenH = (hole.type === 'rockwiga' && hole.greenHeight !== undefined) ? hole.greenHeight : -0.2;
+            const cupY = hole.type === 'island-hopping' ? -0.049 : (rockwigaGreenH - 0.049);
             cup.position.set(PIN_POSITION.x, cupY, PIN_POSITION.z);
             scene.add(cup);
 
@@ -2221,7 +2625,7 @@
             flagstick.add(flag);
             flagstick.position.copy(PIN_POSITION);
             // Position flagstick base based on hole type
-            const flagstickY = hole.type === 'island-hopping' ? 0 : -0.2; // Islands at 0, regular at -0.2
+            const flagstickY = hole.type === 'island-hopping' ? 0 : rockwigaGreenH;
             flagstick.position.y = flagstickY;
             scene.add(flagstick);
 
@@ -2240,7 +2644,7 @@
             gimmieCircle5ft = new THREE.Mesh(circle5Geometry, circle5Material);
             gimmieCircle5ft.rotation.x = -Math.PI / 2;
             // Position gimmie circles based on hole type (same as green)
-            const gimmieY = hole.type === 'island-hopping' ? 0.002 : -0.195; // Slightly above green
+            const gimmieY = hole.type === 'island-hopping' ? 0.002 : (rockwigaGreenH + 0.005); // Slightly above green
             gimmieCircle5ft.position.set(PIN_POSITION.x, gimmieY, PIN_POSITION.z);
             gimmieCircle5ft.visible = false; // Hidden by default
             scene.add(gimmieCircle5ft);
@@ -2386,6 +2790,7 @@
             bunker.rotation.x = -Math.PI / 2;
             bunker.position.set(x, 0.05, z);
             bunker.receiveShadow = true;
+            bunker.userData = { isBunker: true, radius: bunkerRadius };
             scene.add(bunker);
             bunkers.push(bunker);
         }
@@ -2421,6 +2826,7 @@
             bunker.rotation.z = -Math.PI / 2; // Orient along green
             bunker.position.set(x, -0.19, z);
             bunker.receiveShadow = true;
+            bunker.userData = { isBunker: true, radius: 4.2 };
             scene.add(bunker);
             bunkers.push(bunker);
         }
@@ -2643,7 +3049,7 @@
                     treeCount++;
                 }
 
-            } else if (hole.type === 'rockwiga-hole1') {
+            } else if (hole.type === 'rockwiga') {
                 const tee = hole.teePosition;
                 const pin = hole.pinPosition;
                 const dx = pin.x - tee.x;
@@ -2652,26 +3058,43 @@
                 const nx = -dz / length;
                 const nz = dx / length;
                 const baseOffset = hole.treeLineOffset || 34;
-                const stepCount = 18;
+                const stepCount = hole.treePairCount || 18;
 
-                for (let i = 0; i < stepCount; i++) {
-                    const t = 0.08 + (i / (stepCount - 1)) * 0.84;
-                    const centerX = tee.x + dx * t;
-                    const centerZ = tee.z + dz * t;
-                    const spread = baseOffset + Math.random() * 10;
-                    const heightLeft = 9 + Math.random() * 6;
-                    const heightRight = 9 + Math.random() * 6;
-                    const groundY = 0;
+                if (hole.treeDensity === 'surround') {
+                    // Dense surrounding trees (e.g. uphill hole 8)
+                    const midX = (tee.x + pin.x) / 2;
+                    const midZ = (tee.z + pin.z) / 2;
+                    const surroundRadius = length * 0.55;
+                    for (let i = 0; i < stepCount * 2; i++) {
+                        const angle = (i / (stepCount * 2)) * Math.PI * 2;
+                        const r = surroundRadius + Math.random() * 12;
+                        const tx = midX + Math.cos(angle) * r;
+                        const tz = midZ + Math.sin(angle) * r;
+                        const h = 9 + Math.random() * 6;
+                        createTree(tx, 0, tz, h);
+                        treeCount++;
+                    }
+                } else {
+                    for (let i = 0; i < stepCount; i++) {
+                        const t = 0.08 + (i / (stepCount - 1)) * 0.84;
+                        const centerX = tee.x + dx * t;
+                        const centerZ = tee.z + dz * t;
+                        const spread = baseOffset + Math.random() * 10;
+                        const heightLeft = 9 + Math.random() * 6;
+                        const heightRight = 9 + Math.random() * 6;
+                        const groundY = 0;
 
-                    createTree(centerX + nx * spread, groundY, centerZ + nz * spread, heightLeft);
-                    treeCount++;
-                    createTree(centerX - nx * spread, groundY, centerZ - nz * spread, heightRight);
-                    treeCount++;
+                        createTree(centerX + nx * spread, groundY, centerZ + nz * spread, heightLeft);
+                        treeCount++;
+                        createTree(centerX - nx * spread, groundY, centerZ - nz * spread, heightRight);
+                        treeCount++;
+                    }
                 }
 
                 // Behind green trees
-                for (let i = 0; i < 10; i++) {
-                    const x = PIN_POSITION.x - 24 + i * 2.6 + (Math.random() - 0.5) * 6;
+                const behindGreenCount = hole.behindGreenTreeCount || 10;
+                for (let i = 0; i < behindGreenCount; i++) {
+                    const x = PIN_POSITION.x - 24 + i * (48 / Math.max(1, behindGreenCount - 1)) + (Math.random() - 0.5) * 6;
                     const z = PIN_POSITION.z - 18 - Math.random() * 20;
                     const height = 10 + Math.random() * 5;
                     const groundY = 0;
@@ -3123,9 +3546,10 @@
             // Detect if this is a putt (VLA <= 2 degrees)
             isPutting = (vla <= 2);
             if (isPutting) {
-                console.log('Putt detected - using Stimpmeter physics');
+                console.log('Putt detected - using GSPro putting model');
                 carryDistance = 0; // Putts have no carry, only roll
                 hasLanded = true; // Mark as already landed
+                currentPuttDeceleration = computePuttDeceleration(speed, currentStimp);
             }
 
             ballInFlight = true;
@@ -3246,16 +3670,25 @@
         }
 
         function updatePuttingPhysics(deltaTime) {
-            // Apply Stimpmeter-based friction
+            // Apply GSPro-matched per-putt deceleration
             const speed = ballVelocity.length();
             if (speed > 0.001) {
-                const frictionForce = puttingFriction * GRAVITY_MS2 * deltaTime;
+                const frictionForce = currentPuttDeceleration * deltaTime;
                 const frictionDecel = Math.min(frictionForce / speed, 1);
                 ballVelocity.multiplyScalar(1 - frictionDecel);
             } else {
                 // Ball stopped
                 ballVelocity.set(0, 0, 0);
                 ballInFlight = false;
+
+                console.log(`🏌️ Putt stopped: draftGolfEnabled=${draftGolfEnabled}, phase=${draftGolfPhase}`);
+
+                // Draft Golf mode: record shot and skip normal player switching
+                if (draftGolfEnabled && draftGolfPhase === 'WAITING_FOR_SHOTS') {
+                    console.log('🎯 Draft Golf putt hook triggered - recording shot');
+                    recordDraftGolfShot(window.currentPlayerIndex, ballPosition);
+                    return; // Skip normal player switching
+                }
 
                 // NOTE: Empirical model distance correction for putts has been disabled because
                 // it caused visible teleporting/jumping after the roll finished.
@@ -3355,6 +3788,11 @@
                         ballVelocity.set(0, 0, 0);
                         ballInFlight = false;
                         console.log('Ball hit flagstick and dropped in!');
+                        // Draft Golf mode: record hole-in as shot
+                        if (draftGolfEnabled && draftGolfPhase === 'WAITING_FOR_SHOTS') {
+                            recordDraftGolfShot(window.currentPlayerIndex, ballPosition);
+                            return;
+                        }
                         checkHole();
                         return;
                     } else {
@@ -3384,6 +3822,11 @@
                 ballVelocity.set(0, 0, 0);
                 ballInFlight = false;
                 console.log('Ball in hole!');
+                // Draft Golf mode: record hole-in as shot
+                if (draftGolfEnabled && draftGolfPhase === 'WAITING_FOR_SHOTS') {
+                    recordDraftGolfShot(window.currentPlayerIndex, ballPosition);
+                    return;
+                }
                 checkHole(); // Register the score and reset hole
             }
         }
@@ -3692,6 +4135,16 @@
                 player.strokes += 1;
                 strokes += 1;
 
+                // Draft Golf mode: record shot at starting position (with penalty)
+                if (draftGolfEnabled && draftGolfPhase === 'WAITING_FOR_SHOTS') {
+                    alert('OUT OF BOUNDS - Ball went in the water! Stroke penalty applied.');
+                    // Reset to previous shot position for recording
+                    ballPosition.copy(shotStartPos);
+                    ball.position.copy(ballPosition);
+                    recordDraftGolfShot(window.currentPlayerIndex, ballPosition);
+                    return;
+                }
+
                 alert('OUT OF BOUNDS - Ball went in the water! Stroke and distance penalty. Please re-hit from previous position.');
 
                 // Reset to previous shot position
@@ -3769,6 +4222,15 @@
                         const player = window.golfPar3Players[window.currentPlayerIndex];
                         player.strokes += 1; // Add stroke penalty
                         strokes += 1;
+
+                        // Draft Golf mode: record shot at starting position (with penalty)
+                        if (draftGolfEnabled && draftGolfPhase === 'WAITING_FOR_SHOTS') {
+                            alert('OUT OF BOUNDS! Stroke penalty applied.');
+                            ballPosition.copy(shotStartPos);
+                            ball.position.copy(ballPosition);
+                            recordDraftGolfShot(window.currentPlayerIndex, ballPosition);
+                            return;
+                        }
 
                         alert('OUT OF BOUNDS! Stroke and distance penalty. Please re-hit from previous position.');
 
@@ -4056,6 +4518,16 @@
                         // Don't mark as stopped yet if we haven't run the end-of-flight logic
                         if (ballInFlight) {
                             ballInFlight = false;
+
+                            console.log(`🏌️ Ball stopped: draftGolfEnabled=${draftGolfEnabled}, phase=${draftGolfPhase}`);
+
+                            // Draft Golf mode: record shot and skip normal player switching
+                            if (draftGolfEnabled && draftGolfPhase === 'WAITING_FOR_SHOTS') {
+                                console.log('🎯 Draft Golf hook triggered - recording shot');
+                                recordDraftGolfShot(window.currentPlayerIndex, ballPosition);
+                                return; // Skip normal player switching
+                            }
+
                             // Ball will check for gimme after delay
 
                         // NOTE: Empirical model distance correction (post-roll teleport) has been
@@ -4454,8 +4926,8 @@
                 return inLightRough ? LIE_TYPES.LIGHT_ROUGH : LIE_TYPES.HEAVY_ROUGH;
             }
 
-            if (hole.type === 'rockwiga-hole1') {
-                if (window.rockwigaHole1WaterPolygons && window.rockwigaHole1WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
+            if (hole.type === 'rockwiga') {
+                if (window.rockwigaWaterPolygons && window.rockwigaWaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
                     return LIE_TYPES.HEAVY_ROUGH;
                 }
 
@@ -4576,8 +5048,8 @@
                 return dist > 90;
             }
 
-            if (hole.type === 'rockwiga-hole1') {
-                if (window.rockwigaHole1WaterPolygons && window.rockwigaHole1WaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
+            if (hole.type === 'rockwiga') {
+                if (window.rockwigaWaterPolygons && window.rockwigaWaterPolygons.some(polygon => isPointInPolygon(x, z, polygon))) {
                     return true;
                 }
             }
@@ -4590,8 +5062,8 @@
                     ? 200
                     : (hole.type === 'long-par5'
                         ? 130
-                        : (hole.type === 'rockwiga-hole1'
-                            ? 180
+                        : (hole.type === 'rockwiga'
+                            ? (hole.terrainSize ? hole.terrainSize.width / 2 : 180)
                             : (hole.type === 'stadium' ? 130 : 100))));
             const terrainBoundZ = hole.type === 'dogleg-left'
                 ? 250
@@ -4599,8 +5071,8 @@
                     ? 350
                     : (hole.type === 'long-par5'
                         ? 500
-                        : (hole.type === 'rockwiga-hole1'
-                            ? 360
+                        : (hole.type === 'rockwiga'
+                            ? (hole.terrainSize ? hole.terrainSize.length / 2 : 360)
                             : (hole.type === 'stadium' ? 160 : 150))));
             if (Math.abs(x) > terrainBoundX || Math.abs(z) > terrainBoundZ) {
                 return true;
@@ -4651,9 +5123,9 @@
                 if (nearestBand.dist > OB_DISTANCE) {
                     return true;
                 }
-            } else if (hole.type === 'rockwiga-hole1') {
+            } else if (hole.type === 'rockwiga') {
                 const projection = getTeeToPinProjection(x, z, hole);
-                const OB_DISTANCE = 70;
+                const OB_DISTANCE = hole.obDistance || 70;
 
                 if (projection.dist > OB_DISTANCE) {
                     return true;
@@ -4725,6 +5197,31 @@
         }
 
         function advanceToNextHole() {
+            // Draft Golf mode: reset players and start new hole
+            if (draftGolfEnabled) {
+                const teeBoxSurfaceHeight = 3.1;
+                const properTeeY = teeBoxSurfaceHeight + BALL_RADIUS + 0.025;
+                const hole = HOLES[currentHoleIndex];
+                const teePos = hole.teePosition || TEE_POSITION;
+
+                window.golfPar3Players.forEach(player => {
+                    player.ballPosition = { x: teePos.x, y: properTeeY, z: teePos.z };
+                    player.strokes = 0;
+                    player.holed = false;
+                    player.currentHole = currentHoleIndex;
+                    player.baseDirection = undefined;
+                    player.aimAdjustment = 0;
+                });
+
+                window.currentPlayerIndex = 0;
+                loadPlayerState();
+                updatePlayerDisplay();
+
+                // Start new draft golf hole
+                startDraftGolfHole();
+                return;
+            }
+
             // Single-hole mode: restart the same hole
             if (selectedHoles !== 'all') {
                 // Show scores, then restart same hole
@@ -4956,6 +5453,8 @@
         }
 
         function switchToFarthestPlayer() {
+            // Draft Golf mode handles its own player switching
+            if (draftGolfEnabled) return;
             if (!window.golfPar3Players || window.golfPar3Players.length <= 1) return;
 
             // Find player farthest from hole who hasn't holed out
@@ -5007,6 +5506,470 @@
 
             console.log('Switched to player:', window.golfPar3Players[window.currentPlayerIndex].name);
         }
+
+        // ========== DRAFT GOLF CORE FUNCTIONS ==========
+
+        function initDraftGolf(type, variant) {
+            draftGolfEnabled = true;
+            draftGolfType = type;
+            draftGolfVariant = variant || 'basic';
+
+            console.log(`Initializing Draft Golf: type=${type}, variant=${draftGolfVariant}`);
+
+            // Setup players
+            if (type === 'solo') {
+                setupSoloModePlayers();
+            } else {
+                setupMultiplayerPlayers();
+            }
+
+            document.getElementById('draftGolfStatus').style.display = 'block';
+            startDraftGolfHole();
+
+            console.log(`Draft Golf initialized: type=${type}, variant=${variant}`);
+        }
+        window.initDraftGolf = initDraftGolf; // Expose for button onclick
+
+        function setupSoloModePlayers() {
+            const teeBoxSurfaceHeight = 3.1;
+            const teeY = teeBoxSurfaceHeight + BALL_RADIUS + 0.025;
+
+            window.golfPar3Players = [
+                { name: 'You', color: '#4ade80', isAI: false, handicap: 15, autoAim: true },
+                { name: 'AI-Alpha', color: '#f87171', isAI: true, handicap: DRAFT_GOLF_CONFIG.AI_HANDICAPS[0], autoAim: true },
+                { name: 'AI-Beta', color: '#60a5fa', isAI: true, handicap: DRAFT_GOLF_CONFIG.AI_HANDICAPS[1], autoAim: true },
+                { name: 'AI-Gamma', color: '#fbbf24', isAI: true, handicap: DRAFT_GOLF_CONFIG.AI_HANDICAPS[2], autoAim: true }
+            ];
+            initDraftPlayerPositions(teeY);
+        }
+
+        function setupMultiplayerPlayers() {
+            const teeBoxSurfaceHeight = 3.1;
+            const teeY = teeBoxSurfaceHeight + BALL_RADIUS + 0.025;
+
+            // Use existing players from electron menu, ensure we have 4
+            // If less than 4, pad with default players
+            const defaultColors = ['#4ade80', '#f87171', '#60a5fa', '#fbbf24'];
+            while (window.golfPar3Players.length < 4) {
+                const idx = window.golfPar3Players.length;
+                window.golfPar3Players.push({
+                    name: `Player ${idx + 1}`,
+                    color: defaultColors[idx] || '#888888',
+                    isAI: false,
+                    handicap: 15,
+                    autoAim: true
+                });
+            }
+
+            // Mark all players as human (not AI)
+            window.golfPar3Players.forEach(p => {
+                p.isAI = false;
+            });
+
+            initDraftPlayerPositions(teeY);
+        }
+
+        function initDraftPlayerPositions(teeY) {
+            const hole = HOLES[currentHoleIndex];
+            const teePos = hole.teePosition || TEE_POSITION;
+
+            window.golfPar3Players.forEach((p, i) => {
+                p.ballPosition = { x: teePos.x, y: teeY, z: teePos.z };
+                p.strokes = 0;
+                p.holed = false;
+                p.holeScores = [];
+                p.currentHole = currentHoleIndex;
+            });
+            window.currentPlayerIndex = 0;
+        }
+
+        function startDraftGolfHole() {
+            draftGolfState = {
+                shotRound: 0,
+                shotResults: [],
+                draftOrder: [],
+                currentDrafter: 0,
+                picks: {}
+            };
+            startShotRound();
+        }
+
+        function startShotRound() {
+            draftGolfState.shotRound++;
+            draftGolfState.shotResults = [];
+            draftGolfState.picks = {};
+            draftGolfPhase = 'WAITING_FOR_SHOTS';
+
+            console.log(`🎯 Draft Golf: Starting shot round ${draftGolfState.shotRound}, phase=${draftGolfPhase}`);
+
+            // Randomize draft order (basic: once per hole, advanced: each round)
+            if (draftGolfVariant === 'advanced' || draftGolfState.shotRound === 1) {
+                draftGolfState.draftOrder = shuffleDraftArray([0, 1, 2, 3]);
+            }
+
+            updateDraftStatus(`Shot round ${draftGolfState.shotRound} - ${window.golfPar3Players[0].name}'s turn`);
+
+            // Set first player
+            window.currentPlayerIndex = 0;
+            loadPlayerState();
+            promptNextShot();
+        }
+
+        function promptNextShot() {
+            // Count how many players still need to shoot (exclude those already holed)
+            const playersStillPlaying = window.golfPar3Players.filter(p => !p.holed);
+            const activeCount = draftGolfState.shotResults.length;
+
+            console.log(`🎯 promptNextShot: activeCount=${activeCount}, playersStillPlaying=${playersStillPlaying.length}`);
+
+            // If all non-holed players have shot, go to draft phase
+            if (activeCount >= playersStillPlaying.length) {
+                if (playersStillPlaying.length === 0) {
+                    // Everyone is holed, end the hole
+                    console.log('🎯 All players holed out, ending hole');
+                    endDraftGolfHole();
+                    return;
+                }
+                console.log('🎯 All players have shot, entering draft phase');
+                enterDraftPhase();
+                return;
+            }
+
+            // Find the next player who hasn't holed out
+            let playerIndex = -1;
+            let shotCount = 0;
+            for (let i = 0; i < window.golfPar3Players.length; i++) {
+                if (!window.golfPar3Players[i].holed) {
+                    if (shotCount === activeCount) {
+                        playerIndex = i;
+                        break;
+                    }
+                    shotCount++;
+                }
+            }
+
+            if (playerIndex === -1) {
+                console.log('🎯 No player found, entering draft phase');
+                enterDraftPhase();
+                return;
+            }
+
+            const player = window.golfPar3Players[playerIndex];
+
+            console.log(`🎯 Next player: ${player.name} (index ${playerIndex}), isAI=${player.isAI}`);
+
+            window.currentPlayerIndex = playerIndex;
+            loadPlayerState();
+            updatePlayerDisplay();
+
+            updateDraftStatus(`${player.name}'s turn to hit (${activeCount + 1}/${playersStillPlaying.length})`);
+
+            if (player.isAI) {
+                // Simulate AI shot after delay
+                console.log(`🎯 AI player ${player.name} will shoot in 1.5s`);
+                setTimeout(() => simulateAndExecuteAIShot(playerIndex), 1500);
+            } else {
+                console.log(`🎯 Human player ${player.name} - waiting for shot`);
+            }
+        }
+
+        // ========== AI SHOT SIMULATION ==========
+
+        function simulateAndExecuteAIShot(playerIndex) {
+            const player = window.golfPar3Players[playerIndex];
+            const pos = player.ballPosition;
+            const distToHole = getDistanceToHole(pos) * 1.09361; // yards
+            const skill = AI_SKILL_PROFILES[player.handicap] || AI_SKILL_PROFILES[15];
+            const lie = getLieType(pos.x, pos.z);
+
+            // Determine shot type and base parameters
+            let speed, vla, spin;
+            if (distToHole <= 40) {
+                // Putt
+                speed = 3 + distToHole * 0.25;
+                vla = 1;
+                spin = 0;
+            } else if (distToHole <= 100) {
+                // Chip/pitch
+                speed = 35 + distToHole * 0.3;
+                vla = 30 + Math.random() * 10;
+                spin = 4000 + Math.random() * 2000;
+            } else {
+                // Full shot
+                speed = 60 + Math.min(distToHole * 0.15, 60);
+                vla = 12 + Math.random() * 8;
+                spin = 2500 + Math.random() * 2000;
+            }
+
+            // Apply skill-based variance
+            const variance = (100 - skill.consistency * 100) / 100;
+            speed += (Math.random() - 0.5) * speed * variance * 0.3;
+            vla += (Math.random() - 0.5) * 5 * variance;
+            const hla = (Math.random() - 0.5) * 15 * variance;
+
+            // Apply lie penalty
+            const lieQuality = mapLieToQuality(lie);
+            speed *= lieQuality.factor;
+
+            console.log(`AI Shot: ${player.name} at ${distToHole.toFixed(0)} yds, speed=${speed.toFixed(1)} mph, vla=${vla.toFixed(1)}°`);
+
+            // Execute shot through normal handler
+            handleShot({ detail: {
+                speed: Math.max(5, speed),
+                vla: Math.max(1, vla),
+                hla: hla,
+                total_spin: spin,
+                spin_axis: (Math.random() - 0.5) * 10
+            }});
+        }
+
+        function mapLieToQuality(lie) {
+            const map = {
+                'Tee': DRAFT_LIE_QUALITY.PERFECT,
+                'Green': DRAFT_LIE_QUALITY.PERFECT,
+                'Fairway': DRAFT_LIE_QUALITY.GOOD,
+                'Light Rough': DRAFT_LIE_QUALITY.MODERATE,
+                'Heavy Rough': DRAFT_LIE_QUALITY.DIFFICULT,
+                'Bunker': DRAFT_LIE_QUALITY.TERRIBLE
+            };
+            return map[lie.name] || DRAFT_LIE_QUALITY.MODERATE;
+        }
+
+        // ========== SHOT RECORDING ==========
+
+        function recordDraftGolfShot(playerIndex, endPos) {
+            console.log(`🎯 recordDraftGolfShot called: playerIndex=${playerIndex}, pos=(${endPos.x.toFixed(1)}, ${endPos.z.toFixed(1)})`);
+
+            const player = window.golfPar3Players[playerIndex];
+            const lie = getLieType(endPos.x, endPos.z);
+            const lieQuality = mapLieToQuality(lie);
+            const dist = getDistanceToHole(endPos) * 1.09361;
+            const holed = dist < 0.5;
+
+            draftGolfState.shotResults.push({
+                playerIndex: playerIndex,
+                position: { x: endPos.x, y: endPos.y, z: endPos.z },
+                lieQuality: lieQuality,
+                distanceToHole: dist,
+                holed: holed
+            });
+
+            player.strokes++;
+
+            console.log(`🎯 Draft Golf: ${player.name} shot recorded - ${dist.toFixed(0)} yds, ${lieQuality.name}, total shots=${draftGolfState.shotResults.length}`);
+
+            // Check for hole-out
+            if (holed) {
+                player.holed = true;
+                console.log(`${player.name} holed out!`);
+            }
+
+            // Save player state after recording
+            savePlayerState();
+
+            setTimeout(() => promptNextShot(), 1500);
+        }
+
+        // ========== DRAFT PHASE ==========
+
+        function enterDraftPhase() {
+            draftGolfPhase = 'DRAFT_PHASE';
+            draftGolfState.currentDrafter = 0;
+            showDraftUI();
+            processNextPick();
+        }
+
+        function showDraftUI() {
+            document.getElementById('draftGolfOverlay').style.display = 'block';
+
+            // Build ball cards
+            const container = document.getElementById('draftBallCards');
+            container.innerHTML = '';
+
+            draftGolfState.shotResults.forEach((shot, idx) => {
+                const player = window.golfPar3Players[shot.playerIndex];
+                const card = document.createElement('div');
+                card.id = `ballCard${idx}`;
+                card.style.cssText = `background:#2a2a4e; border:2px solid ${shot.lieQuality.color};
+                                      border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s;`;
+                card.innerHTML = `
+                    <div style="color:${player.color}; font-weight:bold; margin-bottom:8px;">
+                        Ball ${idx + 1} (${player.name}'s shot)
+                    </div>
+                    <div style="font-size:24px; color:#ffd700; font-weight:bold;">${shot.distanceToHole.toFixed(0)} yds to hole</div>
+                    <div style="color:${shot.lieQuality.color}; margin-top:4px;">${shot.lieQuality.name} lie</div>
+                    ${shot.holed ? '<div style="color:#4ade80; margin-top:8px;">IN THE HOLE!</div>' : ''}
+                `;
+                card.onclick = () => humanPickBall(idx);
+                container.appendChild(card);
+            });
+
+            // Show draft order (only include players who haven't holed)
+            const draftOrderNames = draftGolfState.draftOrder
+                .filter(i => !window.golfPar3Players[i].holed)
+                .map(i => window.golfPar3Players[i].name);
+            document.getElementById('draftOrder').textContent = 'Draft order: ' + draftOrderNames.join(' -> ');
+        }
+
+        function processNextPick() {
+            // Skip players who have already holed out
+            while (draftGolfState.currentDrafter < draftGolfState.draftOrder.length) {
+                const pickerIndex = draftGolfState.draftOrder[draftGolfState.currentDrafter];
+                if (!window.golfPar3Players[pickerIndex].holed) {
+                    break;
+                }
+                draftGolfState.currentDrafter++;
+            }
+
+            if (draftGolfState.currentDrafter >= draftGolfState.draftOrder.length) {
+                completeDraftPhase();
+                return;
+            }
+
+            const pickerIndex = draftGolfState.draftOrder[draftGolfState.currentDrafter];
+            const picker = window.golfPar3Players[pickerIndex];
+
+            document.getElementById('draftCurrentPicker').innerHTML =
+                `<span style="color:${picker.color}">${picker.name}</span>'s turn to pick (${draftGolfState.currentDrafter + 1}/${draftGolfState.draftOrder.filter(i => !window.golfPar3Players[i].holed).length})`;
+
+            if (picker.isAI) {
+                setTimeout(() => aiPickBall(pickerIndex), 1000);
+            }
+            // Human waits for click
+        }
+
+        function getAvailableBalls() {
+            const picked = Object.values(draftGolfState.picks);
+            return draftGolfState.shotResults
+                .map((s, i) => ({ ...s, index: i }))
+                .filter(s => !picked.includes(s.index));
+        }
+
+        function humanPickBall(ballIndex) {
+            const pickerIndex = draftGolfState.draftOrder[draftGolfState.currentDrafter];
+            const picker = window.golfPar3Players[pickerIndex];
+
+            if (picker.isAI) return; // Not human's turn
+            if (Object.values(draftGolfState.picks).includes(ballIndex)) return; // Already picked
+
+            executePick(pickerIndex, ballIndex);
+        }
+
+        function aiPickBall(pickerIndex) {
+            const available = getAvailableBalls();
+
+            if (available.length === 0) {
+                draftGolfState.currentDrafter++;
+                setTimeout(() => processNextPick(), 500);
+                return;
+            }
+
+            // AI picks best available (closest + best lie)
+            let best = available[0];
+            let bestScore = -Infinity;
+
+            available.forEach(ball => {
+                const score = (300 - ball.distanceToHole) + (ball.lieQuality.factor * 50);
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = ball;
+                }
+            });
+
+            executePick(pickerIndex, best.index);
+        }
+
+        function executePick(pickerIndex, ballIndex) {
+            draftGolfState.picks[pickerIndex] = ballIndex;
+
+            const picker = window.golfPar3Players[pickerIndex];
+            const ball = draftGolfState.shotResults[ballIndex];
+
+            console.log(`${picker.name} picked ball ${ballIndex + 1} (${ball.distanceToHole.toFixed(0)} yds)`);
+
+            // Mark card as picked
+            const card = document.getElementById(`ballCard${ballIndex}`);
+            if (card) {
+                card.style.opacity = '0.4';
+                card.style.cursor = 'not-allowed';
+                card.innerHTML += `<div style="color:${picker.color}; margin-top:8px;">${picker.name}</div>`;
+            }
+
+            draftGolfState.currentDrafter++;
+            setTimeout(() => processNextPick(), 800);
+        }
+
+        function completeDraftPhase() {
+            document.getElementById('draftGolfOverlay').style.display = 'none';
+
+            // Move each player to their picked ball
+            Object.entries(draftGolfState.picks).forEach(([playerIdx, ballIdx]) => {
+                const player = window.golfPar3Players[parseInt(playerIdx)];
+                const ball = draftGolfState.shotResults[ballIdx];
+                player.ballPosition = { ...ball.position };
+
+                // Check if they picked a holed ball
+                if (ball.holed) {
+                    player.holed = true;
+                }
+            });
+
+            // Check if everyone has holed out
+            const allHoled = window.golfPar3Players.every(p => p.holed);
+            if (allHoled) {
+                endDraftGolfHole();
+            } else {
+                // Start next shot round
+                setTimeout(() => startShotRound(), 1000);
+            }
+        }
+
+        function endDraftGolfHole() {
+            draftGolfPhase = 'IDLE';
+
+            // Score the hole for each player
+            window.golfPar3Players.forEach(p => {
+                p.holeScores[currentHoleIndex] = p.strokes;
+            });
+
+            // Show results
+            const resultsText = window.golfPar3Players.map(p =>
+                `${p.name}: ${p.strokes} strokes`
+            ).join('\n');
+
+            alert('Hole Complete!\n\n' + resultsText);
+
+            // Advance to next hole or restart
+            advanceToNextHole();
+        }
+
+        function updateDraftStatus(text) {
+            document.getElementById('draftStatusText').textContent = `Draft Golf: ${text}`;
+        }
+
+        function shuffleDraftArray(arr) {
+            const a = [...arr];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+
+        function exitDraftGolf() {
+            draftGolfEnabled = false;
+            draftGolfPhase = 'IDLE';
+            document.getElementById('draftGolfStatus').style.display = 'none';
+            document.getElementById('draftGolfOverlay').style.display = 'none';
+
+            // Reset to single player
+            window.golfPar3Players = [{ name: 'Player 1', color: '#4ade80', autoAim: true }];
+            window.currentPlayerIndex = 0;
+            resetHole();
+        }
+        window.exitDraftGolf = exitDraftGolf;
+
+        // ========== END DRAFT GOLF FUNCTIONS ==========
 
         function updateCameraPosition(autoRevert = true) {
             // Skip automatic camera if in debug mode
