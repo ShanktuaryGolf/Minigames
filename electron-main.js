@@ -891,29 +891,25 @@ function stopNova() {
     sendNovaStatus('stopped', 'Nova disconnected');
 }
 
-// Enable GPU acceleration (more conservative approach)
-app.commandLine.appendSwitch('ignore-gpu-blacklist');
+// Force enable GPU even after crashes
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
-// Accept SwiftShader as fallback (better than crashing)
-// app.commandLine.appendSwitch('disable-software-rasterizer');  // TOO AGGRESSIVE - causes WebGL failure
+app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
-// Fix Mesa shader validation errors on AMD/Linux
-app.commandLine.appendSwitch('disable-gpu-driver-bug-workarounds');
+
+// Disable GPU sandbox to fix WebGL in child windows
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+
+// Ignore GPU crash limit and watchdog
+app.commandLine.appendSwitch('disable-gpu-watchdog');
+
+// Platform-specific GPU settings
 if (process.platform === 'linux') {
     const sessionType = process.env.XDG_SESSION_TYPE;
-    const forcedGlBackend = process.env.FORCE_GL_BACKEND || process.env.ELECTRON_GL_BACKEND;
-    const glBackend = forcedGlBackend || (sessionType === 'wayland' ? 'egl' : 'desktop');
-    app.commandLine.appendSwitch('use-gl', glBackend);
-    console.log(`Using GL backend: ${glBackend} (session=${sessionType || 'unknown'})`);
-    const disableFeatures = [];
-    const disablePassthrough = process.env.DISABLE_PASSTHROUGH === '1' || process.env.DISABLE_PASSTHROUGH === 'true';
-    if (glBackend === 'egl' || disablePassthrough) {
-        disableFeatures.push('UsePassthroughCommandDecoder');
-        console.log('Disabling passthrough command decoder for EGL');
-    }
-    if (disableFeatures.length) {
-        app.commandLine.appendSwitch('disable-features', disableFeatures.join(','));
-    }
+    // Use SwiftShader software renderer as fallback
+    app.commandLine.appendSwitch('use-gl', 'swiftshader');
+    app.commandLine.appendSwitch('use-angle', 'swiftshader');
+    console.log(`Using GL backend: swiftshader (session=${sessionType || 'unknown'})`);
 }
 if (process.platform === 'win32') {
     const forcedAngle = process.env.FORCE_ANGLE;
