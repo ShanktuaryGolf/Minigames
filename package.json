@@ -1,6 +1,6 @@
 {
   "name": "shanktuary-golf-mini-games",
-  "version": "4.15.1",
+  "version": "4.15.2",
   "description": "Shanktuary Golf Mini Games",
   "main": "electron-main.js",
   "repository": {
@@ -14,13 +14,16 @@
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
     "publish": "electron-builder --win --publish always",
-    "flightscope": "node flightscope-query.js"
+    "flightscope": "node flightscope-query.js",
+    "rebuild": "electron-rebuild -f -w steamworks.js",
+    "postinstall": "electron-rebuild -f -w steamworks.js || echo 'Steam SDK not installed - running in offline mode'"
   },
   "author": "Shanktuary Golf",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "@electron/rebuild": "^4.0.3",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.6.0"
   },
   "build": {
     "appId": "com.shanktuary.golf-mini-games",
@@ -40,7 +43,8 @@
       "!.beads/**/*"
     ],
     "asarUnpack": [
-      "node_modules/electron-updater/**/*"
+      "node_modules/electron-updater/**/*",
+      "node_modules/steamworks.js/**/*"
     ],
     "publish": [
       {
@@ -55,7 +59,6 @@
         "nsis"
       ],
       "icon": "electronlogo.png",
-      "publisherName": "Shanktuary Golf",
       "verifyUpdateCodeSignature": false
     },
     "mac": {
@@ -75,12 +78,15 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
-    "@capacitor/cli": "^7.4.4",
+    "@capacitor/cli": "^8.0.2",
     "@capacitor/core": "^7.4.4",
     "bonjour-service": "^1.3.0",
     "cannon-es": "^0.20.0",
     "electron-updater": "^6.6.2",
-    "puppeteer": "^21.0.0",
+    "puppeteer": "^24.36.1",
     "three": "^0.180.0"
+  },
+  "optionalDependencies": {
+    "steamworks.js": "^0.3.2"
   }
 }

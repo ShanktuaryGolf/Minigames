@@ -368,6 +368,7 @@
     <canvas id="minimap"></canvas>
     <canvas id="shotTrajectory"></canvas>
     <script src="./three.min.js"></script>
+    <script src="./steam-network-adapter.js"></script>
     <script>
         // ==========================================
         // DEBUG MODE - Set to true to enable debug test shot panel
@@ -377,6 +378,12 @@
         // Global variables
         let scene, camera, renderer;
         let balls = [];
+
+        // Steam Multiplayer
+        let networkAdapter = null;
+        let isNetworkGame = false;
+        let isNetworkHost = false;
+        let localSteamId = null;
         let sessionShots = []; // Track all shots for CSV export
         let isLiveMode = false;
         let currentView = 'first-person'; // 'first-person', 'auto-follow', 'follow', 'overhead'
@@ -2616,6 +2623,94 @@
 
             console.log('✓ Electron IPC setup complete');
         }
+
+        // ==================== STEAM NETWORK MULTIPLAYER ====================
+
+        async function initNetworkMultiplayer() {
+            const gameMode = localStorage.getItem('homerunGameMode');
+            if (gameMode !== 'steam') {
+                console.log('📍 Local game mode - network disabled');
+                isNetworkGame = false;
+                return;
+            }
+
+            if (typeof getSteamNetwork === 'undefined') {
+                console.error('❌ SteamNetworkAdapter not loaded');
+                return;
+            }
+
+            networkAdapter = getSteamNetwork();
+
+            try {
+                const available = await networkAdapter.initialize();
+                if (!available) {
+                    isNetworkGame = false;
+                    return;
+                }
+
+                isNetworkGame = true;
+                localSteamId = networkAdapter.getLocalPlayer()?.steamId;
+
+                const lobbyData = localStorage.getItem('homerunSteamLobby');
+                if (lobbyData) {
+                    const lobby = JSON.parse(lobbyData);
+                    isNetworkHost = lobby.isHost;
+                }
+
+                networkAdapter.onMessage(handleNetworkMessage);
+                console.log('✅ Steam network initialized');
+
+            } catch (err) {
+                console.error('❌ Network initialization failed:', err);
+                isNetworkGame = false;
+            }
+        }
+
+        function handleNetworkMessage(message) {
+            if (message.from === localSteamId) return;
+
+            switch (message.type) {
+                case 'shot':
+                    const shotData = message.data || message;
+                    if (shotData.playerIndex !== undefined) window.currentPlayerIndex = shotData.playerIndex;
+                    createBall(shotData);
+                    break;
+                case 'swing_result':
+                    console.log('🌐 Swing result:', message);
+                    break;
+                case 'home_run':
+                    console.log('🌐 Home run:', message);
+                    break;
+                case 'game_state':
+                    if (message.data) {
+                        if (message.data.derbyStrikes !== undefined) derbyStrikes = message.data.derbyStrikes;
+                        if (message.data.derbyHomeRuns !== undefined) derbyHomeRuns = message.data.derbyHomeRuns;
+                    }
+                    break;
+            }
+        }
+
+        function broadcastShot(shotData) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'shot',
+                data: { ...shotData, playerIndex: window.currentPlayerIndex }
+            });
+        }
+
+        function broadcastHomeRun(distance) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'home_run',
+                distance,
+                playerIndex: window.currentPlayerIndex
+            });
+        }
+
+        // Initialize network
+        initNetworkMultiplayer();
+
+        // ==================== END STEAM NETWORK ====================
 
         function toggleLiveMode() {
             if (isLiveMode) {

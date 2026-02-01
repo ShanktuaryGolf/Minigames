@@ -4665,6 +4665,26 @@
                                            border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
                                 🌲 Hole 5<br><span style="font-size: 0.9em; opacity: 0.8;">Par 5 - 494 yds Pines</span>
                             </button>
+                            <button onclick="selectGolfHoles(6)" id="holes6"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                🌳 Hole 6<br><span style="font-size: 0.9em; opacity: 0.8;">Par 4 - 326 yds</span>
+                            </button>
+                            <button onclick="selectGolfHoles(7)" id="holes7"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                🏌️ Hole 7<br><span style="font-size: 0.9em; opacity: 0.8;">Par 5 - 434 yds</span>
+                            </button>
+                            <button onclick="selectGolfHoles(8)" id="holes8"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                ⛰️ Hole 8<br><span style="font-size: 0.9em; opacity: 0.8;">Par 3 - 148 yds</span>
+                            </button>
+                            <button onclick="selectGolfHoles(9)" id="holes9"
+                                    style="padding: 20px; font-size: 1.1em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; display: none;">
+                                🔄 Hole 9<br><span style="font-size: 0.9em; opacity: 0.8;">Par 4 - 398 yds</span>
+                            </button>
                         </div>
                     </div>
 
@@ -4679,6 +4699,73 @@
                                     ${n} Player${n > 1 ? 's' : ''}
                                 </button>
                             `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Steam Multiplayer Section -->
+                    <div id="steamMultiplayerSection" style="background: rgba(0,0,0,0.3); padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 15px;">🎮 Game Mode</h3>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                            <button onclick="selectGolfGameMode('local')" id="gameModeLocal"
+                                    style="padding: 20px; font-size: 1.05em; background: rgba(74, 222, 128, 0.5);
+                                           border: 3px solid #4ade80; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                                👥 Local Play
+                            </button>
+                            <button onclick="selectGolfGameMode('steam')" id="gameModeSteam"
+                                    style="padding: 20px; font-size: 1.05em; background: rgba(74, 222, 128, 0.3);
+                                           border: 2px solid #4ade80; color: white; border-radius: 8px; cursor: pointer;">
+                                🌐 Steam Multiplayer
+                            </button>
+                        </div>
+
+                        <!-- Steam Lobby Panel (hidden by default) -->
+                        <div id="steamLobbyPanel" style="display: none; margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                            <div id="steamStatusMessage" style="text-align: center; padding: 15px; margin-bottom: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+                                <span style="color: #fbbf24;">⏳ Checking Steam status...</span>
+                            </div>
+
+                            <!-- Host/Join buttons (shown when Steam is available) -->
+                            <div id="steamLobbyActions" style="display: none;">
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                                    <button onclick="createSteamLobby()" id="btnCreateLobby"
+                                            style="padding: 15px; font-size: 1em; background: rgba(59, 130, 246, 0.5);
+                                                   border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">
+                                        🏠 Host Game
+                                    </button>
+                                    <button onclick="showJoinLobbyInput()" id="btnJoinLobby"
+                                            style="padding: 15px; font-size: 1em; background: rgba(59, 130, 246, 0.3);
+                                                   border: 2px solid #3b82f6; color: white; border-radius: 8px; cursor: pointer;">
+                                        🔗 Join Game
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Lobby Info (shown when in a lobby) -->
+                            <div id="steamLobbyInfo" style="display: none;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <span style="font-weight: bold; font-size: 1.1em;">
+                                        <span id="lobbyHostIndicator">🏠 You are the Host</span>
+                                    </span>
+                                    <button onclick="inviteSteamFriend()"
+                                            style="padding: 8px 16px; font-size: 0.9em; background: rgba(59, 130, 246, 0.5);
+                                                   border: 2px solid #3b82f6; color: white; border-radius: 6px; cursor: pointer;">
+                                        ➕ Invite Friend
+                                    </button>
+                                </div>
+
+                                <div style="margin-bottom: 15px;">
+                                    <div style="font-weight: bold; margin-bottom: 8px;">Players in Lobby:</div>
+                                    <div id="steamPlayerList" style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; min-height: 60px;">
+                                        <!-- Player list populated dynamically -->
+                                    </div>
+                                </div>
+
+                                <button onclick="leaveSteamLobby()"
+                                        style="width: 100%; padding: 10px; font-size: 0.95em; background: rgba(239, 68, 68, 0.3);
+                                               border: 2px solid #ef4444; color: white; border-radius: 6px; cursor: pointer;">
+                                    Leave Lobby
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -4940,31 +5027,46 @@
         function updateGolfHoleOptions() {
             const isRockwiga = window.golfSelectedCourse === 'rockwiga';
             const holesAll = document.getElementById('holesAll');
-            const holes1 = document.getElementById('holes1');
-            const holes2 = document.getElementById('holes2');
-            const holes3 = document.getElementById('holes3');
-            const holes4 = document.getElementById('holes4');
-            const holes5 = document.getElementById('holes5');
+
+            const rockwigaHoles = [
+                { num: 1, emoji: '🌲', desc: 'Par 4 - 400 yds' },
+                { num: 2, emoji: '⛳', desc: 'Par 3 - 160 yds' },
+                { num: 3, emoji: '🏌️', desc: 'Par 5 - 484 yds' },
+                { num: 4, emoji: '🌲', desc: 'Par 4 - 334 yds' },
+                { num: 5, emoji: '↙️', desc: 'Par 4 - 317 yds' },
+                { num: 6, emoji: '🌳', desc: 'Par 4 - 326 yds' },
+                { num: 7, emoji: '↗️', desc: 'Par 5 - 434 yds' },
+                { num: 8, emoji: '⛰️', desc: 'Par 3 - 148 yds' },
+                { num: 9, emoji: '🔄', desc: 'Par 4 - 398 yds' }
+            ];
+            const shanktuaryHoles = [
+                { num: 1, emoji: '⛳', desc: 'Par 3 - 150 yds' },
+                { num: 2, emoji: '🌳', desc: 'Par 4 - 320 yds Dogleg L' },
+                { num: 3, emoji: '🏝️', desc: 'Par 4 - 250 yds Islands' },
+                { num: 4, emoji: '💧', desc: 'Par 4 - 395 yds Dogleg R' },
+                { num: 5, emoji: '🌲', desc: 'Par 5 - 494 yds Pines' }
+            ];
+
+            const courseHoles = isRockwiga ? rockwigaHoles : shanktuaryHoles;
 
             if (holesAll) {
-                holesAll.innerHTML = isRockwiga
-                    ? "🏌️ Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All 1 Hole</span>"
-                    : "🏌️ Full Round<br><span style=\"font-size: 0.9em; opacity: 0.8;\">All 5 Holes</span>";
+                holesAll.innerHTML = `🏌️ Full Round<br><span style="font-size: 0.9em; opacity: 0.8;">All ${courseHoles.length} Holes</span>`;
             }
 
-            if (holes1) {
-                holes1.innerHTML = isRockwiga
-                    ? "🌲 Hole 1<br><span style=\"font-size: 0.9em; opacity: 0.8;\">Par 4 - 400 yds</span>"
-                    : "⛳ Hole 1<br><span style=\"font-size: 0.9em; opacity: 0.8;\">Par 3 - 150 yds</span>";
-            }
-
-            [holes2, holes3, holes4, holes5].forEach(btn => {
-                if (btn) {
-                    btn.style.display = isRockwiga ? 'none' : 'block';
+            for (let i = 1; i <= 9; i++) {
+                const btn = document.getElementById('holes' + i);
+                if (!btn) continue;
+                const holeData = courseHoles.find(h => h.num === i);
+                if (holeData) {
+                    btn.innerHTML = `${holeData.emoji} Hole ${i}<br><span style="font-size: 0.9em; opacity: 0.8;">${holeData.desc}</span>`;
+                    btn.style.display = 'block';
+                } else {
+                    btn.style.display = 'none';
                 }
-            });
+            }
 
-            if (isRockwiga && window.golfSelectedHoles !== 'all' && window.golfSelectedHoles !== 1) {
+            const maxHole = courseHoles.length;
+            if (window.golfSelectedHoles !== 'all' && window.golfSelectedHoles > maxHole) {
                 window.golfSelectedHoles = 'all';
             }
 
@@ -4975,7 +5077,7 @@
             window.golfSelectedHoles = selection;
 
             // Update button styles
-            ['all', 1, 2, 3, 4, 5].forEach(h => {
+            ['all', 1, 2, 3, 4, 5, 6, 7, 8, 9].forEach(h => {
                 const btn = document.getElementById('holes' + h);
                 if (btn) {
                     if (h === selection) {
@@ -5100,6 +5202,220 @@
             `).join('');
         }
 
+        // ==================== STEAM MULTIPLAYER FUNCTIONS ====================
+
+        window.golfGameMode = 'local'; // 'local' or 'steam'
+        window.steamLobbyData = null;
+
+        function selectGolfGameMode(mode) {
+            window.golfGameMode = mode;
+
+            // Update button styles
+            const localBtn = document.getElementById('gameModeLocal');
+            const steamBtn = document.getElementById('gameModeSteam');
+            const lobbyPanel = document.getElementById('steamLobbyPanel');
+
+            if (mode === 'local') {
+                localBtn.style.background = 'rgba(74, 222, 128, 0.5)';
+                localBtn.style.border = '3px solid #4ade80';
+                localBtn.style.fontWeight = 'bold';
+                steamBtn.style.background = 'rgba(74, 222, 128, 0.3)';
+                steamBtn.style.border = '2px solid #4ade80';
+                steamBtn.style.fontWeight = 'normal';
+                lobbyPanel.style.display = 'none';
+            } else {
+                steamBtn.style.background = 'rgba(74, 222, 128, 0.5)';
+                steamBtn.style.border = '3px solid #4ade80';
+                steamBtn.style.fontWeight = 'bold';
+                localBtn.style.background = 'rgba(74, 222, 128, 0.3)';
+                localBtn.style.border = '2px solid #4ade80';
+                localBtn.style.fontWeight = 'normal';
+                lobbyPanel.style.display = 'block';
+                checkSteamStatus();
+            }
+        }
+
+        async function checkSteamStatus() {
+            const statusMsg = document.getElementById('steamStatusMessage');
+            const lobbyActions = document.getElementById('steamLobbyActions');
+
+            if (!window.steamAPI) {
+                statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Steam API not available in this context</span>';
+                return;
+            }
+
+            try {
+                const available = await window.steamAPI.isAvailable();
+                if (available) {
+                    const player = await window.steamAPI.getPlayer();
+                    statusMsg.innerHTML = `<span style="color: #4ade80;">✅ Connected as ${player.name}</span>`;
+                    lobbyActions.style.display = 'block';
+
+                    // Set up event listeners for Steam
+                    setupSteamEventListeners();
+                } else {
+                    statusMsg.innerHTML = '<span style="color: #fbbf24;">⚠️ Steam not running. Launch Steam to enable multiplayer.</span>';
+                }
+            } catch (err) {
+                console.error('Steam status check failed:', err);
+                statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Error checking Steam: ' + err.message + '</span>';
+            }
+        }
+
+        let steamListenersSetup = false;
+
+        function setupSteamEventListeners() {
+            if (steamListenersSetup) return;
+            steamListenersSetup = true;
+
+            window.steamAPI.onLobbyCreated((data) => {
+                console.log('Lobby created:', data);
+                window.steamLobbyData = { lobbyId: data.lobbyId, isHost: true };
+                showLobbyInfo(true);
+            });
+
+            window.steamAPI.onLobbyJoined((data) => {
+                console.log('Lobby joined:', data);
+                window.steamLobbyData = { lobbyId: data.lobbyId, isHost: data.isHost };
+                showLobbyInfo(data.isHost);
+            });
+
+            window.steamAPI.onMemberJoined((data) => {
+                console.log('Member joined:', data);
+                refreshPlayerList();
+            });
+
+            window.steamAPI.onMemberLeft((data) => {
+                console.log('Member left:', data);
+                refreshPlayerList();
+            });
+
+            window.steamAPI.onLobbyMembers((data) => {
+                updatePlayerList(data.members);
+            });
+        }
+
+        async function createSteamLobby() {
+            const statusMsg = document.getElementById('steamStatusMessage');
+            statusMsg.innerHTML = '<span style="color: #fbbf24;">⏳ Creating lobby...</span>';
+
+            try {
+                const result = await window.steamAPI.createLobby('friends_only', 4);
+                if (result.success) {
+                    window.steamLobbyData = { lobbyId: result.lobbyId, isHost: true };
+                    showLobbyInfo(true);
+                    statusMsg.innerHTML = '<span style="color: #4ade80;">✅ Lobby created! Invite your friends.</span>';
+                } else {
+                    statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Failed: ' + result.error + '</span>';
+                }
+            } catch (err) {
+                statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Error: ' + err.message + '</span>';
+            }
+        }
+
+        function showJoinLobbyInput() {
+            const statusMsg = document.getElementById('steamStatusMessage');
+            statusMsg.innerHTML = `
+                <div style="margin-bottom: 10px; color: #4ade80;">Enter Lobby ID or use Steam Friend Invite:</div>
+                <input type="text" id="lobbyIdInput" placeholder="Lobby ID"
+                       style="width: 100%; padding: 10px; font-size: 1em; background: rgba(0,0,0,0.5);
+                              border: 2px solid #4ade80; border-radius: 6px; color: white; margin-bottom: 10px;">
+                <button onclick="joinSteamLobbyById()"
+                        style="width: 100%; padding: 10px; font-size: 1em; background: rgba(74, 222, 128, 0.5);
+                               border: 2px solid #4ade80; color: white; border-radius: 6px; cursor: pointer;">
+                    Join Lobby
+                </button>
+            `;
+        }
+
+        async function joinSteamLobbyById() {
+            const lobbyId = document.getElementById('lobbyIdInput').value.trim();
+            if (!lobbyId) return;
+
+            const statusMsg = document.getElementById('steamStatusMessage');
+            statusMsg.innerHTML = '<span style="color: #fbbf24;">⏳ Joining lobby...</span>';
+
+            try {
+                const result = await window.steamAPI.joinLobby(lobbyId);
+                if (result.success) {
+                    window.steamLobbyData = { lobbyId: lobbyId, isHost: false };
+                    showLobbyInfo(false);
+                    statusMsg.innerHTML = '<span style="color: #4ade80;">✅ Joined lobby!</span>';
+                } else {
+                    statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Failed: ' + result.error + '</span>';
+                }
+            } catch (err) {
+                statusMsg.innerHTML = '<span style="color: #ef4444;">❌ Error: ' + err.message + '</span>';
+            }
+        }
+
+        function showLobbyInfo(isHost) {
+            document.getElementById('steamLobbyActions').style.display = 'none';
+            document.getElementById('steamLobbyInfo').style.display = 'block';
+            document.getElementById('lobbyHostIndicator').textContent = isHost ? '🏠 You are the Host' : '👤 Connected to Host';
+            refreshPlayerList();
+        }
+
+        async function refreshPlayerList() {
+            try {
+                const members = await window.steamAPI.getLobbyMembers();
+                updatePlayerList(members);
+            } catch (err) {
+                console.error('Failed to refresh player list:', err);
+            }
+        }
+
+        function updatePlayerList(members) {
+            const listEl = document.getElementById('steamPlayerList');
+            if (!listEl) return;
+
+            if (!members || members.length === 0) {
+                listEl.innerHTML = '<div style="opacity: 0.7; text-align: center;">Waiting for players...</div>';
+                return;
+            }
+
+            listEl.innerHTML = members.map((m, i) => `
+                <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 6px;">
+                    <span style="font-size: 1.2em;">${i === 0 ? '👑' : '👤'}</span>
+                    <span style="flex: 1; font-weight: ${i === 0 ? 'bold' : 'normal'};">${m.name}</span>
+                    <span style="opacity: 0.6; font-size: 0.85em;">Player ${i + 1}</span>
+                </div>
+            `).join('');
+
+            // Update player count in setup (Steam lobby overrides local player count)
+            if (window.golfGameMode === 'steam') {
+                window.golfPar3Players = members.map((m, i) => ({
+                    name: m.name,
+                    color: ['#4ade80', '#3b82f6', '#f59e0b', '#ef4444'][i % 4],
+                    steamId: m.steamId,
+                    autoAim: true
+                }));
+            }
+        }
+
+        async function inviteSteamFriend() {
+            try {
+                await window.steamAPI.inviteFriend();
+            } catch (err) {
+                console.error('Failed to open invite dialog:', err);
+            }
+        }
+
+        async function leaveSteamLobby() {
+            try {
+                await window.steamAPI.leaveLobby();
+            } catch (err) {
+                console.error('Failed to leave lobby:', err);
+            }
+
+            window.steamLobbyData = null;
+            document.getElementById('steamLobbyInfo').style.display = 'none';
+            document.getElementById('steamLobbyActions').style.display = 'block';
+            document.getElementById('steamStatusMessage').innerHTML = '<span style="color: #4ade80;">✅ Left lobby</span>';
+        }
+
+        // ==================== END STEAM MULTIPLAYER FUNCTIONS ====================
+
         function launchGolfPar3Game() {
             // Get gimmie circles setting
             const gimmieEnabled = document.getElementById('golfGimmieCircles').checked;
@@ -5120,6 +5436,14 @@
             localStorage.setItem('golfGreenStimp', greenStimp.toString());
             localStorage.setItem('golfVisualOffsetX', offsetX.toString());
             localStorage.setItem('golfVisualOffsetY', offsetY.toString());
+
+            // Save Steam multiplayer settings
+            localStorage.setItem('golfGameMode', window.golfGameMode);
+            if (window.golfGameMode === 'steam' && window.steamLobbyData) {
+                localStorage.setItem('golfSteamLobby', JSON.stringify(window.steamLobbyData));
+            } else {
+                localStorage.removeItem('golfSteamLobby');
+            }
 
             // Dynamic window title based on selection
             const courseName = golfCourseNames[window.golfSelectedCourse] || 'Shanktuary Hills Golf';

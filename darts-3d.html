@@ -256,6 +256,7 @@
     </div>
 
     <script src="./three.min.js"></script>
+    <script src="./steam-network-adapter.js"></script>
     <script>
         // Global variables
         let scene, camera, renderer;
@@ -267,6 +268,12 @@
         let players = [];
         let currentPlayerIndex = 0;
         let gameActive = false;
+
+        // Steam Multiplayer
+        let networkAdapter = null;
+        let isNetworkGame = false;
+        let isNetworkHost = false;
+        let localSteamId = null;
         const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 
         // Dartboard constants (scaled up 30x for large projector-like display)
@@ -1107,9 +1114,85 @@
                     const hla = shotData.hla || 0;
 
                     throwDart(speed, vla, hla);
+
+                    // Broadcast to network peers
+                    if (isNetworkGame) broadcastDart(speed, vla, hla);
                 });
             }
         }
+
+        // ==================== STEAM NETWORK MULTIPLAYER ====================
+
+        async function initNetworkMultiplayer() {
+            const gameMode = localStorage.getItem('dartsGameMode');
+            if (gameMode !== 'steam') {
+                console.log('📍 Local game mode - network disabled');
+                isNetworkGame = false;
+                return;
+            }
+
+            if (typeof getSteamNetwork === 'undefined') {
+                console.error('❌ SteamNetworkAdapter not loaded');
+                return;
+            }
+
+            networkAdapter = getSteamNetwork();
+
+            try {
+                const available = await networkAdapter.initialize();
+                if (!available) {
+                    isNetworkGame = false;
+                    return;
+                }
+
+                isNetworkGame = true;
+                localSteamId = networkAdapter.getLocalPlayer()?.steamId;
+
+                const lobbyData = localStorage.getItem('dartsSteamLobby');
+                if (lobbyData) {
+                    const lobby = JSON.parse(lobbyData);
+                    isNetworkHost = lobby.isHost;
+                }
+
+                networkAdapter.onMessage(handleNetworkMessage);
+                console.log('✅ Steam network initialized');
+
+            } catch (err) {
+                console.error('❌ Network initialization failed:', err);
+                isNetworkGame = false;
+            }
+        }
+
+        function handleNetworkMessage(message) {
+            if (message.from === localSteamId) return;
+
+            switch (message.type) {
+                case 'dart_throw':
+                    const { speed, vla, hla, playerIndex } = message.data || message;
+                    if (playerIndex !== undefined) currentPlayerIndex = playerIndex;
+                    throwDart(speed, vla, hla);
+                    break;
+                case 'dart_landed':
+                    console.log('🌐 Dart landed:', message);
+                    break;
+                case 'game_state':
+                    console.log('🌐 Game state:', message);
+                    break;
+            }
+        }
+
+        function broadcastDart(speed, vla, hla) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'dart_throw',
+                data: { speed, vla, hla, playerIndex: currentPlayerIndex }
+            });
+        }
+
+        // Initialize network
+        initNetworkMultiplayer();
+
+        // ==================== END STEAM NETWORK ====================
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;

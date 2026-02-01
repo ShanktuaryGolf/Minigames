@@ -205,8 +205,8 @@
         <button id="resetBtn">Reset Hole</button>
         <button onclick="exportSessionCSV()" style="background: rgba(34, 197, 94, 0.3); border-color: #22c55e;">Export CSV</button>
 
-        <!-- Demo Shot Controls (for testing) - DISABLED FOR PRODUCTION -->
-        <div id="demoShotPanel" style="position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100; display: none;">
+        <!-- Demo Shot Controls (for testing) - DISABLED FOR RELEASE -->
+        <div id="demoShotPanel" style="display: none; position: absolute; top: 250px; right: 20px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; color: white; font-family: Arial; z-index: 100;">
             <h3 style="margin-top: 0;">Demo Shot (Press 'D')</h3>
             <div style="display: grid; gap: 8px;">
                 <label>Ball Speed (mph): <input type="number" id="demoSpeed" value="55" step="1" style="width: 80px;"></label>
@@ -277,6 +277,7 @@
     </div>
 
     <script src="./three.min.js"></script>
+    <script src="./steam-network-adapter.js"></script>
     <script type="module">
         // Import OpenGolfCoach for shot classification
         import init, { calculate_derived_values } from './opengolfcoach.js';
@@ -348,6 +349,12 @@
         let ball, hole;
         let teebox, green, bunker;
         let ballInFlight = false;
+
+        // Steam Multiplayer
+        let networkAdapter = null;
+        let isNetworkGame = false;
+        let isNetworkHost = false;
+        let localSteamId = null;
 
         // Textures
         let fairwayTexture, roughTexture, sandTexture, dirtTexture;
@@ -1576,7 +1583,7 @@
                     e.preventDefault();
                 }
 
-                // D key - Demo shot - DISABLED FOR PRODUCTION
+                // D key - Demo shot - DISABLED FOR RELEASE
                 /*
                 if (e.key === 'd' || e.key === 'D') {
                     // Use demo shot controls
@@ -1605,7 +1612,7 @@
                 }
                 */
 
-                // F key - Toggle free camera mode - DISABLED FOR PRODUCTION
+                // F key - Toggle free camera mode - DISABLED FOR RELEASE
                 /*
                 if (e.key === 'f' || e.key === 'F') {
                     debugMode = !debugMode;
@@ -1613,7 +1620,7 @@
                 }
                 */
 
-                // Arrow keys and WASD for camera movement (when in debug mode) - DISABLED FOR PRODUCTION
+                // Arrow keys and WASD for camera movement (when in debug mode) - DISABLED FOR RELEASE
                 /*
                 if (debugMode) {
                     if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
@@ -3329,7 +3336,252 @@
             updatePlayerDisplay();
 
             console.log('Players:', window.golfPar3Players);
+
+            // Initialize Steam Network if in multiplayer mode
+            initNetworkMultiplayer();
         }
+
+        // ==================== STEAM NETWORK MULTIPLAYER ====================
+
+        async function initNetworkMultiplayer() {
+            const gameMode = localStorage.getItem('golfGameMode');
+            if (gameMode !== 'steam') {
+                console.log('📍 Local game mode - network disabled');
+                isNetworkGame = false;
+                return;
+            }
+
+            console.log('🌐 Steam multiplayer mode - initializing network...');
+
+            if (typeof getSteamNetwork === 'undefined') {
+                console.error('❌ SteamNetworkAdapter not loaded');
+                return;
+            }
+
+            networkAdapter = getSteamNetwork();
+
+            try {
+                const available = await networkAdapter.initialize();
+                if (!available) {
+                    console.warn('⚠️ Steam not available - falling back to local mode');
+                    isNetworkGame = false;
+                    return;
+                }
+
+                isNetworkGame = true;
+                localSteamId = networkAdapter.getLocalPlayer()?.steamId;
+
+                // Check if we're already in a lobby (from setup screen)
+                const lobbyData = localStorage.getItem('golfSteamLobby');
+                if (lobbyData) {
+                    const lobby = JSON.parse(lobbyData);
+                    isNetworkHost = lobby.isHost;
+                    console.log(`🌐 Network game active - ${isNetworkHost ? 'HOST' : 'CLIENT'}`);
+                }
+
+                // Set up message handlers
+                networkAdapter.onMessage(handleNetworkMessage);
+
+                networkAdapter.on('member-left', (data) => {
+                    console.log('👋 Player left:', data);
+                    showNetworkNotification(`Player disconnected`);
+                });
+
+                networkAdapter.on('disconnected', () => {
+                    console.log('❌ Disconnected from lobby');
+                    isNetworkGame = false;
+                    showNetworkNotification('Disconnected from multiplayer session');
+                });
+
+                console.log('✅ Steam network initialized successfully');
+
+            } catch (err) {
+                console.error('❌ Network initialization failed:', err);
+                isNetworkGame = false;
+            }
+        }
+
+        function handleNetworkMessage(message) {
+            console.log('📨 Network message:', message);
+
+            switch (message.type) {
+                case 'shot':
+                    handleNetworkShot(message);
+                    break;
+                case 'ball_position':
+                    handleNetworkBallPosition(message);
+                    break;
+                case 'game_state':
+                    handleNetworkGameState(message);
+                    break;
+                case 'turn_start':
+                    handleNetworkTurnStart(message);
+                    break;
+                case 'hole_complete':
+                    handleNetworkHoleComplete(message);
+                    break;
+                default:
+                    console.log('Unknown message type:', message.type);
+            }
+        }
+
+        function handleNetworkShot(message) {
+            // Another player took a shot - simulate it locally
+            const { playerIndex, speed, vla, hla, totalSpin, spinAxis } = message.data || message;
+
+            // Don't process our own shots
+            if (message.from === localSteamId) return;
+
+            console.log(`🌐 Remote shot from player ${playerIndex}:`, { speed, vla, hla, totalSpin, spinAxis });
+
+            // If this is for a different player than current, switch to them
+            if (playerIndex !== window.currentPlayerIndex) {
+                window.currentPlayerIndex = playerIndex;
+                loadPlayerState();
+                updatePlayerDisplay();
+            }
+
+            // Fire the shot locally
+            const shotEvent = {
+                detail: {
+                    speed: speed,
+                    vla: vla,
+                    hla: hla,
+                    total_spin: totalSpin,
+                    spin_axis: spinAxis
+                }
+            };
+            handleShot(shotEvent);
+        }
+
+        function handleNetworkBallPosition(message) {
+            const { playerIndex, position, lie, distanceToHole } = message;
+
+            // Don't process our own updates
+            if (message.from === localSteamId) return;
+
+            console.log(`🌐 Ball position update for player ${playerIndex}:`, position);
+
+            // Update player's ball position
+            if (window.golfPar3Players[playerIndex]) {
+                window.golfPar3Players[playerIndex].ballPosition = position;
+
+                // If it's the current player's ball, update visuals
+                if (playerIndex === window.currentPlayerIndex) {
+                    ballPosition.set(position.x, position.y, position.z);
+                    if (ball) ball.position.copy(ballPosition);
+                    updateLieType();
+                }
+            }
+        }
+
+        function handleNetworkGameState(message) {
+            // Host sent full game state - sync to it
+            const { players, currentHole } = message.data || message;
+
+            console.log('🌐 Received game state sync:', message);
+
+            if (players) {
+                // Update all player states
+                players.forEach((p, i) => {
+                    if (window.golfPar3Players[i]) {
+                        window.golfPar3Players[i].ballPosition = p.ballPosition;
+                        window.golfPar3Players[i].strokes = p.strokes;
+                        window.golfPar3Players[i].holed = p.holed;
+                    }
+                });
+            }
+        }
+
+        function handleNetworkTurnStart(message) {
+            const { playerIndex } = message;
+
+            console.log(`🌐 Turn start for player ${playerIndex}`);
+
+            if (playerIndex !== window.currentPlayerIndex) {
+                window.currentPlayerIndex = playerIndex;
+                loadPlayerState();
+                updatePlayerDisplay();
+            }
+        }
+
+        function handleNetworkHoleComplete(message) {
+            const { playerIndex, strokes } = message;
+
+            console.log(`🌐 Player ${playerIndex} holed out in ${strokes} strokes`);
+
+            if (window.golfPar3Players[playerIndex]) {
+                window.golfPar3Players[playerIndex].holed = true;
+                window.golfPar3Players[playerIndex].strokes = strokes;
+            }
+        }
+
+        function broadcastShot(shotData) {
+            if (!isNetworkGame || !networkAdapter) return;
+
+            networkAdapter.broadcast({
+                type: 'shot',
+                playerIndex: window.currentPlayerIndex,
+                ...shotData,
+                timestamp: Date.now()
+            });
+        }
+
+        function broadcastBallPosition() {
+            if (!isNetworkGame || !networkAdapter) return;
+
+            networkAdapter.broadcast({
+                type: 'ball_position',
+                playerIndex: window.currentPlayerIndex,
+                position: { x: ballPosition.x, y: ballPosition.y, z: ballPosition.z },
+                lie: currentLie?.name || 'Unknown',
+                distanceToHole: distanceToHole
+            });
+        }
+
+        function broadcastGameState() {
+            if (!isNetworkGame || !networkAdapter || !isNetworkHost) return;
+
+            networkAdapter.broadcast({
+                type: 'game_state',
+                data: {
+                    currentHole: window.golfPar3Players[0]?.currentHole || 0,
+                    players: window.golfPar3Players.map(p => ({
+                        name: p.name,
+                        ballPosition: p.ballPosition,
+                        strokes: p.strokes,
+                        holed: p.holed
+                    }))
+                }
+            });
+        }
+
+        function broadcastTurnStart(playerIndex) {
+            if (!isNetworkGame || !networkAdapter || !isNetworkHost) return;
+
+            networkAdapter.broadcast({
+                type: 'turn_start',
+                playerIndex: playerIndex
+            });
+        }
+
+        function showNetworkNotification(text) {
+            // Simple notification for network events
+            const existing = document.getElementById('networkNotification');
+            if (existing) existing.remove();
+
+            const div = document.createElement('div');
+            div.id = 'networkNotification';
+            div.style.cssText = 'position:fixed; top:60px; left:50%; transform:translateX(-50%); ' +
+                'background:rgba(59,130,246,0.9); color:white; padding:10px 20px; border-radius:8px; ' +
+                'font-size:14px; z-index:2000; animation:fadeIn 0.3s;';
+            div.textContent = text;
+            document.body.appendChild(div);
+
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        // ==================== END STEAM NETWORK MULTIPLAYER ====================
 
         function createTracer() {
             // Create line geometry for tracer
@@ -3402,6 +3654,8 @@
 
         function handleShotFromElectron(data) {
             console.log('📡 Shot data received from Electron:', data);
+            // Mark as local shot (not from network) and broadcast to peers
+            data._isLocalShot = true;
             handleShot({ detail: data });
         }
 
@@ -3453,6 +3707,17 @@
             if (!speed || vla === undefined || vla === null) {
                 console.warn('Invalid shot data received:', data);
                 return;
+            }
+
+            // Broadcast shot to network peers (only for local shots from launch monitor)
+            if (data._isLocalShot && isNetworkGame) {
+                broadcastShot({
+                    speed: speed,
+                    vla: vla,
+                    hla: hla,
+                    totalSpin: total_spin,
+                    spinAxis: spin_axis
+                });
             }
 
             // Apply base direction and aim adjustment
@@ -3680,6 +3945,9 @@
                 // Ball stopped
                 ballVelocity.set(0, 0, 0);
                 ballInFlight = false;
+
+                // Broadcast final ball position to network peers
+                broadcastBallPosition();
 
                 console.log(`🏌️ Putt stopped: draftGolfEnabled=${draftGolfEnabled}, phase=${draftGolfPhase}`);
 
@@ -4518,6 +4786,9 @@
                         // Don't mark as stopped yet if we haven't run the end-of-flight logic
                         if (ballInFlight) {
                             ballInFlight = false;
+
+                            // Broadcast final ball position to network peers
+                            broadcastBallPosition();
 
                             console.log(`🏌️ Ball stopped: draftGolfEnabled=${draftGolfEnabled}, phase=${draftGolfPhase}`);
 

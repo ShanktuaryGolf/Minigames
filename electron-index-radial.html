@@ -598,8 +598,175 @@
         .radial-btn.game-darts2d { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
         .radial-btn.game-darts2d:hover { box-shadow: 0 0 40px rgba(59, 130, 246, 0.7); }
 
-        .radial-btn.game-darts3d { border-color: #8b5cf6; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
-        .radial-btn.game-darts3d:hover { box-shadow: 0 0 40px rgba(139, 92, 246, 0.7); }
+        .radial-btn.game-steam { border-color: #66c0f4; box-shadow: 0 0 20px rgba(102, 192, 244, 0.4); }
+        .radial-btn.game-steam:hover { box-shadow: 0 0 40px rgba(102, 192, 244, 0.7); }
+        .radial-btn.game-steam.connected { border-color: #4ade80; box-shadow: 0 0 20px rgba(74, 222, 128, 0.5); }
+
+        /* Steam Lobby Panel */
+        .steam-lobby-panel {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            background: linear-gradient(180deg, #1b2838 0%, #171a21 100%);
+            border: 2px solid #66c0f4;
+            border-radius: 12px;
+            padding: 24px;
+            z-index: 2500;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+        }
+        .steam-lobby-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2400;
+        }
+        .steam-lobby-overlay.open {
+            display: block;
+        }
+        .steam-lobby-panel.open {
+            display: block;
+            animation: steamFadeIn 0.3s ease;
+        }
+        @keyframes steamFadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .steam-lobby-panel h3 {
+            margin: 0 0 15px 0;
+            color: #66c0f4;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .steam-lobby-panel .status-text {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        .steam-lobby-panel .status-text.online {
+            color: #4ade80;
+        }
+        .steam-lobby-panel .status-text.error {
+            color: #ef4444;
+        }
+
+        /* Lobby buttons */
+        .steam-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .steam-btn-primary {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: #000;
+        }
+        .steam-btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(74, 222, 128, 0.4);
+        }
+        .steam-btn-secondary {
+            background: rgba(102, 192, 244, 0.2);
+            color: #66c0f4;
+            border: 1px solid #66c0f4;
+        }
+        .steam-btn-secondary:hover {
+            background: rgba(102, 192, 244, 0.3);
+        }
+        .steam-btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        .steam-btn-danger:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+        .steam-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Game select dropdown */
+        .steam-game-select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+        }
+        .steam-game-select option {
+            background: #1b2838;
+        }
+
+        /* Member list */
+        .steam-members {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+        .steam-members h4 {
+            margin: 0 0 10px 0;
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .steam-member {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+        .steam-member-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #66c0f4, #1b2838);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .steam-member-name {
+            flex: 1;
+            color: white;
+            font-size: 14px;
+        }
+        .steam-member-host {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: #fbbf24;
+            color: #000;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        .steam-member-you {
+            font-size: 10px;
+            color: #66c0f4;
+        }
 
         .radial-btn.game-beerpong { border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
         .radial-btn.game-beerpong:hover { box-shadow: 0 0 40px rgba(239, 68, 68, 0.7); }
@@ -660,6 +827,93 @@
                 <button id="updateInstallBtn" onclick="installUpdate()" style="background: #22c55e; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: none;">Restart & Install</button>
                 <button onclick="closeUpdateNotification()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer;">Later</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Steam Lobby Overlay - HIDDEN: Multiplayer not ready -->
+    <div class="steam-lobby-overlay" id="steamLobbyOverlay" onclick="toggleSteamLobbyPanel()" style="display: none !important;"></div>
+
+    <!-- Steam Lobby Panel - HIDDEN: Multiplayer not ready -->
+    <div class="steam-lobby-panel" id="steamLobbyPanel" style="display: none !important;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">🎮 Steam Multiplayer</h3>
+            <button onclick="toggleSteamLobbyPanel()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+        </div>
+
+        <!-- Status -->
+        <div class="status-text" id="steamStatusText">
+            Checking Steam connection...
+        </div>
+
+        <!-- Not in lobby view -->
+        <div id="steamNoLobby">
+            <label style="color: #888; font-size: 12px; display: block; margin-bottom: 5px;">Select Game:</label>
+            <select class="steam-game-select" id="steamGameSelect">
+                <option value="golf">Golf (Par 3)</option>
+                <option value="putting">Putting</option>
+                <option value="bowling">Bowling</option>
+                <option value="darts">Darts</option>
+                <option value="baseball">Home Run Derby</option>
+                <option value="soccer">Soccer Penalty</option>
+                <option value="beer_pong">Beer Pong</option>
+            </select>
+
+            <label style="color: #888; font-size: 12px; display: block; margin: 10px 0 5px 0;">Max Players:</label>
+            <select class="steam-game-select" id="steamMaxPlayers">
+                <option value="2">2 Players</option>
+                <option value="3">3 Players</option>
+                <option value="4" selected>4 Players</option>
+            </select>
+
+            <button class="steam-btn steam-btn-primary" id="steamCreateBtn" onclick="steamCreateLobby()">
+                ➕ Create Lobby
+            </button>
+
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #333;">
+                <label style="color: #888; font-size: 12px; display: block; margin-bottom: 5px;">Join Friend's Lobby:</label>
+                <input type="text" id="steamJoinLobbyId" placeholder="Enter Lobby ID"
+                    style="width: 100%; padding: 8px; background: #1a1a2e; border: 1px solid #333; border-radius: 4px; color: white; margin-bottom: 8px;">
+                <button class="steam-btn steam-btn-secondary" onclick="steamJoinLobbyById()">
+                    🔗 Join Lobby
+                </button>
+            </div>
+        </div>
+
+        <!-- In lobby view -->
+        <div id="steamInLobby" style="display: none;">
+            <!-- Lobby ID display -->
+            <div style="background: #1a1a2e; border: 1px solid #333; border-radius: 4px; padding: 8px; margin-bottom: 10px;">
+                <label style="color: #888; font-size: 11px; display: block; margin-bottom: 4px;">Lobby ID (share with friends):</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <input type="text" id="steamLobbyIdDisplay" readonly
+                        style="flex: 1; padding: 6px; background: #0f0f1a; border: 1px solid #444; border-radius: 3px; color: #4ade80; font-family: monospace; font-size: 12px;">
+                    <button class="steam-btn steam-btn-secondary" onclick="copyLobbyId()" style="padding: 6px 10px; font-size: 11px;">
+                        📋 Copy
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <button class="steam-btn steam-btn-secondary" style="flex: 1;" onclick="steamInviteFriend()">
+                    👥 Invite Friend
+                </button>
+                <button class="steam-btn steam-btn-danger" style="flex: 1;" onclick="steamLeaveLobby()">
+                    🚪 Leave
+                </button>
+            </div>
+
+            <!-- Member list -->
+            <div class="steam-members">
+                <h4>Players in Lobby</h4>
+                <div id="steamMemberList">
+                    <!-- Members will be added here -->
+                </div>
+            </div>
+
+            <!-- Start game button (host only) -->
+            <button class="steam-btn steam-btn-primary" id="steamStartGameBtn" onclick="steamStartGame()" style="margin-top: 15px; display: none;">
+                🚀 Start Game
+            </button>
         </div>
     </div>
 
@@ -804,11 +1058,7 @@
             </button>
             <button class="radial-btn game-darts2d" onclick="startGame()">
                 <span class="btn-icon">🎯</span>
-                <span class="btn-label">Darts 2D</span>
-            </button>
-            <button class="radial-btn game-darts3d" onclick="startDarts3D()">
-                <span class="btn-icon">🎯</span>
-                <span class="btn-label">Darts 3D</span>
+                <span class="btn-label">Darts</span>
             </button>
             <button class="radial-btn game-beerpong" onclick="startBeerPong()">
                 <span class="btn-icon">🍺</span>
@@ -825,6 +1075,11 @@
             <button class="radial-btn game-golf" onclick="startGolfPar3()">
                 <span class="btn-icon">⛳</span>
                 <span class="btn-label">Golf Courses</span>
+            </button>
+            <!-- HIDDEN: Multiplayer feature not yet ready for release -->
+            <button class="radial-btn game-steam" id="steamLobbyBtn" onclick="toggleSteamLobbyPanel()" style="display: none;">
+                <span class="btn-icon">🎮</span>
+                <span class="btn-label" id="steamLobbyBtnText">Online</span>
             </button>
         </div>
     </div>
@@ -1757,6 +2012,418 @@
             document.getElementById('settingsPanel').classList.toggle('open');
             document.getElementById('settingsOverlay').classList.toggle('open');
         }
+
+        // ==================== STEAM LOBBY FUNCTIONS ====================
+
+        let steamNetwork = null;
+        let steamPanelOpen = false;
+
+        // Initialize Steam on page load
+        async function initSteamLobby() {
+            steamNetwork = getSteamNetwork();
+
+            try {
+                const available = await steamNetwork.initialize();
+                updateSteamUI(available);
+
+                if (available) {
+                    // Set up event handlers
+                    steamNetwork.on('lobby-created', onLobbyCreated);
+                    steamNetwork.on('lobby-joined', onLobbyJoined);
+                    steamNetwork.on('member-joined', onMemberChanged);
+                    steamNetwork.on('member-left', onMemberChanged);
+                    steamNetwork.on('members-updated', onMembersUpdated);
+                    steamNetwork.on('disconnected', onLobbyDisconnected);
+                    steamNetwork.on('error', onSteamError);
+
+                    // Set up message handler
+                    steamNetwork.onMessage(handleSteamMessage);
+                }
+            } catch (err) {
+                console.error('Steam init error:', err);
+                updateSteamStatus('Steam initialization failed', 'error');
+            }
+        }
+
+        function toggleSteamLobbyPanel() {
+            steamPanelOpen = !steamPanelOpen;
+            document.getElementById('steamLobbyPanel').classList.toggle('open', steamPanelOpen);
+            document.getElementById('steamLobbyOverlay').classList.toggle('open', steamPanelOpen);
+        }
+
+        function updateSteamUI(available) {
+            const btn = document.getElementById('steamLobbyBtn');
+            const statusText = document.getElementById('steamStatusText');
+            const createBtn = document.getElementById('steamCreateBtn');
+
+            if (available) {
+                const player = steamNetwork.getLocalPlayer();
+                updateSteamStatus(`Connected as ${player?.name || 'Unknown'}`, 'online');
+                createBtn.disabled = false;
+            } else {
+                updateSteamStatus('Steam not available - install steamworks.js and run Steam', 'error');
+                createBtn.disabled = true;
+            }
+        }
+
+        function updateSteamStatus(text, type = '') {
+            const statusText = document.getElementById('steamStatusText');
+            statusText.textContent = text;
+            statusText.className = 'status-text ' + type;
+        }
+
+        async function steamCreateLobby() {
+            if (!steamNetwork || !steamNetwork.isSteamAvailable()) {
+                updateSteamStatus('Steam not available', 'error');
+                return;
+            }
+
+            const gameType = document.getElementById('steamGameSelect').value;
+            const maxPlayers = parseInt(document.getElementById('steamMaxPlayers').value);
+
+            updateSteamStatus('Creating lobby...', '');
+            document.getElementById('steamCreateBtn').disabled = true;
+
+            const result = await steamNetwork.createLobby(gameType, maxPlayers, 'friends_only');
+
+            if (result.success) {
+                updateSteamStatus('Lobby created! Share the ID with friends.', 'online');
+                showInLobbyUI(true);
+                // Display the lobby ID
+                const lobbyIdDisplay = document.getElementById('steamLobbyIdDisplay');
+                if (lobbyIdDisplay && result.lobbyId) {
+                    lobbyIdDisplay.value = result.lobbyId;
+                }
+            } else {
+                updateSteamStatus('Failed to create lobby: ' + result.error, 'error');
+                document.getElementById('steamCreateBtn').disabled = false;
+            }
+        }
+
+        function copyLobbyId() {
+            const lobbyIdDisplay = document.getElementById('steamLobbyIdDisplay');
+            if (lobbyIdDisplay && lobbyIdDisplay.value) {
+                navigator.clipboard.writeText(lobbyIdDisplay.value).then(() => {
+                    updateSteamStatus('Lobby ID copied to clipboard!', 'online');
+                }).catch(() => {
+                    // Fallback: select the text
+                    lobbyIdDisplay.select();
+                    document.execCommand('copy');
+                    updateSteamStatus('Lobby ID copied!', 'online');
+                });
+            }
+        }
+
+        async function steamInviteFriend() {
+            if (!steamNetwork) return;
+
+            const result = await steamNetwork.inviteFriend();
+            if (!result.success) {
+                updateSteamStatus('Failed to open invite: ' + result.error, 'error');
+            } else if (result.lobbyId) {
+                // Overlay didn't open, show lobby ID for manual sharing
+                updateSteamStatus('Lobby ID: ' + result.lobbyId, 'online');
+                // Copy to clipboard
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(result.lobbyId);
+                    updateSteamStatus('Lobby ID copied to clipboard: ' + result.lobbyId, 'online');
+                }
+            }
+        }
+
+        async function steamJoinLobbyById() {
+            if (!steamNetwork) return;
+
+            const lobbyIdInput = document.getElementById('steamJoinLobbyId');
+            const lobbyId = lobbyIdInput.value.trim();
+
+            if (!lobbyId) {
+                updateSteamStatus('Please enter a lobby ID', 'error');
+                return;
+            }
+
+            updateSteamStatus('Joining lobby...', '');
+            const result = await steamNetwork.joinLobby(lobbyId);
+
+            if (result.success) {
+                updateSteamStatus('Joined lobby!', 'online');
+                showInLobbyUI(true);
+                document.getElementById('steamCreateBtn').disabled = true;
+                lobbyIdInput.value = '';
+            } else {
+                updateSteamStatus('Failed to join: ' + result.error, 'error');
+            }
+        }
+
+        async function steamLeaveLobby() {
+            if (!steamNetwork) return;
+
+            await steamNetwork.leaveLobby();
+            showInLobbyUI(false);
+            updateSteamStatus('Left lobby', '');
+            document.getElementById('steamCreateBtn').disabled = false;
+        }
+
+        async function steamStartGame() {
+            if (!steamNetwork || !steamNetwork.isLobbyHost()) return;
+
+            const gameType = steamNetwork.getGameType();
+            const members = steamNetwork.getMembers();
+
+            // Store lobby info for the game to use
+            localStorage.setItem('steamLobbyActive', 'true');
+            localStorage.setItem('steamGameType', gameType);
+            localStorage.setItem('steamPlayers', JSON.stringify(members));
+            localStorage.setItem('steamIsHost', steamNetwork.isLobbyHost() ? 'true' : 'false');
+
+            // Broadcast game start to all players
+            await steamNetwork.startGame({
+                gameType: gameType,
+                players: members
+            });
+
+            // Launch the appropriate game
+            launchSteamGame(gameType);
+        }
+
+        function launchSteamGame(gameType) {
+            // Close the panel
+            toggleSteamLobbyPanel();
+
+            // Save Steam lobby data for the game to pick up
+            const lobbyData = {
+                lobbyId: steamNetwork.getLobbyId(),
+                isHost: steamNetwork.isLobbyHost()
+            };
+
+            // Get Steam players and convert to game format
+            const steamMembers = steamNetwork.getMembers();
+            const playerColors = ['#4ade80', '#60a5fa', '#f472b6', '#fbbf24', '#a78bfa', '#34d399', '#fb7185', '#38bdf8'];
+
+            const gamePlayers = steamMembers.map((member, idx) => ({
+                name: member.name || 'Player ' + (idx + 1),
+                color: playerColors[idx % playerColors.length],
+                steamId: member.steamId
+            }));
+
+            console.log('🎮 Steam players for game:', gamePlayers);
+
+            // Set game mode and lobby data based on game type
+            const gameModeKeys = {
+                'golf': 'golfGameMode',
+                'putting': 'puttingGameMode',
+                'bowling': 'bowlingGameMode',
+                'darts': 'dartsGameMode',
+                'baseball': 'homerunGameMode',
+                'soccer': 'soccerGameMode',
+                'beer_pong': 'beerPongGameMode'
+            };
+
+            const lobbyKeys = {
+                'golf': 'golfSteamLobby',
+                'putting': 'puttingSteamLobby',
+                'bowling': 'bowlingSteamLobby',
+                'darts': 'dartsSteamLobby',
+                'baseball': 'homerunSteamLobby',
+                'soccer': 'soccerSteamLobby',
+                'beer_pong': 'beerPongSteamLobby'
+            };
+
+            const playerKeys = {
+                'golf': 'golfPar3Players',
+                'putting': 'puttingPlayers',
+                'bowling': 'bowlingPlayers',
+                'darts': 'dartsPlayers',
+                'baseball': 'homerunPlayers',
+                'soccer': 'soccerPlayers',
+                'beer_pong': 'beerPongPlayers'
+            };
+
+            // Set Steam mode for this game
+            if (gameModeKeys[gameType]) {
+                localStorage.setItem(gameModeKeys[gameType], 'steam');
+                localStorage.setItem(lobbyKeys[gameType], JSON.stringify(lobbyData));
+                // Store the players for the game to use
+                if (playerKeys[gameType]) {
+                    localStorage.setItem(playerKeys[gameType], JSON.stringify(gamePlayers));
+                }
+                console.log(`🌐 Steam mode enabled for ${gameType}:`, lobbyData, 'players:', gamePlayers);
+            }
+
+            // Launch the corresponding game
+            // For Steam games, bypass the setup screens and launch directly
+            switch (gameType) {
+                case 'golf':
+                    // Launch golf directly with Steam players (skip setup screen)
+                    launchGolfPar3DirectForSteam(gamePlayers);
+                    break;
+                case 'putting':
+                    startPuttPractice();
+                    break;
+                case 'bowling':
+                    startBowling();
+                    break;
+                case 'darts':
+                    startGame(); // 2D Darts
+                    break;
+                case 'baseball':
+                    startHomeRunDerby();
+                    break;
+                case 'soccer':
+                    startSoccerPenalty();
+                    break;
+                case 'beer_pong':
+                    startBeerPong();
+                    break;
+            }
+        }
+
+        // Direct launch for Steam multiplayer - bypasses the setup screen
+        function launchGolfPar3DirectForSteam(players) {
+            console.log('🌐 Launching golf directly with Steam players:', players);
+
+            // Use saved settings or defaults
+            const savedStimp = localStorage.getItem('golfGreenStimp') || '10';
+            const savedCourse = localStorage.getItem('golfSelectedCourse') || 'shanktuary';
+            const savedHoles = localStorage.getItem('golfSelectedHoles') || '"all"';
+
+            // Ensure all required localStorage is set for the game
+            localStorage.setItem('golfPar3Players', JSON.stringify(players));
+            localStorage.setItem('golfPar3CurrentPlayer', '0');
+            localStorage.setItem('golfGreenStimp', savedStimp);
+            localStorage.setItem('golfSelectedCourse', savedCourse);
+            localStorage.setItem('golfSelectedHoles', savedHoles);
+            localStorage.setItem('golfGimmieCircles', 'true');
+
+            // Make sure game mode stays as 'steam' (not overwritten to 'local')
+            localStorage.setItem('golfGameMode', 'steam');
+
+            // Get course name for window title
+            const courseNames = {
+                shanktuary: 'Shanktuary Hills Golf',
+                rockwiga: 'Rockwiga Country Club'
+            };
+            const courseName = courseNames[savedCourse] || 'Shanktuary Hills Golf';
+
+            // Open game window directly
+            window.electronAPI.openGameWindow({
+                url: 'golf-par3.html',
+                title: courseName + ' - Steam Multiplayer',
+                width: 1400,
+                height: 900,
+                playerData: {
+                    players: players,
+                    currentPlayer: 0,
+                    gimmieCircles: true
+                }
+            });
+
+            console.log('🎮 Golf game launched with players:', players.map(p => p.name).join(', '));
+        }
+
+        function showInLobbyUI(inLobby) {
+            document.getElementById('steamNoLobby').style.display = inLobby ? 'none' : 'block';
+            document.getElementById('steamInLobby').style.display = inLobby ? 'block' : 'none';
+
+            const btn = document.getElementById('steamLobbyBtn');
+            btn.classList.toggle('connected', inLobby);
+            document.getElementById('steamLobbyBtnText').textContent = inLobby ? 'In Lobby' : 'Online';
+
+            if (inLobby) {
+                updateMemberList();
+                updateStartButton();
+            }
+        }
+
+        function updateMemberList() {
+            const members = steamNetwork.getMembers();
+            const localPlayer = steamNetwork.getLocalPlayer();
+            const isHost = steamNetwork.isLobbyHost();
+            const container = document.getElementById('steamMemberList');
+
+            container.innerHTML = members.map((member, idx) => {
+                const isMe = member.steamId === localPlayer?.steamId;
+                const isHostMember = idx === 0; // First member is typically host
+
+                return `
+                    <div class="steam-member">
+                        <div class="steam-member-avatar">${member.name?.charAt(0) || '?'}</div>
+                        <div class="steam-member-name">${member.name || 'Unknown'}</div>
+                        ${isHostMember ? '<span class="steam-member-host">HOST</span>' : ''}
+                        ${isMe ? '<span class="steam-member-you">(You)</span>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStartButton() {
+            const startBtn = document.getElementById('steamStartGameBtn');
+            const isHost = steamNetwork.isLobbyHost();
+            const memberCount = steamNetwork.getMemberCount();
+
+            startBtn.style.display = isHost ? 'block' : 'none';
+            startBtn.disabled = memberCount < 2;
+            startBtn.textContent = memberCount < 2 ? '🚀 Waiting for players...' : '🚀 Start Game';
+        }
+
+        // Steam event handlers
+        function onLobbyCreated(data) {
+            console.log('Lobby created:', data);
+            showInLobbyUI(true);
+        }
+
+        function onLobbyJoined(data) {
+            console.log('Joined lobby:', data);
+            showInLobbyUI(true);
+            updateSteamStatus('Joined lobby!', 'online');
+        }
+
+        function onMemberChanged(data) {
+            console.log('Member changed:', data);
+            updateMemberList();
+            updateStartButton();
+        }
+
+        function onMembersUpdated(data) {
+            console.log('Members updated:', data);
+            updateMemberList();
+            updateStartButton();
+        }
+
+        function onLobbyDisconnected() {
+            console.log('Disconnected from lobby');
+            showInLobbyUI(false);
+            updateSteamStatus('Disconnected from lobby', '');
+            document.getElementById('steamCreateBtn').disabled = false;
+        }
+
+        function onSteamError(data) {
+            console.error('Steam error:', data);
+            updateSteamStatus('Error: ' + data.error, 'error');
+        }
+
+        function handleSteamMessage(msg) {
+            console.log('Steam message received:', msg);
+
+            // Handle game start message
+            if (msg.type === 'game_start') {
+                localStorage.setItem('steamLobbyActive', 'true');
+                localStorage.setItem('steamGameType', msg.gameType);
+                localStorage.setItem('steamPlayers', JSON.stringify(msg.players));
+                localStorage.setItem('steamIsHost', 'false');
+
+                // Launch game for non-host players
+                launchSteamGame(msg.gameType);
+            }
+        }
+
+        // Initialize Steam when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Delay Steam init slightly to ensure scripts are loaded
+            setTimeout(initSteamLobby, 500);
+        });
+
+        // ==================== END STEAM LOBBY FUNCTIONS ====================
 
         // Debug: Press backtick (`) to force-show games without LM connection
         document.addEventListener('keydown', function(e) {
@@ -4387,6 +5054,11 @@
 
         function startGame() {
             console.log('Starting Darts game...');
+
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('dartsGameMode', 'local');
+            localStorage.removeItem('dartsSteamLobby');
+
             document.getElementById('menuScreen').style.display = 'none';
             document.getElementById('gameContainer').classList.add('active');
 
@@ -4396,6 +5068,7 @@
             console.log('Initializing game...');
             currentGame.init();
         }
+
 
         async function startSkeeBall() {
             console.log('🎱 startSkeeBall() called');
@@ -4431,6 +5104,10 @@
         function startHomeRunDerby() {
             console.log('⚾ Starting Home Run Derby...');
 
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('homerunGameMode', 'local');
+            localStorage.removeItem('homerunSteamLobby');
+
             // Hide menu, show game container with setup
             document.getElementById('menuScreen').style.display = 'none';
             const gameContainer = document.getElementById('gameContainer');
@@ -4442,6 +5119,10 @@
 
         function startPuttPractice() {
             console.log('⛳ Starting Putt-Practice...');
+
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('puttingGameMode', 'local');
+            localStorage.removeItem('puttingSteamLobby');
 
             // Hide menu, show game container with setup
             document.getElementById('menuScreen').style.display = 'none';
@@ -5129,6 +5810,10 @@
         function startBowling() {
             console.log('🎳 Starting Bowling...');
 
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('bowlingGameMode', 'local');
+            localStorage.removeItem('bowlingSteamLobby');
+
             // Hide menu, show game container with setup
             document.getElementById('menuScreen').style.display = 'none';
             const gameContainer = document.getElementById('gameContainer');
@@ -5509,19 +6194,13 @@
             backToMenu();
         }
 
-        function startDarts3D() {
-            console.log('🎯 Starting 3D Darts...');
-            // Open in new window using Electron IPC
-            window.electronAPI.openGameWindow({
-                url: 'darts-3d.html',
-                title: '3D Darts',
-                width: 1400,
-                height: 900
-            });
-        }
-
         function startSoccerPenalty() {
             console.log('⚽ Starting Soccer Penalty...');
+
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('soccerGameMode', 'local');
+            localStorage.removeItem('soccerSteamLobby');
+
             // Open in new window using Electron IPC
             window.electronAPI.openGameWindow({
                 url: 'soccer-penalty.html',
@@ -5533,6 +6212,11 @@
 
         function startBeerPong() {
             console.log('🍺 Starting Beer Pong...');
+
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('beerPongGameMode', 'local');
+            localStorage.removeItem('beerPongSteamLobby');
+
             // Open in new window using Electron IPC
             window.electronAPI.openGameWindow({
                 url: 'beer-pong.html',
@@ -5544,6 +6228,10 @@
 
         function startGolfPar3() {
             console.log('⛳ Starting Golf Courses...');
+
+            // Set local mode (not Steam multiplayer)
+            localStorage.setItem('golfGameMode', 'local');
+            localStorage.removeItem('golfSteamLobby');
 
             // Hide menu, show game container with setup
             document.getElementById('menuScreen').style.display = 'none';
@@ -6608,6 +7296,7 @@
     </script>
 
     <!-- Load game scripts -->
+    <script src="steam-network-adapter.js"></script>
     <script src="darts_multiplayer.js"></script>
     <script src="./node_modules/three/build/three.module.js" type="module"></script>
     <script src="./node_modules/cannon-es/dist/cannon-es.js" type="module"></script>

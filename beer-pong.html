@@ -195,12 +195,19 @@
     <div id="message"></div>
 
     <script src="three.min.js"></script>
+    <script src="./steam-network-adapter.js"></script>
     <script>
         // Game State
         let currentTeam = 'red'; // 'red' or 'blue'
         let redCupsRemaining = 10;
         let blueCupsRemaining = 10;
         let ballInFlight = false;
+
+        // Steam Multiplayer
+        let networkAdapter = null;
+        let isNetworkGame = false;
+        let isNetworkHost = false;
+        let localSteamId = null;
         let cupWasMade = false; // Track if current shot made a cup
         let rebuttalMode = false; // Rebuttal shot active
         let rebuttalTeam = null; // Which team is taking rebuttal
@@ -1222,6 +1229,148 @@
         } else {
             console.log('Running in browser mode - launch monitor not available');
         }
+
+        // ==================== STEAM NETWORK MULTIPLAYER ====================
+
+        async function initNetworkMultiplayer() {
+            const gameMode = localStorage.getItem('beerPongGameMode');
+            if (gameMode !== 'steam') {
+                console.log('📍 Local game mode - network disabled');
+                isNetworkGame = false;
+                return;
+            }
+
+            console.log('🌐 Steam multiplayer mode - initializing network...');
+
+            if (typeof getSteamNetwork === 'undefined') {
+                console.error('❌ SteamNetworkAdapter not loaded');
+                return;
+            }
+
+            networkAdapter = getSteamNetwork();
+
+            try {
+                const available = await networkAdapter.initialize();
+                if (!available) {
+                    console.warn('⚠️ Steam not available - falling back to local mode');
+                    isNetworkGame = false;
+                    return;
+                }
+
+                isNetworkGame = true;
+                localSteamId = networkAdapter.getLocalPlayer()?.steamId;
+
+                const lobbyData = localStorage.getItem('beerPongSteamLobby');
+                if (lobbyData) {
+                    const lobby = JSON.parse(lobbyData);
+                    isNetworkHost = lobby.isHost;
+                    console.log(`🌐 Network game active - ${isNetworkHost ? 'HOST' : 'CLIENT'}`);
+                }
+
+                networkAdapter.onMessage(handleNetworkMessage);
+                console.log('✅ Steam network initialized successfully');
+
+            } catch (err) {
+                console.error('❌ Network initialization failed:', err);
+                isNetworkGame = false;
+            }
+        }
+
+        function handleNetworkMessage(message) {
+            console.log('📨 Network message:', message);
+
+            switch (message.type) {
+                case 'shot':
+                    handleNetworkShot(message);
+                    break;
+                case 'ball_result':
+                    handleNetworkBallResult(message);
+                    break;
+                case 'cup_hit':
+                    handleNetworkCupHit(message);
+                    break;
+                case 'game_state':
+                    handleNetworkGameState(message);
+                    break;
+            }
+        }
+
+        function handleNetworkShot(message) {
+            if (message.from === localSteamId) return;
+            const { speed, vla, hla, team } = message.data || message;
+            console.log(`🌐 Remote shot from ${team} team:`, { speed, vla, hla });
+
+            if (team) currentTeam = team;
+            createBall();
+
+            const speed_ms = speed * 0.44704 * 0.5;
+            const vlaRad = vla * Math.PI / 180;
+            const hlaRad = hla * Math.PI / 180;
+            const direction = currentTeam === 'red' ? 1 : -1;
+
+            ballVelocity.set(
+                Math.cos(vlaRad) * Math.cos(hlaRad) * speed_ms * direction,
+                Math.sin(vlaRad) * speed_ms,
+                Math.cos(vlaRad) * Math.sin(hlaRad) * speed_ms
+            );
+
+            ballInFlight = true;
+            bounceCount = 0;
+        }
+
+        function handleNetworkBallResult(message) {
+            if (message.from === localSteamId) return;
+            console.log('🌐 Ball result:', message);
+        }
+
+        function handleNetworkCupHit(message) {
+            if (message.from === localSteamId) return;
+            console.log('🌐 Cup hit:', message);
+        }
+
+        function handleNetworkGameState(message) {
+            if (message.from === localSteamId) return;
+            const { redCups, blueCups, team } = message.data || message;
+            if (redCups !== undefined) redCupsRemaining = redCups;
+            if (blueCups !== undefined) blueCupsRemaining = blueCups;
+            if (team) currentTeam = team;
+            updateHUD();
+        }
+
+        function broadcastShot(shotData) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'shot',
+                data: { ...shotData, team: currentTeam },
+                timestamp: Date.now()
+            });
+        }
+
+        function broadcastCupHit(cupIndex) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'cup_hit',
+                cupIndex: cupIndex,
+                team: currentTeam
+            });
+        }
+
+        function broadcastGameState() {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'game_state',
+                data: {
+                    redCups: redCupsRemaining,
+                    blueCups: blueCupsRemaining,
+                    team: currentTeam
+                }
+            });
+        }
+
+        // Initialize network on load
+        initNetworkMultiplayer();
+
+        // ==================== END STEAM NETWORK ====================
 
         // Animation Loop
         let lastTime = Date.now();

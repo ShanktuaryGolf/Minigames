@@ -321,12 +321,19 @@
     </div>
 
     <script src="./three.min.js"></script>
+    <script src="./steam-network-adapter.js"></script>
     <script type="module">
         // Import Cannon.js physics engine
         import * as CANNON from './cannon-es.js';
 
         // Global variables
         let scene, camera, renderer;
+
+        // Steam Multiplayer
+        let networkAdapter = null;
+        let isNetworkGame = false;
+        let isNetworkHost = false;
+        let localSteamId = null;
         let ball, ballBody;
         let currentView = 'follow'; // 'behind', 'side', 'follow'
         let savedView = 'follow'; // Save the view before switching to pin camera
@@ -2158,6 +2165,97 @@
                 }
             });
         }
+
+        // ==================== STEAM NETWORK MULTIPLAYER ====================
+
+        async function initNetworkMultiplayer() {
+            const gameMode = localStorage.getItem('bowlingGameMode');
+            if (gameMode !== 'steam') {
+                console.log('📍 Local game mode - network disabled');
+                isNetworkGame = false;
+                return;
+            }
+
+            console.log('🌐 Steam multiplayer mode - initializing network...');
+
+            if (typeof getSteamNetwork === 'undefined') {
+                console.error('❌ SteamNetworkAdapter not loaded');
+                return;
+            }
+
+            networkAdapter = getSteamNetwork();
+
+            try {
+                const available = await networkAdapter.initialize();
+                if (!available) {
+                    isNetworkGame = false;
+                    return;
+                }
+
+                isNetworkGame = true;
+                localSteamId = networkAdapter.getLocalPlayer()?.steamId;
+
+                const lobbyData = localStorage.getItem('bowlingSteamLobby');
+                if (lobbyData) {
+                    const lobby = JSON.parse(lobbyData);
+                    isNetworkHost = lobby.isHost;
+                }
+
+                networkAdapter.onMessage(handleNetworkMessage);
+                console.log('✅ Steam network initialized');
+
+            } catch (err) {
+                console.error('❌ Network initialization failed:', err);
+                isNetworkGame = false;
+            }
+        }
+
+        function handleNetworkMessage(message) {
+            if (message.from === localSteamId) return;
+
+            switch (message.type) {
+                case 'shot':
+                    const { speed, hla, sidespin, playerIndex } = message.data || message;
+                    if (playerIndex !== undefined) window.currentPlayerIndex = playerIndex;
+                    rollBall(speed, hla, sidespin);
+                    break;
+                case 'pins_state':
+                    console.log('🌐 Pins state:', message);
+                    break;
+                case 'frame_complete':
+                    console.log('🌐 Frame complete:', message);
+                    break;
+                case 'game_state':
+                    if (message.data) {
+                        if (message.data.currentFrame) currentFrame = message.data.currentFrame;
+                        if (message.data.currentBall) currentBall = message.data.currentBall;
+                    }
+                    break;
+            }
+        }
+
+        function broadcastShot(speed, hla, sidespin) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'shot',
+                data: { speed, hla, sidespin, playerIndex: window.currentPlayerIndex }
+            });
+        }
+
+        function broadcastFrameComplete(pinsKnocked) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'frame_complete',
+                pinsKnocked,
+                frame: currentFrame,
+                ball: currentBall
+            });
+        }
+
+        // Initialize network
+        initNetworkMultiplayer();
+
+        // ==================== END STEAM NETWORK ====================
 
         function updatePlayerDisplay() {
             if (!window.bowlingPlayers || window.bowlingPlayers.length === 0) return;

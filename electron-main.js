@@ -7,6 +7,9 @@ const { Bonjour } = require('bonjour-service'); // For mDNS discovery fallback
 const path = require('path');
 const https = require('https');
 
+// Steam multiplayer integration
+const steamManager = require('./steam-manager');
+
 let mainWindow;
 let gspro_server;
 let launchMonitorSocket = null;
@@ -204,10 +207,16 @@ function createWindow() {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
-            hardwareAcceleration: true,  // Force hardware acceleration
-            webgl: true  // Enable WebGL
+            sandbox: false,  // Disable sandbox to allow GPU/WebGL access
+            backgroundThrottling: false  // Don't throttle when backgrounded
         },
-        icon: path.join(__dirname, 'icon.png')
+        icon: path.join(__dirname, 'icon.png'),
+        show: false  // Don't show until ready
+    });
+
+    // Show window when ready to render
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
     });
 
     // Load the index.html
@@ -238,7 +247,9 @@ function createWindow() {
                     preload: path.join(__dirname, 'preload.js'),
                     contextIsolation: true,
                     nodeIntegration: false,
-                    webSecurity: false  // Allow loading local assets like 3D models
+                    webSecurity: false,  // Allow loading local assets like 3D models
+                    sandbox: false,  // Disable sandbox to allow GPU/WebGL access
+                    backgroundThrottling: false
                 }
             }
         };
@@ -928,6 +939,16 @@ app.whenReady().then(() => {
     // Don't auto-start GSPro server - only start when user selects OpenAPI/Other
     // startGSProServer();
 
+    // Initialize Steam multiplayer (gracefully degrades if Steam not running)
+    steamManager.registerIPCHandlers();
+    const steamReady = steamManager.initializeSteam();
+    if (steamReady) {
+        steamManager.startPolling();
+        console.log('Steam multiplayer ready');
+    } else {
+        console.log('Steam not available - running in offline mode');
+    }
+
     // Check for updates after a short delay (let the app load first)
     setTimeout(() => {
         console.log('Checking for app updates...');
@@ -950,6 +971,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
     stopGSProServer();
+    steamManager.stopPolling();
+    steamManager.shutdown();
 });
 
 // IPC Handlers
@@ -1030,11 +1053,17 @@ ipcMain.handle('open-game-window', (event, { url, title, width, height, playerDa
             contextIsolation: true,
             nodeIntegration: false,
             webSecurity: false,  // Allow loading local assets like 3D models
-            hardwareAcceleration: true,  // Force hardware acceleration
-            webgl: true  // Enable WebGL
+            sandbox: false,  // Disable sandbox to allow GPU/WebGL access
+            backgroundThrottling: false  // Don't throttle when backgrounded
         },
         title: title || 'Game',
-        icon: path.join(__dirname, 'icon.png')
+        icon: path.join(__dirname, 'icon.png'),
+        show: false  // Don't show until ready to prevent flicker
+    });
+
+    // Show window when ready to render
+    gameWindow.once('ready-to-show', () => {
+        gameWindow.show();
     });
 
     // Store player data in localStorage if provided

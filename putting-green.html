@@ -454,6 +454,7 @@
     </div>
 
     <script src="./three.min.js"></script>
+    <script src="./steam-network-adapter.js"></script>
     <script>
         // Global variables
         let scene, camera, renderer;
@@ -462,6 +463,12 @@
         let holes = [];
         let puttCount = 0;
         let holesCompleted = 0;
+
+        // Steam Multiplayer
+        let networkAdapter = null;
+        let isNetworkGame = false;
+        let isNetworkHost = false;
+        let localSteamId = null;
         let topoLines = null; // Topographical grid lines
         let showTopoLines = false;
 
@@ -520,6 +527,7 @@
         const ballRadius = 0.021; // Golf ball radius in meters (42.67mm diameter)
         const gravity = 9.81;
         let friction = 0.15; // Rolling friction coefficient (will be calculated from Stimp)
+        let currentPuttDeceleration = 0; // Per-putt deceleration from GSPro model
         const restitution = 0.5; // Bounciness
 
         // Ball state
@@ -1080,10 +1088,10 @@
         function updatePhysics(deltaTime) {
             if (!isMoving) return;
 
-            // Apply friction
+            // Apply GSPro-matched per-putt deceleration
             const speed = ballVelocity.length();
             if (speed > 0.001) {
-                const frictionForce = friction * gravity * deltaTime;
+                const frictionForce = currentPuttDeceleration * deltaTime;
                 const frictionDecel = Math.min(frictionForce / speed, 1);
                 ballVelocity.multiplyScalar(1 - frictionDecel);
 
@@ -1545,6 +1553,60 @@
             friction = rhoG * (5/7);
 
             console.log(`Stimp ${currentStimp} → ρ_g: ${rhoG.toFixed(4)}, Decel: ${deceleration.toFixed(3)} m/s², Friction: ${friction.toFixed(4)}`);
+        }
+
+        // GSPro putting distance coefficients: distance(ft) = a*v² + b*v + c (v in mph)
+        // Derived from GSPro putting chart — matches every row to <0.1 ft
+        const GSPRO_PUTT_COEFFS = {
+            7:  { a: 0.1296, b: 2.200, c: -4.366 },
+            8:  { a: 0.1208, b: 2.715, c: -5.132 },
+            9:  { a: 0.112,  b: 3.23,  c: -5.898 },
+            10: { a: 0.111,  b: 3.500, c: -6.0   },
+            11: { a: 0.1011, b: 3.957, c: -6.481 },
+            12: { a: 0.0962, b: 4.263, c: -6.755 },
+            13: { a: 0.0979, b: 4.613, c: -7.22  },
+            14: { a: 0.0996, b: 4.963, c: -7.685 }
+        };
+
+        function getGSProPuttDistance(speedMPH, stimp) {
+            // Interpolate coefficients for the given stimp
+            const stimpClamped = Math.max(7, Math.min(14, stimp));
+            const stimpLow = Math.floor(stimpClamped);
+            const stimpHigh = Math.ceil(stimpClamped);
+
+            let a, b, c;
+            if (stimpLow === stimpHigh) {
+                const coeff = GSPRO_PUTT_COEFFS[stimpLow];
+                a = coeff.a; b = coeff.b; c = coeff.c;
+            } else {
+                const frac = stimpClamped - stimpLow;
+                const lo = GSPRO_PUTT_COEFFS[stimpLow];
+                const hi = GSPRO_PUTT_COEFFS[stimpHigh];
+                a = lo.a + frac * (hi.a - lo.a);
+                b = lo.b + frac * (hi.b - lo.b);
+                c = lo.c + frac * (hi.c - lo.c);
+            }
+
+            // Low speed fallback: linear from 0 to chart value at 2 mph
+            if (speedMPH < 2) {
+                const distAt2 = a * 4 + b * 2 + c;
+                const safeDist = Math.max(distAt2, 0.1);
+                return Math.max(0.1, (safeDist / 2) * speedMPH);
+            }
+
+            // Quadratic formula: d = a*v² + b*v + c
+            const dist = a * speedMPH * speedMPH + b * speedMPH + c;
+            return Math.max(0.1, dist);
+        }
+
+        function computePuttDeceleration(speedMPH, stimp) {
+            const distFt = getGSProPuttDistance(speedMPH, stimp);
+            const distM = distFt * 0.3048;
+            const speedMS = speedMPH * 0.44704;
+            // v² = 2*a*d → a = v² / (2*d)
+            const decel = (speedMS * speedMS) / (2 * distM);
+            console.log(`GSPro putt: speed=${speedMPH.toFixed(1)} mph, stimp=${stimp}, target=${distFt.toFixed(1)} ft, decel=${decel.toFixed(3)} m/s²`);
+            return decel;
         }
 
         // Listen for Stimp changes from Electron menu
@@ -2475,6 +2537,9 @@
             // Convert mph to m/s
             const speedMS = speed * 0.44704;
 
+            // Compute per-putt deceleration from GSPro model
+            currentPuttDeceleration = computePuttDeceleration(speed, currentStimp);
+
             // Set ball velocity with horizontal launch angle
             // HLA positive = right, negative = left
             const hlaRad = hla * Math.PI / 180;
@@ -2601,6 +2666,82 @@
                 }
             });
         }
+
+        // ==================== STEAM NETWORK MULTIPLAYER ====================
+
+        async function initNetworkMultiplayer() {
+            const gameMode = localStorage.getItem('puttingGameMode');
+            if (gameMode !== 'steam') {
+                console.log('📍 Local game mode - network disabled');
+                isNetworkGame = false;
+                return;
+            }
+
+            if (typeof getSteamNetwork === 'undefined') {
+                console.error('❌ SteamNetworkAdapter not loaded');
+                return;
+            }
+
+            networkAdapter = getSteamNetwork();
+
+            try {
+                const available = await networkAdapter.initialize();
+                if (!available) {
+                    isNetworkGame = false;
+                    return;
+                }
+
+                isNetworkGame = true;
+                localSteamId = networkAdapter.getLocalPlayer()?.steamId;
+
+                const lobbyData = localStorage.getItem('puttingSteamLobby');
+                if (lobbyData) {
+                    const lobby = JSON.parse(lobbyData);
+                    isNetworkHost = lobby.isHost;
+                }
+
+                networkAdapter.onMessage(handleNetworkMessage);
+                console.log('✅ Steam network initialized');
+
+            } catch (err) {
+                console.error('❌ Network initialization failed:', err);
+                isNetworkGame = false;
+            }
+        }
+
+        function handleNetworkMessage(message) {
+            if (message.from === localSteamId) return;
+
+            switch (message.type) {
+                case 'shot':
+                    const { speed, backspin, sidespin, hla, playerIndex } = message.data || message;
+                    if (playerIndex !== undefined) window.currentPlayerIndex = playerIndex;
+                    hitBall(speed, backspin, sidespin, hla);
+                    break;
+                case 'ball_position':
+                    console.log('🌐 Ball position:', message);
+                    break;
+                case 'game_state':
+                    if (message.data) {
+                        if (message.data.puttCount !== undefined) puttCount = message.data.puttCount;
+                        if (message.data.holesCompleted !== undefined) holesCompleted = message.data.holesCompleted;
+                    }
+                    break;
+            }
+        }
+
+        function broadcastShot(speed, backspin, sidespin, hla) {
+            if (!isNetworkGame || !networkAdapter) return;
+            networkAdapter.broadcast({
+                type: 'shot',
+                data: { speed, backspin, sidespin, hla, playerIndex: window.currentPlayerIndex }
+            });
+        }
+
+        // Initialize network
+        initNetworkMultiplayer();
+
+        // ==================== END STEAM NETWORK ====================
 
         function updatePlayerDisplay() {
             if (!window.puttingPlayers || window.puttingPlayers.length === 0) return;
