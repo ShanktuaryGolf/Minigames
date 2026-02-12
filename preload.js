@@ -108,6 +108,9 @@ contextBridge.exposeInMainWorld('steamAPI', {
     onLobbyMembers: (callback) => {
         ipcRenderer.on('steam-lobby-members', (event, data) => callback(data));
     },
+    onLobbyInvite: (callback) => {
+        ipcRenderer.on('steam-lobby-invite', (event, data) => callback(data));
+    },
     onDebugLog: (callback) => {
         ipcRenderer.on('steam-debug-log', (event, data) => callback(data));
     }

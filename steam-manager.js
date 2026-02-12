@@ -16,8 +16,8 @@ const { ipcMain, BrowserWindow } = require('electron');
 // Use 480 (Spacewar) for testing during development
 const STEAM_APP_ID = process.env.STEAM_APP_ID || 480;
 
-let steamworks = null;
-let steamClient = null;  // The client object returned from steamworks.init()
+let steamworksModule = null;  // The steamworks.js module
+let steam = null;             // The API object returned from init()
 let steamInitialized = false;
 let currentLobby = null;      // The Lobby object from steamworks.js
 let currentLobbyId = null;    // The lobby ID as string (for IPC)
@@ -48,31 +48,46 @@ function initializeSteam() {
     try {
         // Try to load steamworks.js (optional dependency)
         try {
-            steamworks = require('steamworks.js');
+            steamworksModule = require('steamworks.js');
         } catch (loadErr) {
             console.log('steamworks.js not installed - Steam features disabled');
             console.log('To enable Steam multiplayer, run: npm install steamworks.js');
-            steamworks = null;
+            steamworksModule = null;
+            steam = null;
             steamInitialized = false;
             return false;
         }
 
-        // Initialize with App ID
-        steamClient = steamworks.init(STEAM_APP_ID);
+        // Note: electronEnableSteamOverlay() adds 'in-process-gpu' switch which conflicts
+        // with SwiftShader on Linux. Steam overlay may not work with software rendering.
+        // Skip for now - overlay can still be triggered via lobby.openInviteDialog()
+        if (process.platform !== 'linux') {
+            try {
+                steamworksModule.electronEnableSteamOverlay();
+                console.log('Steam overlay enabled for Electron');
+            } catch (overlayErr) {
+                console.log('Could not enable Steam overlay:', overlayErr.message);
+            }
+        } else {
+            console.log('Skipping Steam overlay on Linux (conflicts with SwiftShader)');
+        }
 
-        if (!steamClient) {
-            console.error('Steam client initialization failed - is Steam running?');
+        // Initialize with App ID - init() returns the API object
+        // Also automatically starts runCallbacks interval at 30fps
+        steam = steamworksModule.init(STEAM_APP_ID);
+
+        // Verify initialization by checking if we can get player info
+        const playerName = steam.localplayer.getName();
+        const steamIdObj = steam.localplayer.getSteamId();
+        const steamId = steamIdObj.steamId64.toString();
+
+        if (!playerName) {
+            console.error('Steam initialization failed - could not get player name');
             return false;
         }
 
         steamInitialized = true;
         console.log(`Steam initialized successfully with App ID: ${STEAM_APP_ID}`);
-
-        // Get player info using the client object
-        const playerName = steamClient.localplayer.getName();
-        const steamIdObj = steamClient.localplayer.getSteamId();
-        // steamId might be an object with steamId64 property or need conversion
-        const steamId = steamIdObj.steamId64 || steamIdObj.toString() || JSON.stringify(steamIdObj);
         console.log(`Logged in as: ${playerName} (${steamId})`);
 
         // Set up callbacks
@@ -82,7 +97,8 @@ function initializeSteam() {
     } catch (err) {
         console.log('Steam not available:', err.message);
         console.log('Game will run in offline/local mode');
-        steamworks = null;
+        steamworksModule = null;
+        steam = null;
         steamInitialized = false;
         return false;
     }
@@ -90,101 +106,64 @@ function initializeSteam() {
 
 /**
  * Set up Steam event callbacks
- * Note: steamworks.js uses callback registration, not event emitters
  */
 function setupSteamCallbacks() {
-    if (!steamClient) return;
+    if (!steam) return;
 
     try {
-        // Register lobby callbacks if the API supports it
-        if (steamClient.callback && typeof steamClient.callback.register === 'function') {
-            // LobbyCreated callback
-            steamClient.callback.register(513, (result) => {
-                console.log('Lobby created callback:', result);
-                if (result.m_eResult === 1) { // k_EResultOK
-                    currentLobby = result.m_ulSteamIDLobby;
-                    isHost = true;
-                    broadcastToRenderers('steam-lobby-created', {
-                        lobbyId: currentLobby,
-                        isHost: true
-                    });
-                }
-            });
+        const { SteamCallback } = steam.callback;
 
-            // LobbyEnter callback
-            steamClient.callback.register(504, (result) => {
-                console.log('Lobby entered callback:', result);
-                currentLobby = result.m_ulSteamIDLobby;
-                updateLobbyMembers();
-                broadcastToRenderers('steam-lobby-joined', {
-                    lobbyId: currentLobby,
-                    isHost: isHost
-                });
-            });
+        // P2P session request callback - auto-accept sessions from lobby members
+        steam.callback.register(SteamCallback.P2PSessionRequest, (result) => {
+            const remoteSteamId = result.remote;
+            console.log('P2P session request from:', remoteSteamId.toString());
+            // Auto-accept P2P sessions
+            steam.networking.acceptP2PSession(remoteSteamId);
+            debugLog('Accepted P2P session from:', remoteSteamId.toString());
+        });
 
-            // LobbyChatUpdate callback (member join/leave)
-            steamClient.callback.register(506, (result) => {
-                const changeFlags = result.m_rgfChatMemberStateChange;
-                const memberId = result.m_ulSteamIDUserChanged;
+        // P2P session connect failure
+        steam.callback.register(SteamCallback.P2PSessionConnectFail, (result) => {
+            console.log('P2P session connect failed:', result.remote.toString(), 'error:', result.error);
+            debugLog('P2P connect failed for:', result.remote.toString());
+        });
 
-                if (changeFlags & 0x0001) { // Entered
-                    console.log('Member joined:', memberId);
-                    updateLobbyMembers();
-                    broadcastToRenderers('steam-member-joined', { steamId: memberId });
-                }
-                if (changeFlags & 0x0002) { // Left
-                    console.log('Member left:', memberId);
-                    updateLobbyMembers();
-                    broadcastToRenderers('steam-member-left', { steamId: memberId });
-                }
-            });
+        // Lobby data update callback
+        steam.callback.register(SteamCallback.LobbyDataUpdate, (result) => {
+            debugLog('Lobby data updated - lobby:', result.lobby.toString(), 'member:', result.member.toString());
+            // Refresh member list when lobby data changes (might include name updates)
+            if (currentLobby) {
+                pollLobbyMembers();
+            }
+        });
 
-            // P2P session request callback
-            steamClient.callback.register(1202, (result) => {
-                const steamId = result.m_steamIDRemote;
-                console.log('P2P session request from:', steamId);
-                // Auto-accept P2P sessions
-                if (steamClient.networking && steamClient.networking.acceptP2PSessionWithUser) {
-                    steamClient.networking.acceptP2PSessionWithUser(steamId);
-                }
-            });
+        // Lobby chat update (member join/leave)
+        steam.callback.register(SteamCallback.LobbyChatUpdate, (result) => {
+            const memberId = result.user_changed;
+            const change = result.member_state_change;
 
-            console.log('Steam callbacks registered successfully');
-        } else {
-            console.log('Steam callback registration not available - using polling mode');
-        }
+            // 0 = Entered, 1 = Left, 2 = Disconnected, 3 = Kicked, 4 = Banned
+            if (change === 0) {
+                console.log('Member joined:', memberId.toString());
+                broadcastToRenderers('steam-member-joined', { steamId: memberId.toString() });
+            } else {
+                console.log('Member left:', memberId.toString(), 'reason:', change);
+                broadcastToRenderers('steam-member-left', { steamId: memberId.toString() });
+            }
+            pollLobbyMembers();
+        });
+
+        // Game lobby join requested (when player clicks invite)
+        steam.callback.register(SteamCallback.GameLobbyJoinRequested, (result) => {
+            const lobbyId = result.lobby_steam_id;
+            console.log('Game lobby join requested:', lobbyId.toString());
+            broadcastToRenderers('steam-lobby-invite', { lobbyId: lobbyId.toString() });
+        });
+
+        console.log('Steam callbacks registered successfully');
     } catch (err) {
         console.log('Could not register Steam callbacks:', err.message);
         console.log('Steam multiplayer will use polling mode');
-    }
-}
-
-/**
- * Update lobby member list
- */
-function updateLobbyMembers() {
-    if (!steamClient || !currentLobby) return;
-
-    try {
-        if (typeof steamClient.matchmaking.getLobbyMembers === 'function') {
-            const lobbyIdBigInt = typeof currentLobby === 'bigint' ? currentLobby : BigInt(currentLobby);
-            lobbyMembers = steamClient.matchmaking.getLobbyMembers(lobbyIdBigInt);
-        }
-        console.log('Lobby members:', lobbyMembers);
-
-        broadcastToRenderers('steam-lobby-members', {
-            members: lobbyMembers.map(id => {
-                let name = 'Player';
-                try {
-                    if (steamClient.friends && typeof steamClient.friends.getFriendPersonaName === 'function') {
-                        name = steamClient.friends.getFriendPersonaName(id);
-                    }
-                } catch (e) { /* ignore */ }
-                return { steamId: id, name: name };
-            })
-        });
-    } catch (err) {
-        console.log('Could not update lobby members:', err.message);
     }
 }
 
@@ -225,40 +204,40 @@ function debugLog(...args) {
  * Create a Steam lobby
  */
 async function createLobby(lobbyType = 'friends_only', maxMembers = 4) {
-    if (!steamClient || !steamInitialized) {
+    if (!steam || !steamInitialized) {
         return { success: false, error: 'Steam not available' };
     }
 
     try {
+        const { LobbyType } = steam.matchmaking;
         const typeMap = {
-            'private': 0,
-            'friends_only': 1,
-            'public': 2,
-            'invisible': 3
+            'private': LobbyType.Private,
+            'friends_only': LobbyType.FriendsOnly,
+            'public': LobbyType.Public,
+            'invisible': LobbyType.Invisible
         };
 
-        const type = typeMap[lobbyType] || 1;
+        const type = typeMap[lobbyType] !== undefined ? typeMap[lobbyType] : LobbyType.FriendsOnly;
 
-        // createLobby returns a Lobby object, not just an ID
-        const lobby = await steamClient.matchmaking.createLobby(type, maxMembers);
+        debugLog('Creating lobby with type:', lobbyType, '(', type, ') maxMembers:', maxMembers);
 
-        // Debug: log what we get back from createLobby
-        debugLog('createLobby result - lobby object:', lobby);
-        debugLog('createLobby - lobby.id:', lobby?.id);
-        debugLog('createLobby - lobby methods:', lobby ? Object.keys(Object.getPrototypeOf(lobby)) : 'null');
+        // createLobby returns a Lobby object
+        const lobby = await steam.matchmaking.createLobby(type, maxMembers);
 
         // Store the Lobby object for later use
         currentLobby = lobby;
-        currentLobbyId = lobby.id ? lobby.id.toString() : null;
+        currentLobbyId = lobby.id.toString();
         isHost = true;
 
         debugLog('Lobby created successfully, ID:', currentLobbyId);
 
         // Store our name in lobby data so others can see it
-        const myName = steamClient.localplayer.getName();
-        const mySteamId = steamClient.localplayer.getSteamId();
+        const myName = steam.localplayer.getName();
+        const mySteamId = steam.localplayer.getSteamId();
         const myIdStr = mySteamId.steamId64.toString();
+
         currentLobby.setData('player_' + myIdStr, myName);
+        currentLobby.setData('game', 'shanktuary-minigames');
         debugLog('Set lobby data for self:', myIdStr, '=', myName);
 
         // Immediately poll for initial members (should include self)
@@ -284,7 +263,7 @@ async function createLobby(lobbyType = 'friends_only', maxMembers = 4) {
 async function joinLobby(lobbyId) {
     debugLog('joinLobby called with:', lobbyId);
 
-    if (!steamClient || !steamInitialized) {
+    if (!steam || !steamInitialized) {
         return { success: false, error: 'Steam not available' };
     }
 
@@ -294,23 +273,20 @@ async function joinLobby(lobbyId) {
         debugLog('Joining lobby with BigInt:', lobbyIdBigInt.toString());
 
         // joinLobby returns a Lobby object
-        const lobby = await steamClient.matchmaking.joinLobby(lobbyIdBigInt);
-
-        debugLog('joinLobby result - lobby object:', lobby);
-        debugLog('joinLobby - lobby.id:', lobby?.id);
-        debugLog('joinLobby - lobby methods:', lobby ? Object.keys(Object.getPrototypeOf(lobby)) : 'null');
+        const lobby = await steam.matchmaking.joinLobby(lobbyIdBigInt);
 
         // Store the Lobby object
         currentLobby = lobby;
-        currentLobbyId = lobby?.id ? lobby.id.toString() : lobbyIdBigInt.toString();
+        currentLobbyId = lobby.id.toString();
         isHost = false;
 
         debugLog('Joined lobby successfully, ID:', currentLobbyId);
 
         // Store our name in lobby data so others can see it
-        const myName = steamClient.localplayer.getName();
-        const mySteamId = steamClient.localplayer.getSteamId();
+        const myName = steam.localplayer.getName();
+        const mySteamId = steam.localplayer.getSteamId();
         const myIdStr = mySteamId.steamId64.toString();
+
         currentLobby.setData('player_' + myIdStr, myName);
         debugLog('Set lobby data for self:', myIdStr, '=', myName);
 
@@ -335,20 +311,18 @@ async function joinLobby(lobbyId) {
  * Leave current lobby
  */
 function leaveLobby() {
-    if (!steamClient || !currentLobby) {
+    if (!steam || !currentLobby) {
         return { success: false, error: 'Not in a lobby' };
     }
 
     try {
-        // currentLobby is a Lobby object - use its leave() method
-        if (typeof currentLobby.leave === 'function') {
-            currentLobby.leave();
-        }
+        currentLobby.leave();
         currentLobby = null;
         currentLobbyId = null;
         lobbyMembers = [];
         isHost = false;
         lastMemberCount = 0;
+        pendingNameRetries = {};
 
         return { success: true };
     } catch (err) {
@@ -361,15 +335,19 @@ function leaveLobby() {
  * Send P2P message to a specific peer
  */
 function sendP2PMessage(steamId, data, reliable = true) {
-    if (!steamClient || !steamInitialized) {
+    if (!steam || !steamInitialized) {
         return false;
     }
 
     try {
         const buffer = Buffer.from(JSON.stringify(data));
-        const sendType = reliable ? 2 : 0; // k_EP2PSendReliable : k_EP2PSendUnreliable
+        // SendType: 0=Unreliable, 1=UnreliableNoDelay, 2=Reliable, 3=ReliableWithBuffering
+        const sendType = reliable ? 2 : 0;
 
-        return steamClient.networking.sendP2PPacket(steamId, buffer, sendType);
+        // Convert steamId to BigInt if needed
+        const steamIdBigInt = typeof steamId === 'bigint' ? steamId : BigInt(steamId);
+
+        return steam.networking.sendP2PPacket(steamIdBigInt, sendType, buffer);
     } catch (err) {
         console.error('Failed to send P2P message:', err);
         return false;
@@ -384,12 +362,13 @@ function broadcastP2P(data, reliable = true) {
         return false;
     }
 
-    const mySteamId = steamClient.localplayer.getSteamId();
+    const mySteamId = steam.localplayer.getSteamId().steamId64;
     let success = true;
 
-    lobbyMembers.forEach(memberId => {
-        if (memberId !== mySteamId) {
-            if (!sendP2PMessage(memberId, data, reliable)) {
+    lobbyMembers.forEach(member => {
+        const memberSteamId = member.steamId64;
+        if (memberSteamId !== mySteamId) {
+            if (!sendP2PMessage(memberSteamId, data, reliable)) {
                 success = false;
             }
         }
@@ -403,18 +382,29 @@ function broadcastP2P(data, reliable = true) {
  * Should be called periodically from main process
  */
 function pollP2PMessages() {
-    if (!steamClient || !steamInitialized) return;
+    if (!steam || !steamInitialized) return;
 
     try {
-        while (steamClient.networking.isP2PPacketAvailable()) {
-            const packet = steamClient.networking.readP2PPacket();
+        // Note: steamworks.js init() already sets up runCallbacks at 30fps automatically
+
+        // isP2PPacketAvailable returns the size of the packet, or 0 if none
+        let packetSize = steam.networking.isP2PPacketAvailable();
+
+        while (packetSize > 0) {
+            const packet = steam.networking.readP2PPacket(packetSize);
             if (packet) {
-                const data = JSON.parse(packet.data.toString());
-                broadcastToRenderers('steam-p2p-message', {
-                    from: packet.steamId,
-                    data: data
-                });
+                try {
+                    const data = JSON.parse(packet.data.toString());
+                    broadcastToRenderers('steam-p2p-message', {
+                        from: packet.steamId.steamId64.toString(),
+                        data: data
+                    });
+                } catch (parseErr) {
+                    console.error('Failed to parse P2P packet:', parseErr);
+                }
             }
+            // Check for more packets
+            packetSize = steam.networking.isP2PPacketAvailable();
         }
     } catch (err) {
         // Ignore read errors
@@ -427,29 +417,33 @@ function pollP2PMessages() {
 function inviteFriend() {
     debugLog('inviteFriend called, currentLobbyId:', currentLobbyId);
 
-    if (!steamClient || !currentLobby) {
-        debugLog('Not in a lobby - steamClient:', !!steamClient, 'currentLobby:', !!currentLobby);
+    if (!steam || !currentLobby) {
+        debugLog('Not in a lobby - steamworks:', !!steamworks, 'currentLobby:', !!currentLobby);
         return { success: false, error: 'Not in a lobby' };
     }
 
     try {
-        // currentLobby is a Lobby object - use its openInviteDialog() method
-        if (typeof currentLobby.openInviteDialog === 'function') {
-            debugLog('Calling lobby.openInviteDialog()');
-            currentLobby.openInviteDialog();
-            return { success: true };
-        }
-
-        // Fallback: return lobby ID so renderer can show it for manual sharing
-        debugLog('openInviteDialog not available, returning lobby ID for manual invite');
-        return {
-            success: true,
-            lobbyId: currentLobbyId,
-            message: 'Share this lobby ID with friends: ' + currentLobbyId
-        };
+        // Use the Lobby object's openInviteDialog method
+        debugLog('Calling lobby.openInviteDialog()');
+        currentLobby.openInviteDialog();
+        return { success: true };
     } catch (err) {
         console.error('Failed to open invite dialog:', err);
-        return { success: false, error: err.message };
+
+        // Fallback: try overlay.activateInviteDialog
+        try {
+            debugLog('Trying overlay.activateInviteDialog fallback');
+            steam.overlay.activateInviteDialog(currentLobby.id);
+            return { success: true };
+        } catch (overlayErr) {
+            console.error('Overlay fallback also failed:', overlayErr);
+            return {
+                success: false,
+                error: err.message,
+                lobbyId: currentLobbyId,
+                message: 'Share this lobby ID with friends: ' + currentLobbyId
+            };
+        }
     }
 }
 
@@ -457,17 +451,16 @@ function inviteFriend() {
  * Get local player info
  */
 function getLocalPlayer() {
-    if (!steamClient || !steamInitialized) {
+    if (!steam || !steamInitialized) {
         return null;
     }
 
-    const steamIdObj = steamClient.localplayer.getSteamId();
-    const steamId = steamIdObj.steamId64 || steamIdObj.toString() || steamIdObj;
+    const steamIdObj = steam.localplayer.getSteamId();
 
     return {
-        steamId: steamId,
-        name: steamClient.localplayer.getName(),
-        level: steamClient.localplayer.getLevel()
+        steamId: steamIdObj.steamId64.toString(),
+        name: steam.localplayer.getName(),
+        level: steam.localplayer.getLevel()
     };
 }
 
@@ -475,15 +468,15 @@ function getLocalPlayer() {
  * Shutdown Steam
  */
 function shutdown() {
-    if (steamClient && steamInitialized) {
+    if (steam && steamInitialized) {
         try {
             if (currentLobby) {
                 leaveLobby();
             }
-            // steamworks.js doesn't have a shutdown method - cleanup is automatic
-            // Just clear our references
+            // steamworks.js cleanup is automatic
             steamInitialized = false;
-            steamClient = null;
+            steam = null;
+            steamworksModule = null;
             console.log('Steam shutdown complete');
         } catch (err) {
             console.log('Error during Steam shutdown:', err.message);
@@ -522,27 +515,7 @@ function registerIPCHandlers() {
         debugLog('IPC: getLobbyMembers called, currentLobbyId:', currentLobbyId, 'memberCount:', lobbyMembers.length);
         if (!currentLobby) return [];
 
-        // lobbyMembers is populated by pollLobbyMembers with PlayerSteamId objects
-        return lobbyMembers.map(member => {
-            let name = 'Unknown';
-            let steamIdStr;
-
-            // Handle PlayerSteamId object format from steamworks.js
-            if (member && member.steamId64) {
-                steamIdStr = member.steamId64.toString();
-            } else if (typeof member === 'bigint') {
-                steamIdStr = member.toString();
-            } else {
-                steamIdStr = String(member);
-            }
-
-            try {
-                if (steamClient && steamClient.friends && typeof steamClient.friends.getFriendPersonaName === 'function') {
-                    name = steamClient.friends.getFriendPersonaName(member);
-                }
-            } catch (e) { /* ignore */ }
-            return { steamId: steamIdStr, name: name };
-        });
+        return buildMemberList();
     });
 
     ipcMain.handle('steam-is-host', () => {
@@ -565,15 +538,11 @@ function registerIPCHandlers() {
 
     // Set lobby game mode data
     ipcMain.handle('steam-set-lobby-data', (event, key, value) => {
-        if (!steamClient || !currentLobby) {
+        if (!steam || !currentLobby) {
             return { success: false, error: 'Not in a lobby' };
         }
-        if (typeof steamClient.matchmaking.setLobbyData !== 'function') {
-            // API not available, silently succeed (lobby data is optional metadata)
-            return { success: true };
-        }
         try {
-            steamClient.matchmaking.setLobbyData(currentLobby, key, value);
+            currentLobby.setData(key, value);
             return { success: true };
         } catch (err) {
             return { success: false, error: err.message };
@@ -595,11 +564,13 @@ let pendingNameRetries = {}; // Track members whose names we're still waiting fo
 function getMemberName(steamIdStr) {
     let name = 'Player';
     try {
-        const lobbyName = currentLobby.getData('player_' + steamIdStr);
-        if (lobbyName && lobbyName !== '') {
-            name = lobbyName;
-            // Clear retry tracking for this member
-            delete pendingNameRetries[steamIdStr];
+        if (currentLobby) {
+            const lobbyName = currentLobby.getData('player_' + steamIdStr);
+            if (lobbyName && lobbyName !== '') {
+                name = lobbyName;
+                // Clear retry tracking for this member
+                delete pendingNameRetries[steamIdStr];
+            }
         }
     } catch (e) {
         debugLog('Could not get lobby data for', steamIdStr, e.message);
@@ -612,19 +583,8 @@ function getMemberName(steamIdStr) {
  */
 function buildMemberList() {
     return lobbyMembers.map(member => {
-        let steamIdStr;
-
-        // Handle PlayerSteamId object format from steamworks.js
-        if (member && member.steamId64) {
-            steamIdStr = member.steamId64.toString();
-        } else if (typeof member === 'bigint') {
-            steamIdStr = member.toString();
-        } else if (member && typeof member.toString === 'function') {
-            steamIdStr = member.toString();
-        } else {
-            steamIdStr = String(member);
-        }
-
+        // member is a PlayerSteamId object with steamId64
+        const steamIdStr = member.steamId64.toString();
         const name = getMemberName(steamIdStr);
 
         // Track members still showing as "Player" for retry
@@ -640,72 +600,65 @@ function buildMemberList() {
 }
 
 function pollLobbyMembers() {
-    if (!steamClient || !currentLobby) return;
+    if (!steam || !currentLobby) return;
 
     try {
-        // currentLobby is now a Lobby object - use its getMembers() method
-        if (typeof currentLobby.getMembers === 'function') {
-            const members = currentLobby.getMembers();
+        const members = currentLobby.getMembers();
 
-            // Debug: log raw result every 5 seconds
-            if (!pollLobbyMembers.lastLog || Date.now() - pollLobbyMembers.lastLog > 5000) {
-                debugLog('pollLobbyMembers - lobbyId:', currentLobbyId, 'memberCount:', members?.length);
-                if (members && members.length > 0) {
-                    const firstMember = members[0];
-                    debugLog('First member - type:', typeof firstMember,
-                        'steamId64:', firstMember?.steamId64?.toString(),
-                        'value:', typeof firstMember === 'bigint' ? firstMember.toString() : firstMember);
-                }
-                pollLobbyMembers.lastLog = Date.now();
+        // Debug: log raw result every 5 seconds
+        if (!pollLobbyMembers.lastLog || Date.now() - pollLobbyMembers.lastLog > 5000) {
+            debugLog('pollLobbyMembers - lobbyId:', currentLobbyId, 'memberCount:', members?.length);
+            if (members && members.length > 0) {
+                const firstMember = members[0];
+                debugLog('First member - steamId64:', firstMember?.steamId64?.toString());
             }
+            pollLobbyMembers.lastLog = Date.now();
+        }
 
-            // Check if member count changed or if this is the first poll with members
-            const currentCount = members?.length || 0;
-            const membersChanged = currentCount !== lastMemberCount || (currentCount > 0 && lobbyMembers.length === 0);
+        // Check if member count changed or if this is the first poll with members
+        const currentCount = members?.length || 0;
+        const membersChanged = currentCount !== lastMemberCount || (currentCount > 0 && lobbyMembers.length === 0);
 
-            if (membersChanged) {
-                debugLog('Lobby members changed:', lastMemberCount, '->', currentCount);
-                lastMemberCount = currentCount;
-                lobbyMembers = members || [];
+        if (membersChanged) {
+            debugLog('Lobby members changed:', lastMemberCount, '->', currentCount);
+            lastMemberCount = currentCount;
+            lobbyMembers = members || [];
 
-                // Reset pending retries for new member detection
-                pendingNameRetries = {};
-            }
+            // Reset pending retries for new member detection
+            pendingNameRetries = {};
+        }
 
-            // Build member list and broadcast
-            const memberList = buildMemberList();
+        // Build member list and broadcast
+        const memberList = buildMemberList();
 
-            // Check if we have any members still showing as "Player"
-            const hasPendingNames = Object.keys(pendingNameRetries).length > 0;
+        // Check if we have any members still showing as "Player"
+        const hasPendingNames = Object.keys(pendingNameRetries).length > 0;
 
-            // Broadcast if members changed or if we're still waiting for names (retry for first 10 seconds)
-            const shouldBroadcast = membersChanged || hasPendingNames;
+        // Broadcast if members changed or if we're still waiting for names (retry for first 10 seconds)
+        const shouldBroadcast = membersChanged || hasPendingNames;
 
-            if (shouldBroadcast) {
-                // Log retry attempts for debugging
-                if (hasPendingNames && !membersChanged) {
-                    const pendingIds = Object.keys(pendingNameRetries);
-                    const oldestPending = Math.min(...Object.values(pendingNameRetries).map(r => r.firstSeen));
-                    const waitingTime = Date.now() - oldestPending;
+        if (shouldBroadcast) {
+            // Log retry attempts for debugging
+            if (hasPendingNames && !membersChanged) {
+                const pendingIds = Object.keys(pendingNameRetries);
+                const oldestPending = Math.min(...Object.values(pendingNameRetries).map(r => r.firstSeen));
+                const waitingTime = Date.now() - oldestPending;
 
-                    // Only log every 2 seconds to avoid spam
-                    if (!pollLobbyMembers.lastRetryLog || Date.now() - pollLobbyMembers.lastRetryLog > 2000) {
-                        debugLog('Retrying names for:', pendingIds.length, 'members, waiting', Math.round(waitingTime/1000), 's');
-                        pollLobbyMembers.lastRetryLog = Date.now();
-                    }
-
-                    // Stop retrying after 15 seconds - names may genuinely not be set
-                    if (waitingTime > 15000) {
-                        debugLog('Giving up on name retries after 15s');
-                        pendingNameRetries = {};
-                    }
+                // Only log every 2 seconds to avoid spam
+                if (!pollLobbyMembers.lastRetryLog || Date.now() - pollLobbyMembers.lastRetryLog > 2000) {
+                    debugLog('Retrying names for:', pendingIds.length, 'members, waiting', Math.round(waitingTime/1000), 's');
+                    pollLobbyMembers.lastRetryLog = Date.now();
                 }
 
-                debugLog('Broadcasting member list:', memberList);
-                broadcastToRenderers('steam-lobby-members', { members: memberList });
+                // Stop retrying after 15 seconds - names may genuinely not be set
+                if (waitingTime > 15000) {
+                    debugLog('Giving up on name retries after 15s');
+                    pendingNameRetries = {};
+                }
             }
-        } else {
-            debugLog('currentLobby.getMembers is not a function. currentLobby type:', typeof currentLobby);
+
+            debugLog('Broadcasting member list:', memberList);
+            broadcastToRenderers('steam-lobby-members', { members: memberList });
         }
     } catch (err) {
         debugLog('pollLobbyMembers error:', err.message);

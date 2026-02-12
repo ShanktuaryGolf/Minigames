@@ -830,11 +830,11 @@
         </div>
     </div>
 
-    <!-- Steam Lobby Overlay - HIDDEN: Multiplayer not ready -->
-    <div class="steam-lobby-overlay" id="steamLobbyOverlay" onclick="toggleSteamLobbyPanel()" style="display: none !important;"></div>
+    <!-- Steam Lobby Overlay -->
+    <div class="steam-lobby-overlay" id="steamLobbyOverlay" onclick="toggleSteamLobbyPanel()"></div>
 
-    <!-- Steam Lobby Panel - HIDDEN: Multiplayer not ready -->
-    <div class="steam-lobby-panel" id="steamLobbyPanel" style="display: none !important;">
+    <!-- Steam Lobby Panel -->
+    <div class="steam-lobby-panel" id="steamLobbyPanel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0;">🎮 Steam Multiplayer</h3>
             <button onclick="toggleSteamLobbyPanel()" style="background: none; border: none; color: #888; font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
@@ -1076,8 +1076,8 @@
                 <span class="btn-icon">⛳</span>
                 <span class="btn-label">Golf Courses</span>
             </button>
-            <!-- HIDDEN: Multiplayer feature not yet ready for release -->
-            <button class="radial-btn game-steam" id="steamLobbyBtn" onclick="toggleSteamLobbyPanel()" style="display: none;">
+            <!-- Steam Multiplayer button -->
+            <button class="radial-btn game-steam" id="steamLobbyBtn" onclick="toggleSteamLobbyPanel()">
                 <span class="btn-icon">🎮</span>
                 <span class="btn-label" id="steamLobbyBtnText">Online</span>
             </button>

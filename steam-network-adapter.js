@@ -39,6 +39,7 @@ class SteamNetworkAdapter {
         this.eventHandlers = {
             'lobby-created': [],
             'lobby-joined': [],
+            'lobby-invite': [],
             'member-joined': [],
             'member-left': [],
             'members-updated': [],
@@ -178,6 +179,12 @@ class SteamNetworkAdapter {
 
         window.steamAPI.onP2PMessage((message) => {
             this._handleMessage(message);
+        });
+
+        // Handle lobby invite from friend (when player clicks invite)
+        window.steamAPI.onLobbyInvite((data) => {
+            console.log('Received lobby invite:', data.lobbyId);
+            this._emit('lobby-invite', data);
         });
     }
 
