@@ -1090,7 +1090,15 @@ ipcMain.handle('open-game-window', (event, { url, title, width, height, playerDa
         });
     }
 
-    gameWindow.loadFile(url);
+    console.log('[GameWindow] Loading file:', url);
+
+    gameWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error('[GameWindow] Failed to load:', errorCode, errorDescription, validatedURL);
+    });
+
+    gameWindow.loadFile(url).catch(err => {
+        console.error('[GameWindow] loadFile error:', err);
+    });
 
     // F12 to toggle DevTools
     gameWindow.webContents.on('before-input-event', (event, input) => {
